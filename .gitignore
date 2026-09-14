@@ -1,0 +1,32 @@
+# Données et sorties : jamais versionnées
+*.cram
+*.crai
+*.bam
+*.bai
+*.fa
+*.fa.fai
+*.fasta
+*.fasta.fai
+*.vcf
+*.vcf.gz
+*.vcf.gz.tbi
+
+# Résultats d'exécution
+travail/
+sortie/
+lot*/
+*.report.json
+provenance.json
+CR_*.pdf
+tableau_de_bord.tsv
+*.log
+
+# Caches et sauvegardes
+__pycache__/
+*.pyc
+.verrou/
+*.avant_correctif
+*.fige
+
+# Exception : ressource figée du pipeline, pas une donnée
+!ressources/pharmcat_positions.vcf

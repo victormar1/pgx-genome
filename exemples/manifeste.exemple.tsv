@@ -1,0 +1,6 @@
+# identifiant	alignement	fichier de variants
+# Trois colonnes séparées par des tabulations. Les lignes vides et les
+# lignes commençant par # sont ignorées. L'identifiant sert de nom de dossier :
+# lettres, chiffres, . _ - seulement, unique dans le manifeste.
+ECH001	/data/cram/ECH001.cram	/data/vcf/ECH001.vcf.gz
+ECH002	/data/cram/ECH002.cram	/data/vcf/ECH002.vcf.gz

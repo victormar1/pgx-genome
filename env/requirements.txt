@@ -1,0 +1,4 @@
+# Dépendance Python du pipeline (le compte rendu PDF).
+# Le reste des scripts n'utilise que la bibliothèque standard.
+# Cyrius apporte ses propres dépendances, installées depuis son dépôt.
+reportlab>=3.6
