@@ -39,59 +39,59 @@ fichier.
 
 ## Validation
 
-Le module a été mesuré sur **108 génomes publics** du 1000 Genomes Project (jeu
+Le module a été mesuré sur **182 génomes publics** du 1000 Genomes Project (jeu
 haute couverture NYGC, aligné sur GRCh38), pour lesquels une vérité indépendante
 existe : les diplotypes de référence **GeT-RM** (CDC) pour les gènes à allèles
 étoile, et le **typage HLA par séquençage Sanger** (Gourraud *et al.*, 2014) pour
 HLA-A et HLA-B.
 
-**Recevabilité et complétude.** Sur 108 génomes soumis, 3 sont refusés à l'entrée
-— deux alignements tronqués, un aligné sur le mauvais assemblage — et les 105
-recevables sont menés au bout des neuf étages, soit **105 / 105**. Les trois refus
+**Recevabilité et complétude.** Sur 182 génomes soumis, 3 sont refusés à l'entrée
+— deux alignements tronqués, un aligné sur le mauvais assemblage — et les 179
+recevables sont menés au bout des neuf étages, soit **179 / 179**. Les trois refus
 sont le comportement attendu : les contrôles d'entrée les écartent *avant* de
 lancer un seul étage, plutôt que de rendre un résultat faux sur une entrée
 corrompue.
 
-**Concordance sur le périmètre clinique (12 gènes) : 689 / 696 = 99,0 %.** Les
-sept écarts sont tous des quasi-concordances HLA à quatre chiffres (un champ sur
+**Concordance sur le périmètre clinique (12 gènes) : 865 / 874 = 99,0 %.** Les
+neuf écarts sont tous des quasi-concordances HLA à quatre chiffres (un champ sur
 deux), aucun sur un allèle à risque.
 
 | Gène | Concordance | | Gène | Concordance |
 |---|---|---|---|---|
-| CYP2C9 | 76 / 76 (100 %) | | SLCO1B1 | 62 / 62 (100 %) |
-| CYP2C19 | 77 / 77 (100 %) | | TPMT | 76 / 76 (100 %) |
-| CYP2D6 | 75 / 75 (100 %) | | NUDT15 | 2 / 2 (100 %) |
-| CYP3A4 | 76 / 76 (100 %) | | HLA-A | 84 / 88 (95,5 %) |
-| CYP3A5 | 76 / 76 (100 %) | | HLA-B | 85 / 88 (96,6 %) |
+| CYP2C9 | 92 / 92 (100 %) | | SLCO1B1 | 65 / 65 (100 %) |
+| CYP2C19 | 93 / 93 (100 %) | | TPMT | 86 / 86 (100 %) |
+| CYP2D6 | 90 / 90 (100 %) | | NUDT15 | 6 / 6 (100 %) |
+| CYP3A4 | 98 / 98 (100 %) | | HLA-A | 128 / 132 (97,0 %) |
+| CYP3A5 | 80 / 80 (100 %) | | HLA-B | 127 / 132 (96,2 %) |
 
 POR et ABCG2 sont dans le périmètre mais sans vérité sur ce banc.
 
-**Allèles HLA à risque — le résultat cliniquement décisif : tous les porteurs sont
-retrouvés, sans faux positif.**
+**Allèles HLA à risque — le résultat cliniquement décisif : les 28 porteurs sont
+tous retrouvés, sans faux positif.**
 
 | Allèle | Médicament | Porteurs | Retrouvés |
 |---|---|---|---|
 | B\*15:02 | carbamazépine (SJS/NET) | 12 | 12 |
-| A\*31:01 | carbamazépine | 4 | 4 |
+| A\*31:01 | carbamazépine | 7 | 7 |
 | B\*58:01 | allopurinol | 4 | 4 |
+| B\*57:01 | abacavir | 4 | 4 |
 | B\*15:11 | carbamazépine | 1 | 1 |
-| B\*57:01 | abacavir | 1 | 1 |
 
-Les quatre écarts HLA-A et les trois HLA-B portent sur le second champ d'un allèle
+Les quatre écarts HLA-A et les cinq HLA-B portent sur le second champ d'un allèle
 sans conséquence de prescription (par ex. `*02:01` rendu `*02:07`).
 
 **Couverture.** Positions diagnostiques couvertes : médiane 99,7 %, minimum
-97,7 %. Aux seuils par défaut (GQ ≥ 20, profondeur ≥ 10×), 88 % des couples
+97,5 %. Aux seuils par défaut (GQ ≥ 20, profondeur ≥ 10×), 88 % des couples
 gène × génome sont complets ; le reste est rendu « partiel » et signalé comme tel,
 jamais rabattu sur une référence.
 
-**Contre-vérification indépendante (PyPGx).** Les huit gènes à allèles étoile que
-PyPGx sait typer ont été appelés en parallèle par PyPGx sur les mêmes entrées
-(avec le nombre de copies pour CYP2D6). Les deux outils s'accordent sur **97,6 %**
-des couples. Contre la vérité GeT-RM, le module est à **100 % (520 / 520)** et
-PyPGx à **99,2 % (514 / 518)** ; les rares écarts sont à l'avantage du module
-(SLCO1B1, NUDT15, un CYP3A5), qui s'abstient ou tranche par classe de fonction là
-où PyPGx force un appel.
+**Contre-vérification indépendante (PyPGx).** Sur le sous-ensemble de génomes
+séquencés à l'origine, les huit gènes à allèles étoile que PyPGx sait typer ont été
+appelés en parallèle par PyPGx sur les mêmes entrées (avec le nombre de copies pour
+CYP2D6). Les deux outils s'accordent sur **97,6 %** des couples. Contre la vérité
+GeT-RM, le module est à **100 % (520 / 520)** et PyPGx à **99,2 % (514 / 518)** ;
+les rares écarts sont à l'avantage du module (SLCO1B1, NUDT15, un CYP3A5), qui
+s'abstient ou tranche par classe de fonction là où PyPGx force un appel.
 
 Le banc de validation lui-même — cohorte, vérités, scripts de comparaison — n'est
 pas versionné dans ce dépôt de production ; il est reproductible à partir des
