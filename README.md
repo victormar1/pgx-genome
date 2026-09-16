@@ -85,13 +85,16 @@ sans conséquence de prescription (par ex. `*02:01` rendu `*02:07`).
 gène × génome sont complets ; le reste est rendu « partiel » et signalé comme tel,
 jamais rabattu sur une référence.
 
-**Contre-vérification indépendante (PyPGx).** Sur le sous-ensemble de génomes
-séquencés à l'origine, les huit gènes à allèles étoile que PyPGx sait typer ont été
-appelés en parallèle par PyPGx sur les mêmes entrées (avec le nombre de copies pour
-CYP2D6). Les deux outils s'accordent sur **97,6 %** des couples. Contre la vérité
-GeT-RM, le module est à **100 % (520 / 520)** et PyPGx à **99,2 % (514 / 518)** ;
-les rares écarts sont à l'avantage du module (SLCO1B1, NUDT15, un CYP3A5), qui
-s'abstient ou tranche par classe de fonction là où PyPGx force un appel.
+**Contre-vérification indépendante (PyPGx).** Les gènes à allèles étoile que PyPGx
+sait typer ont été appelés en parallèle par PyPGx sur les **185 génomes**, sur les
+mêmes entrées (avec le nombre de copies pour CYP2D6, calibré sur le gène de contrôle
+VDR). Les deux outils s'accordent sur **97,1 %** des couples. Contre la vérité
+GeT-RM, le module est à **100 % (614 / 614)** et PyPGx à **98,7 % (602 / 610)** ; les
+rares écarts sont à l'avantage du module (CYP2D6, SLCO1B1, NUDT15), qui s'abstient ou
+tranche par classe de fonction là où PyPGx force un appel. En sens inverse, PyPGx
+type **POR** — 90 porteurs de `*28` sur les 185 — que l'interpréteur du module ne
+couvre pas ; c'est le seul apport où PyPGx complète le module plutôt que de le
+confirmer.
 
 Le banc de validation lui-même — cohorte, vérités, scripts de comparaison — n'est
 pas versionné dans ce dépôt de production ; il est reproductible à partir des
