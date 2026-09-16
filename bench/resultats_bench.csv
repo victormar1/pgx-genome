@@ -1,0 +1,17 @@
+﻿"# Banc PGx-genome — 185 génomes 1000G, vérité GeT-RM (allèles étoile) + Sanger Gourraud 2014 (HLA)"
+Gène,Indication,N (vérité),Module (concordance),PyPGx (concordance)
+CYP2C9,phénytoïne,92,100 % (92/92),100 % (92/92)
+CYP2C19,IPP,93,100 % (93/93),100 % (93/93)
+CYP2D6,"tramadol, codéine",92,100 % (92/92),96 % (85/89)
+CYP3A4,tacrolimus,100,100 % (100/100),99 % (100/101)
+CYP3A5,tacrolimus,80,100 % (80/80),100 % (80/80)
+SLCO1B1,statines,65,100 % (65/65),98 % (62/63)
+TPMT,azathioprine,86,100 % (86/86),100 % (86/86)
+NUDT15,azathioprine,6,100 % (6/6),67 % (4/6)
+HLA-A,carbamazépine,138,97 % (134/138),n/a (non typé)
+HLA-B,"carbamazépine, allopurinol",138,96 % (133/138),n/a (non typé)
+POR,tacrolimus,—,non couvert,typé (90 *28)
+ABCG2,allopurinol,—,sans vérité,typé (43 rs2231142)
+
+Périmètre 12 gènes,,890,99 % (881/890),"97,1 % accord module/PyPGx"
+Allèles HLA à risque,"carbamazépine, allopurinol, abacavir",30,"30/30 retrouvés, 0 faux positif",—

@@ -223,6 +223,7 @@ ressources/     les quatre ressources figées, lues au runtime
 doc/            le mode d'emploi complet et le schéma du flux de fichiers
 env/            requirements Python et empreintes des conteneurs
 exemples/       un manifeste type
+bench/          la fiche de résultats condensée (une ligne par gène)
 ```
 
 `doc/MODE_EMPLOI.md` est le manuel de référence, étage par étage, avec la
