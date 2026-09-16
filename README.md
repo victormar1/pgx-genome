@@ -39,20 +39,20 @@ fichier.
 
 ## Validation
 
-Le module a été mesuré sur **182 génomes publics** du 1000 Genomes Project (jeu
+Le module a été mesuré sur **188 génomes publics** du 1000 Genomes Project (jeu
 haute couverture NYGC, aligné sur GRCh38), pour lesquels une vérité indépendante
 existe : les diplotypes de référence **GeT-RM** (CDC) pour les gènes à allèles
 étoile, et le **typage HLA par séquençage Sanger** (Gourraud *et al.*, 2014) pour
 HLA-A et HLA-B.
 
-**Recevabilité et complétude.** Sur 182 génomes soumis, 3 sont refusés à l'entrée
-— deux alignements tronqués, un aligné sur le mauvais assemblage — et les 179
-recevables sont menés au bout des neuf étages, soit **179 / 179**. Les trois refus
+**Recevabilité et complétude.** Sur 188 génomes soumis, 3 sont refusés à l'entrée
+— deux alignements tronqués, un aligné sur le mauvais assemblage — et les 185
+recevables sont menés au bout des neuf étages, soit **185 / 185**. Les trois refus
 sont le comportement attendu : les contrôles d'entrée les écartent *avant* de
 lancer un seul étage, plutôt que de rendre un résultat faux sur une entrée
 corrompue.
 
-**Concordance sur le périmètre clinique (12 gènes) : 865 / 874 = 99,0 %.** Les
+**Concordance sur le périmètre clinique (12 gènes) : 881 / 890 = 99,0 %.** Les
 neuf écarts sont tous des quasi-concordances HLA à quatre chiffres (un champ sur
 deux), aucun sur un allèle à risque.
 
@@ -60,20 +60,20 @@ deux), aucun sur un allèle à risque.
 |---|---|---|---|---|
 | CYP2C9 | 92 / 92 (100 %) | | SLCO1B1 | 65 / 65 (100 %) |
 | CYP2C19 | 93 / 93 (100 %) | | TPMT | 86 / 86 (100 %) |
-| CYP2D6 | 90 / 90 (100 %) | | NUDT15 | 6 / 6 (100 %) |
-| CYP3A4 | 98 / 98 (100 %) | | HLA-A | 128 / 132 (97,0 %) |
-| CYP3A5 | 80 / 80 (100 %) | | HLA-B | 127 / 132 (96,2 %) |
+| CYP2D6 | 92 / 92 (100 %) | | NUDT15 | 6 / 6 (100 %) |
+| CYP3A4 | 100 / 100 (100 %) | | HLA-A | 134 / 138 (97,1 %) |
+| CYP3A5 | 80 / 80 (100 %) | | HLA-B | 133 / 138 (96,4 %) |
 
 POR et ABCG2 sont dans le périmètre mais sans vérité sur ce banc.
 
-**Allèles HLA à risque — le résultat cliniquement décisif : les 28 porteurs sont
+**Allèles HLA à risque — le résultat cliniquement décisif : les 30 porteurs sont
 tous retrouvés, sans faux positif.**
 
 | Allèle | Médicament | Porteurs | Retrouvés |
 |---|---|---|---|
 | B\*15:02 | carbamazépine (SJS/NET) | 12 | 12 |
-| A\*31:01 | carbamazépine | 7 | 7 |
-| B\*58:01 | allopurinol | 4 | 4 |
+| A\*31:01 | carbamazépine | 8 | 8 |
+| B\*58:01 | allopurinol | 5 | 5 |
 | B\*57:01 | abacavir | 4 | 4 |
 | B\*15:11 | carbamazépine | 1 | 1 |
 
