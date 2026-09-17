@@ -1,17 +1,17 @@
 ﻿"# Banc PGx-genome — 185 génomes 1000G high-coverage (NYGC, GRCh38). Concordance = diplotype/type rendu vs vérité, par prélèvement. Liste des prélèvements : echantillons.csv"
 Gène,Indication,Vérité (source),Readout (niveau de concordance),N (comparables),Module,PyPGx
-CYP2C9,phénytoïne,GeT-RM (CDC),diplotype ★ (classe de fonction équivalente),92,100 % (92/92),100 % (92/92)
+CYP2C9,phénytoïne,GeT-RM (CDC),diplotype ★ (classe de fonction équivalente),92,100 % (92/92),99 % (91/92)
 CYP2C19,IPP,GeT-RM (CDC),diplotype ★ (classe de fonction équivalente),93,100 % (93/93),100 % (93/93)
-CYP2D6,"tramadol, codéine",GeT-RM (CDC),diplotype ★ (classe de fonction équivalente),92,100 % (92/92),96 % (85/89)
-CYP3A4,tacrolimus,GeT-RM (CDC),diplotype ★ (classe de fonction équivalente),100,100 % (100/100),99 % (100/101)
+CYP2D6,"tramadol, codéine",GeT-RM (CDC),diplotype ★ (classe de fonction équivalente),97,100 % (97/97),97 % (90/93)
+CYP3A4,tacrolimus,GeT-RM (CDC),diplotype ★ (classe de fonction équivalente),101,100 % (101/101),98 % (100/102)
 CYP3A5,tacrolimus,GeT-RM (CDC),diplotype ★ (classe de fonction équivalente),80,100 % (80/80),100 % (80/80)
-SLCO1B1,statines,GeT-RM (CDC),diplotype ★ (classe de fonction équivalente),65,100 % (65/65),98 % (62/63)
-TPMT,azathioprine,GeT-RM (CDC),diplotype ★ (classe de fonction équivalente),86,100 % (86/86),100 % (86/86)
+SLCO1B1,statines,GeT-RM (CDC),diplotype ★ (classe de fonction équivalente),65,100 % (65/65),98 % (64/65)
+TPMT,azathioprine,GeT-RM (CDC),diplotype ★ (classe de fonction équivalente),87,100 % (87/87),99 % (86/87)
 NUDT15,azathioprine,GeT-RM (CDC),diplotype ★ (classe de fonction équivalente),6,100 % (6/6),67 % (4/6)
-HLA-A,carbamazépine,"Sanger, Gourraud 2014",type HLA à 2 champs (4 chiffres),138,97 % (134/138),n/a (non typé)
-HLA-B,"carbamazépine, allopurinol","Sanger, Gourraud 2014",type HLA à 2 champs (4 chiffres),138,96 % (133/138),n/a (non typé)
-POR,tacrolimus,aucune sur ce banc,diplotype ★ (PyPGx seul ; module non couvert),—,non couvert,typé (90 *28)
-ABCG2,allopurinol,aucune sur ce banc,génotype rs2231142 (PyPGx),—,sans vérité,typé (43 rs2231142)
+HLA-A,carbamazépine,"Sanger, Gourraud 2014",type HLA à 2 champs (4 chiffres),154,97 % (150/154),n/a (non typé)
+HLA-B,"carbamazépine, allopurinol","Sanger, Gourraud 2014",type HLA à 2 champs (4 chiffres),154,97 % (149/154),n/a (non typé)
+POR,tacrolimus,aucune sur ce banc,diplotype ★ (PyPGx seul ; module non couvert),—,non couvert,typé (102 *28)
+ABCG2,allopurinol,aucune sur ce banc,génotype rs2231142 (PyPGx),—,sans vérité,typé (45 rs2231142)
 
-Périmètre 12 gènes,,GeT-RM + Sanger,diplotype / type 2 champs,890,99 % (881/890),"97,1 % accord module/PyPGx"
-Allèles HLA à risque,"carbamazépine, allopurinol, abacavir",Sanger 2014,présence de l'allèle à risque,30,"30/30 retrouvés, 0 faux positif",—
+Périmètre 12 gènes,,GeT-RM + Sanger,diplotype / type 2 champs,929,99 % (920/929),"97,1 % accord module/PyPGx"
+Allèles HLA à risque,"carbamazépine, allopurinol, abacavir",Sanger 2014,présence de l'allèle à risque,41,"41/41 retrouvés, 0 faux positif",—
