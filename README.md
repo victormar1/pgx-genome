@@ -39,20 +39,21 @@ fichier.
 
 ## Validation
 
-Le module a été mesuré sur **206 génomes publics** du 1000 Genomes Project (jeu
+Le module a été mesuré sur **246 génomes publics** du 1000 Genomes Project (jeu
 haute couverture NYGC, aligné sur GRCh38), pour lesquels une vérité indépendante
 existe : les diplotypes de référence **GeT-RM** (CDC) pour les gènes à allèles
 étoile, et le **typage HLA par séquençage Sanger** (Gourraud *et al.*, 2014) pour
 HLA-A et HLA-B.
 
-**Recevabilité et complétude.** Sur 206 génomes soumis, 3 sont refusés à l'entrée
-— deux alignements tronqués, un aligné sur le mauvais assemblage — et les 203
-recevables sont menés au bout des neuf étages, soit **203 / 203**. Les trois refus
+**Recevabilité et complétude.** Sur 246 génomes soumis, 3 sont refusés à l'entrée
+— deux alignements tronqués, un aligné sur le mauvais assemblage — et les 243
+recevables sont menés au bout des neuf étages, soit **242 / 243** en réussite
+complète (un seul avec un échec CYP2D6 isolé, signalé comme tel). Les trois refus
 sont le comportement attendu : les contrôles d'entrée les écartent *avant* de
 lancer un seul étage, plutôt que de rendre un résultat faux sur une entrée
 corrompue.
 
-**Concordance sur le périmètre clinique (12 gènes) : 920 / 929 = 99,0 %.** Les
+**Concordance sur le périmètre clinique (12 gènes) : 1000 / 1009 = 99,1 %.** Les
 neuf écarts sont tous des quasi-concordances HLA à quatre chiffres (un champ sur
 deux), aucun sur un allèle à risque.
 
@@ -61,40 +62,41 @@ deux), aucun sur un allèle à risque.
 | CYP2C9 | 92 / 92 (100 %) | | SLCO1B1 | 65 / 65 (100 %) |
 | CYP2C19 | 93 / 93 (100 %) | | TPMT | 87 / 87 (100 %) |
 | CYP2D6 | 97 / 97 (100 %) | | NUDT15 | 6 / 6 (100 %) |
-| CYP3A4 | 101 / 101 (100 %) | | HLA-A | 150 / 154 (97,4 %) |
-| CYP3A5 | 80 / 80 (100 %) | | HLA-B | 149 / 154 (96,8 %) |
+| CYP3A4 | 101 / 101 (100 %) | | HLA-A | 190 / 194 (97,9 %) |
+| CYP3A5 | 80 / 80 (100 %) | | HLA-B | 189 / 194 (97,4 %) |
 
 POR et ABCG2 sont dans le périmètre mais sans vérité sur ce banc.
 
-**Allèles HLA à risque — le résultat cliniquement décisif : les 41 porteurs sont
+**Allèles HLA à risque — le résultat cliniquement décisif : les 81 porteurs sont
 tous retrouvés, sans faux positif.** La cohorte a été enrichie en porteurs
-d'allèles à risque pour renforcer ce point.
+d'allèles à risque pour renforcer ce point (leur nombre a doublé, de 41 à 81, sans
+faire apparaître le moindre faux positif).
 
 | Allèle | Médicament | Porteurs | Retrouvés |
 |---|---|---|---|
-| A\*31:01 | carbamazépine | 15 | 15 |
+| A\*31:01 | carbamazépine | 25 | 25 |
 | B\*15:02 | carbamazépine (SJS/NET) | 12 | 12 |
-| B\*58:01 | allopurinol | 8 | 8 |
-| B\*57:01 | abacavir | 5 | 5 |
+| B\*58:01 | allopurinol | 22 | 22 |
+| B\*57:01 | abacavir | 21 | 21 |
 | B\*15:11 | carbamazépine | 1 | 1 |
 
 Les quatre écarts HLA-A et les cinq HLA-B portent sur le second champ d'un allèle
 sans conséquence de prescription (par ex. `*02:01` rendu `*02:07`).
 
-**Couverture.** Positions diagnostiques couvertes : médiane 99,7 %, minimum 85 %
+**Couverture.** Positions diagnostiques couvertes : médiane 99,7 %, minimum 85,3 %
 (un génome à couverture plus basse, ses positions douteuses signalées). Aux seuils
 par défaut (GQ ≥ 20, profondeur ≥ 10×), 88 % des couples
 gène × génome sont complets ; le reste est rendu « partiel » et signalé comme tel,
 jamais rabattu sur une référence.
 
 **Contre-vérification indépendante (PyPGx).** Les gènes à allèles étoile que PyPGx
-sait typer ont été appelés en parallèle par PyPGx sur les **203 génomes**, sur les
+sait typer ont été appelés en parallèle par PyPGx sur les **244 génomes**, sur les
 mêmes entrées (avec le nombre de copies pour CYP2D6, calibré sur le gène de contrôle
-VDR). Les deux outils s'accordent sur **97,1 %** des couples. Contre la vérité
-GeT-RM, le module est à **100 % (621 / 621)** et PyPGx à **98,4 % (608 / 618)** ; les
+VDR). Les deux outils s'accordent sur **97,2 %** des couples. Contre la vérité
+GeT-RM, le module est à **100 % (621 / 621)** et PyPGx à **98,4 % (613 / 623)** ; les
 rares écarts sont à l'avantage du module (CYP2D6, SLCO1B1, NUDT15), qui s'abstient ou
 tranche par classe de fonction là où PyPGx force un appel. En sens inverse, PyPGx
-type **POR** — 102 porteurs de `*28` sur les 203 — que l'interpréteur du module ne
+type **POR** — 129 porteurs de `*28` sur les 244 — que l'interpréteur du module ne
 couvre pas ; c'est le seul apport où PyPGx complète le module plutôt que de le
 confirmer.
 
