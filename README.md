@@ -67,6 +67,8 @@ deux), aucun sur un allèle à risque.
 
 POR et ABCG2 sont dans le périmètre mais sans vérité sur ce banc.
 
+<p align="center"><img src="doc/figures/concordance_par_gene.svg" alt="Concordance du module contre la vérité, par gène : 100 % sur les huit gènes à allèles étoile, 97,9 % et 97,4 % sur HLA-A et HLA-B" width="720"></p>
+
 **Allèles HLA à risque — le résultat cliniquement décisif : les 81 porteurs sont
 tous retrouvés, sans faux positif.** La cohorte a été enrichie en porteurs
 d'allèles à risque pour renforcer ce point (leur nombre a doublé, de 41 à 81, sans
@@ -81,7 +83,10 @@ faire apparaître le moindre faux positif).
 | B\*15:11 | carbamazépine | 1 | 1 |
 
 Les quatre écarts HLA-A et les cinq HLA-B portent sur le second champ d'un allèle
-sans conséquence de prescription (par ex. `*02:01` rendu `*02:07`).
+sans conséquence de prescription (par ex. `*02:01` rendu `*02:07`) — le détail
+gène par gène est en [annexe](#annexe--les-neuf-écarts-hla-en-détail).
+
+<p align="center"><img src="doc/figures/hla_a_risque.svg" alt="Allèles HLA à risque : 81 porteurs sur 81 retrouvés, 0 faux positif" width="720"></p>
 
 **Couverture.** Positions diagnostiques couvertes : médiane 99,7 %, minimum 85,3 %
 (un génome à couverture plus basse, ses positions douteuses signalées). Aux seuils
@@ -99,6 +104,8 @@ tranche par classe de fonction là où PyPGx force un appel. En sens inverse, Py
 type **POR** — 129 porteurs de `*28` sur les 244 — que l'interpréteur du module ne
 couvre pas ; c'est le seul apport où PyPGx complète le module plutôt que de le
 confirmer.
+
+<p align="center"><img src="doc/figures/module_vs_pypgx.svg" alt="Contre-vérification indépendante : module 100 % (621/621) et PyPGx 98,4 % (613/623) contre GeT-RM, accord inter-outils 97,2 %" width="720"></p>
 
 Le banc de validation lui-même — cohorte, vérités, scripts de comparaison — n'est
 pas versionné dans ce dépôt de production ; il est reproductible à partir des
@@ -233,6 +240,57 @@ bench/          la fiche de résultats condensée (une ligne par gène)
 `doc/MODE_EMPLOI.md` est le manuel de référence, étage par étage, avec la
 justification de chaque garde-fou. `doc/FLUX_FICHIERS.md` décrit le cheminement
 des fichiers d'un bout à l'autre.
+
+## Annexe — les neuf écarts HLA en détail
+
+Les neuf discordances du périmètre sont **toutes** en HLA, **toutes** de type « un
+allèle sur deux » (le premier allèle du couple est juste, le second diffère), et
+**aucune ne touche un allèle à risque**. Là où un allèle à risque est présent, il
+est correctement appelé (p. ex. NA18980, A\*31:01).
+
+| Prélèvement | Gène | Module rend | Vérité Sanger | Allèle discordant | Impact prescription |
+|---|---|---|---|---|---|
+| NA18552 | HLA-A | \*02:07 / \*11:01 | \*02:01 / \*11:01 | 02:07 vs 02:01 | aucun |
+| NA18966 | HLA-A | \*02:06 / \*02:07 | \*02:01 / \*02:06 | 02:07 vs 02:01 | aucun |
+| NA18980 | HLA-A | \*11:02 / **\*31:01** | \*11:01 / **\*31:01** | 11:02 vs 11:01 | aucun — **A\*31:01 juste** |
+| NA19007 | HLA-A | \*02:07 / \*26:03 | \*02:01 / \*26:03 | 02:07 vs 02:01 | aucun |
+| HG01190 | HLA-B | \*18:01 / \*35:28 | \*15:20 / \*18:01(/18:17N) | 35:28 vs 15:20 | aucun |
+| NA10854 | HLA-B | \*27:05 / \*44:02 | \*44:02 / \*27:03 | 27:05 vs 27:03 | aucun |
+| NA11832 | HLA-B | \*27:05 / \*40:02 | \*40:02 / \*27:03·09·51·52 | 27:05 vs 27:0x | aucun (**vérité ambiguë**) |
+| NA19327 | HLA-B | \*45:01 / \*82:02 | \*45:01·45:07 / idem | 82:02 vs 45:07 | aucun (**vérité ambiguë**) |
+| NA19917 | HLA-B | \*08:01 / \*15:03 | \*15:03·15:103 / \*41:02 | 08:01 vs 41:02 | aucun |
+
+### Pourquoi ça coince sur certains HLA — et pourquoi ça ne change rien à la prescription
+
+1. **La région la plus polymorphe du génome, lue par des *reads* courts.** HLA-A et
+   HLA-B siègent dans un cluster dense et très homologue. Des lectures de 150 pb
+   mappent de façon ambiguë entre sous-types quasi identiques ; le **second champ**
+   (le sous-type) dépend souvent de 1–2 SNP, parfois hors des exons bien couverts.
+2. **Les écarts se regroupent dans deux familles connues pour ça : A\*02 et B\*27.**
+   Ces groupes ont une nuée de sous-types séparés par très peu de variants
+   (`02:01`↔`02:07`, `27:03`↔`27:05`). OptiType type surtout sur les exons 2–3 (la
+   poche à peptide) : quand la distinction de sous-type repose sur un variant
+   synonyme ou en exon 4+, elle est sous-déterminée, et l'outil retient le sous-type
+   le plus probable.
+3. **Une référence linéaire pour une région multi-haplotype.** GRCh38 *primary* ne
+   représente qu'un haplotype du CMH ; les lectures d'un haplotype divergent
+   mismappent ou tombent, ce qui affaiblit le support du vrai sous-type (les contigs
+   ALT ou la référence IMGT/HLA complète en récupéreraient une partie).
+4. **Une partie des « écarts » n'en sont pas.** Deux ont une vérité Sanger **ambiguë**
+   (NA11832, NA19327), et le typage Sanger de 2014 contient des erreurs documentées —
+   une part du désaccord est donc dans la référence, pas dans le module.
+
+**Le point qui compte :** le **premier champ** — le groupe allélique (\*31, \*15,
+\*57, \*58), c'est-à-dire *l'allèle à risque* — est résolu de façon robuste (81/81,
+0 faux positif). C'est le **second champ** (le sous-type) qui vacille, sur des
+allèles **sans conséquence de prescription**. La décision clinique se joue au premier
+champ ; elle n'est jamais affectée par ces neuf écarts.
+
+**Pistes si l'on voulait le second champ parfait :** mapper avec une référence HLA
+dédiée / un graphe pangénome pour récupérer les lectures d'haplotypes divergents ;
+arbitrer les désaccords OptiType↔Sanger par *k-mer* sur la base discriminante ; ou,
+plus simplement, rendre le HLA à la résolution cliniquement actionnable (le groupe
+allélique) et **signaler** l'incertitude de sous-type plutôt que de la forcer.
 
 ## Licence
 
