@@ -243,10 +243,9 @@ des fichiers d'un bout à l'autre.
 
 ## Annexe — les neuf écarts HLA en détail
 
-Les neuf discordances du périmètre sont **toutes** en HLA, **toutes** de type « un
-allèle sur deux » (le premier allèle du couple est juste, le second diffère), et
-**aucune ne touche un allèle à risque**. Là où un allèle à risque est présent, il
-est correctement appelé (p. ex. NA18980, A\*31:01).
+Tous en HLA, tous « un allèle sur deux » (le premier juste, le second qui diffère),
+aucun sur un allèle à risque — là où un allèle à risque est présent, il est juste
+(NA18980, A\*31:01).
 
 | Prélèvement | Gène | Module rend | Vérité Sanger | Allèle discordant | Impact prescription |
 |---|---|---|---|---|---|
@@ -260,37 +259,11 @@ est correctement appelé (p. ex. NA18980, A\*31:01).
 | NA19327 | HLA-B | \*45:01 / \*82:02 | \*45:01·45:07 / idem | 82:02 vs 45:07 | aucun (**vérité ambiguë**) |
 | NA19917 | HLA-B | \*08:01 / \*15:03 | \*15:03·15:103 / \*41:02 | 08:01 vs 41:02 | aucun |
 
-### Pourquoi ça coince sur certains HLA — et pourquoi ça ne change rien à la prescription
-
-1. **La région la plus polymorphe du génome, lue par des *reads* courts.** HLA-A et
-   HLA-B siègent dans un cluster dense et très homologue. Des lectures de 150 pb
-   mappent de façon ambiguë entre sous-types quasi identiques ; le **second champ**
-   (le sous-type) dépend souvent de 1–2 SNP, parfois hors des exons bien couverts.
-2. **Les écarts se regroupent dans deux familles connues pour ça : A\*02 et B\*27.**
-   Ces groupes ont une nuée de sous-types séparés par très peu de variants
-   (`02:01`↔`02:07`, `27:03`↔`27:05`). OptiType type surtout sur les exons 2–3 (la
-   poche à peptide) : quand la distinction de sous-type repose sur un variant
-   synonyme ou en exon 4+, elle est sous-déterminée, et l'outil retient le sous-type
-   le plus probable.
-3. **Une référence linéaire pour une région multi-haplotype.** GRCh38 *primary* ne
-   représente qu'un haplotype du CMH ; les lectures d'un haplotype divergent
-   mismappent ou tombent, ce qui affaiblit le support du vrai sous-type (les contigs
-   ALT ou la référence IMGT/HLA complète en récupéreraient une partie).
-4. **Une partie des « écarts » n'en sont pas.** Deux ont une vérité Sanger **ambiguë**
-   (NA11832, NA19327), et le typage Sanger de 2014 contient des erreurs documentées —
-   une part du désaccord est donc dans la référence, pas dans le module.
-
-**Le point qui compte :** le **premier champ** — le groupe allélique (\*31, \*15,
-\*57, \*58), c'est-à-dire *l'allèle à risque* — est résolu de façon robuste (81/81,
-0 faux positif). C'est le **second champ** (le sous-type) qui vacille, sur des
-allèles **sans conséquence de prescription**. La décision clinique se joue au premier
-champ ; elle n'est jamais affectée par ces neuf écarts.
-
-**Pistes si l'on voulait le second champ parfait :** mapper avec une référence HLA
-dédiée / un graphe pangénome pour récupérer les lectures d'haplotypes divergents ;
-arbitrer les désaccords OptiType↔Sanger par *k-mer* sur la base discriminante ; ou,
-plus simplement, rendre le HLA à la résolution cliniquement actionnable (le groupe
-allélique) et **signaler** l'incertitude de sous-type plutôt que de la forcer.
+Ils se concentrent sur les familles **A\*02** et **B\*27**, dont les sous-types ne
+diffèrent que de 1–2 SNP souvent hors des exons typés par OptiType, sur une référence
+GRCh38 linéaire pour une région multi-haplotype (deux vérités Sanger sont d'ailleurs
+elles-mêmes ambiguës). **Le premier champ — l'allèle à risque — reste résolu (81/81,
+0 faux positif) ; seul le second champ, sans impact de prescription, vacille.**
 
 ## Licence
 
