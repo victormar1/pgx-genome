@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 724 564" width="724" height="564" font-family="Segoe UI, -apple-system, Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="Flux de fichiers du module PGx, de la CRAM au compte rendu">
+  <rect x="0.5" y="0.5" width="723" height="563" rx="10" fill="#FBFAF7" stroke="#E2E6E3"/>
+  <g transform="translate(12,12)">
+  <defs>
+    <marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#5F726B"/></marker>
+  </defs>
+  <g stroke="#5F726B" stroke-width="1.2" fill="none">
+    <!-- entrees -> recevabilite -->
+    <line x1="89" y1="42" x2="89" y2="57" marker-end="url(#ar)"/>
+    <line x1="261" y1="42" x2="261" y2="57" marker-end="url(#ar)"/>
+    <line x1="433" y1="42" x2="433" y2="57" marker-end="url(#ar)"/>
+    <line x1="608" y1="42" x2="608" y2="57" marker-end="url(#ar)"/>
+    <!-- recevabilite -> etages -->
+    <line x1="89" y1="92" x2="89" y2="109" marker-end="url(#ar)"/>
+    <line x1="261" y1="92" x2="261" y2="109" marker-end="url(#ar)"/>
+    <line x1="608" y1="92" x2="608" y2="109" marker-end="url(#ar)"/>
+    <!-- etages -> fichiers R3 -->
+    <line x1="89" y1="144" x2="89" y2="153" marker-end="url(#ar)"/>
+    <line x1="261" y1="144" x2="261" y2="153" marker-end="url(#ar)"/>
+    <line x1="608" y1="144" x2="608" y2="153" marker-end="url(#ar)"/>
+    <!-- R3 fichiers -> R4 -->
+    <line x1="89" y1="174" x2="89" y2="191" marker-end="url(#ar)"/>
+    <line x1="261" y1="174" x2="261" y2="191" marker-end="url(#ar)"/>
+    <polyline points="311,164 433,164 433,191" marker-end="url(#ar)"/>
+    <!-- R4 -> fichiers R4 -->
+    <line x1="175" y1="226" x2="175" y2="235" marker-end="url(#ar)"/>
+    <line x1="433" y1="226" x2="433" y2="235" marker-end="url(#ar)"/>
+    <!-- vers appels externes -->
+    <line x1="433" y1="256" x2="433" y2="273" marker-end="url(#ar)"/>
+    <line x1="608" y1="174" x2="608" y2="273" marker-end="url(#ar)"/>
+    <line x1="522" y1="308" x2="522" y2="317" marker-end="url(#ar)"/>
+    <!-- vers PharmCAT -->
+    <line x1="175" y1="256" x2="175" y2="355" marker-end="url(#ar)"/>
+    <line x1="522" y1="338" x2="522" y2="355" marker-end="url(#ar)"/>
+    <!-- PharmCAT -> sorties -> CR -->
+    <line x1="175" y1="390" x2="175" y2="399" marker-end="url(#ar)"/>
+    <line x1="522" y1="390" x2="522" y2="399" marker-end="url(#ar)"/>
+    <line x1="175" y1="420" x2="175" y2="437" marker-end="url(#ar)"/>
+    <line x1="175" y1="472" x2="175" y2="481" marker-end="url(#ar)"/>
+    <line x1="522" y1="472" x2="522" y2="481" marker-end="url(#ar)"/>
+    <!-- etats -> provenance (pointille) -->
+    <polyline points="692,75 697,75 697,455 693,455" stroke-dasharray="3 3" marker-end="url(#ar)"/>
+  </g>
+
+  <!-- etiquettes de fleches -->
+  <g font-size="8.5" fill="#5F726B">
+    <text x="94" y="104">VCF</text>
+    <text x="266" y="104">CRAM + FASTA</text>
+    <text x="613" y="104">CRAM entière</text>
+    <text x="340" y="160">tranche.bam</text>
+    <text x="613" y="228">cyp2d6.tsv</text>
+    <text x="180" y="310">qualifie.vcf.gz</text>
+    <text x="690" y="268" text-anchor="end">états des étages</text>
+  </g>
+
+  <!-- R1 entrees -->
+  <g font-size="10.5" fill="#17332B">
+    <rect x="8" y="6" width="162" height="36" rx="5" fill="#E6F3EE" stroke="#1B9E77"/>
+    <text x="89" y="21" text-anchor="middle" font-weight="700">CRAM + .crai</text>
+    <text x="89" y="35" text-anchor="middle" font-size="8.5" fill="#5F726B">génome du patient · lecture seule</text>
+    <rect x="180" y="6" width="162" height="36" rx="5" fill="#E6F3EE" stroke="#1B9E77"/>
+    <text x="261" y="21" text-anchor="middle" font-weight="700">FASTA + .fai</text>
+    <text x="261" y="35" text-anchor="middle" font-size="8.5" fill="#5F726B">référence GRCh38 locale</text>
+    <rect x="352" y="6" width="162" height="36" rx="5" fill="#E6F3EE" stroke="#1B9E77"/>
+    <text x="433" y="21" text-anchor="middle" font-weight="700">VCF mono-échantillon</text>
+    <text x="433" y="35" text-anchor="middle" font-size="8.5" fill="#5F726B">de la plateforme · lecture seule</text>
+    <rect x="524" y="6" width="168" height="36" rx="5" fill="#E6F3EE" stroke="#1B9E77"/>
+    <text x="608" y="21" text-anchor="middle" font-weight="700">Ressources figées</text>
+    <text x="608" y="35" text-anchor="middle" font-size="8.5" fill="#5F726B">258 régions · 1 226 positions · 12 gènes</text>
+  </g>
+
+  <!-- R2 recevabilite -->
+  <rect x="8" y="58" width="684" height="34" rx="5" fill="#fff" stroke="#17332B"/>
+  <text x="18" y="72" font-size="10.5" font-weight="700" fill="#17332B"><tspan fill="#1B9E77">0 · </tspan>Recevabilité</text>
+  <text x="18" y="86" font-size="8.5" fill="#5F726B">VCF mono-échantillon · identité CRAM ↔ VCF · CRAM non tronquée · contigs = référence · accès aléatoire</text>
+  <text x="684" y="72" font-size="8.5" font-weight="700" fill="#B4661F" text-anchor="end">refus → provenance.json seul · exit 2</text>
+
+  <!-- etages (boites) -->
+  <g font-size="10" fill="#17332B">
+    <rect x="8" y="110" width="162" height="34" rx="5" fill="#fff" stroke="#17332B"/>
+    <text x="89" y="124" text-anchor="middle" font-weight="700"><tspan fill="#1B9E77">1 · </tspan>Filtre</text>
+    <text x="89" y="137" text-anchor="middle" font-size="8.5" fill="#5F726B">bcftools · 258 régions</text>
+
+    <rect x="180" y="110" width="162" height="34" rx="5" fill="#fff" stroke="#17332B"/>
+    <text x="261" y="124" text-anchor="middle" font-weight="700"><tspan fill="#1B9E77">2a · </tspan>Tranche</text>
+    <text x="261" y="137" text-anchor="middle" font-size="8.5" fill="#5F726B">cible + CMH + contigs HLA</text>
+
+    <rect x="524" y="110" width="168" height="34" rx="5" fill="#fff" stroke="#17332B"/>
+    <text x="608" y="124" text-anchor="middle" font-weight="700"><tspan fill="#1B9E77">3 · </tspan>CYP2D6 — Cyrius</text>
+    <text x="608" y="137" text-anchor="middle" font-size="8.5" fill="#5F726B">CRAM entière · ~3 000 régions</text>
+
+    <rect x="8" y="192" width="334" height="34" rx="5" fill="#fff" stroke="#17332B"/>
+    <text x="175" y="206" text-anchor="middle" font-weight="700"><tspan fill="#1B9E77">2b · </tspan>Contrôle qualité des positions</text>
+    <text x="175" y="219" text-anchor="middle" font-size="8.5" fill="#5F726B">profondeur sur la tranche · GT seul · ./. si hors seuil</text>
+
+    <rect x="352" y="192" width="162" height="34" rx="5" fill="#fff" stroke="#17332B"/>
+    <text x="433" y="206" text-anchor="middle" font-weight="700"><tspan fill="#1B9E77">4 · </tspan>HLA — OptiType</text>
+    <text x="433" y="219" text-anchor="middle" font-size="8.5" fill="#5F726B">lectures CMH · ≥ 200 paires</text>
+
+    <rect x="352" y="274" width="340" height="34" rx="5" fill="#fff" stroke="#17332B"/>
+    <text x="522" y="288" text-anchor="middle" font-weight="700"><tspan fill="#1B9E77">5 · </tspan>Appels externes</text>
+    <text x="522" y="301" text-anchor="middle" font-size="8.5" fill="#5F726B">format PharmCAT -po · espaces autour du +</text>
+
+    <rect x="8" y="356" width="684" height="34" rx="5" fill="#fff" stroke="#17332B"/>
+    <text x="350" y="370" text-anchor="middle" font-weight="700"><tspan fill="#1B9E77">6 · </tspan>Interprétation — PharmCAT 3.4.0</text>
+    <text x="350" y="383" text-anchor="middle" font-size="8.5" fill="#5F726B">préprocesseur --absent-to-ref · 22 gènes interprétés · aucun repli</text>
+
+    <rect x="8" y="438" width="334" height="34" rx="5" fill="#fff" stroke="#17332B"/>
+    <text x="175" y="452" text-anchor="middle" font-weight="700"><tspan fill="#1B9E77">7 · </tspan>Compte rendu</text>
+    <text x="175" y="465" text-anchor="middle" font-size="8.5" fill="#5F726B">report.json + perimetre.json · 12 gènes rapportés</text>
+
+    <rect x="352" y="438" width="340" height="34" rx="5" fill="#fff" stroke="#17332B"/>
+    <text x="522" y="452" text-anchor="middle" font-weight="700">Provenance <tspan font-weight="400" font-size="8.5" fill="#5F726B">(toujours exécutée)</tspan></text>
+    <text x="522" y="465" text-anchor="middle" font-size="8.5" fill="#5F726B">empreintes CRAM/VCF/FASTA · hash ressources · images · état des 9 étages</text>
+  </g>
+
+  <!-- fichiers intermediaires (travail/) -->
+  <g font-size="9" font-family="Consolas, Menlo, monospace" fill="#17332B">
+    <rect x="39" y="154" width="100" height="20" rx="10" fill="#F1F3F2" stroke="#C9D2CE"/>
+    <text x="89" y="168" text-anchor="middle">filtre.vcf.gz</text>
+    <rect x="211" y="154" width="100" height="20" rx="10" fill="#F1F3F2" stroke="#C9D2CE"/>
+    <text x="261" y="168" text-anchor="middle">tranche.bam</text>
+    <rect x="558" y="154" width="100" height="20" rx="10" fill="#F1F3F2" stroke="#C9D2CE"/>
+    <text x="608" y="168" text-anchor="middle">cyp2d6.tsv</text>
+    <rect x="65" y="236" width="220" height="20" rx="10" fill="#F1F3F2" stroke="#C9D2CE"/>
+    <text x="175" y="250" text-anchor="middle">qualifie.vcf.gz · perimetre.json</text>
+    <rect x="393" y="236" width="80" height="20" rx="10" fill="#F1F3F2" stroke="#C9D2CE"/>
+    <text x="433" y="250" text-anchor="middle">hla.tsv</text>
+    <rect x="452" y="318" width="140" height="20" rx="10" fill="#F1F3F2" stroke="#C9D2CE"/>
+    <text x="522" y="332" text-anchor="middle">appels_externes.tsv</text>
+  </g>
+
+  <!-- livrables (sortie/) -->
+  <g font-size="9" font-family="Consolas, Menlo, monospace" font-weight="700" fill="#11684F">
+    <rect x="100" y="400" width="150" height="20" rx="10" fill="#DDF1E9" stroke="#1B9E77"/>
+    <text x="175" y="414" text-anchor="middle">&lt;ECH&gt;.report.json</text>
+    <rect x="447" y="400" width="150" height="20" rx="10" fill="#DDF1E9" stroke="#1B9E77"/>
+    <text x="522" y="414" text-anchor="middle">match_warnings.txt</text>
+    <rect x="110" y="482" width="130" height="20" rx="10" fill="#DDF1E9" stroke="#1B9E77"/>
+    <text x="175" y="496" text-anchor="middle">CR_&lt;ECH&gt;.pdf</text>
+    <rect x="457" y="482" width="130" height="20" rx="10" fill="#DDF1E9" stroke="#1B9E77"/>
+    <text x="522" y="496" text-anchor="middle">provenance.json</text>
+  </g>
+
+  <!-- legende -->
+  <g font-size="8.5" fill="#5F726B">
+    <rect x="8" y="520" width="12" height="10" rx="2" fill="#E6F3EE" stroke="#1B9E77"/><text x="25" y="529">entrée (lecture seule)</text>
+    <rect x="140" y="520" width="12" height="10" rx="2" fill="#fff" stroke="#17332B"/><text x="157" y="529">étage</text>
+    <rect x="210" y="520" width="12" height="10" rx="5" fill="#F1F3F2" stroke="#C9D2CE"/><text x="227" y="529">intermédiaire (travail/, ~0,37 Go, à purger)</text>
+    <rect x="455" y="520" width="12" height="10" rx="5" fill="#DDF1E9" stroke="#1B9E77"/><text x="472" y="529">livrable (sortie/, ~1,5 Mo)</text>
+  </g>
+  </g>
+</svg>

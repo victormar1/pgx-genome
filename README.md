@@ -37,6 +37,10 @@ lue, identique à la référence » de « position non séquencée ». C'est ce 
 que PharmCAT rende un génotype de référence sur une position simplement absente du
 fichier.
 
+Flux de fichiers pour un génome (détail étage par étage : `doc/FLUX_FICHIERS.md`) :
+
+<p align="center"><img src="doc/figures/flux_fichiers.svg" alt="Flux de fichiers : CRAM, FASTA, VCF et ressources passent la recevabilité, puis filtre, tranche, contrôle qualité, CYP2D6 par Cyrius, HLA par OptiType, appels externes, interprétation PharmCAT, compte rendu et provenance" width="724"></p>
+
 ## Validation
 
 Le module a été mesuré sur **246 génomes publics** du 1000 Genomes Project (jeu
@@ -209,6 +213,11 @@ autre assemblage, un alignement sans index lisible.
 `provenance.json` porte le champ `reussite_complete`, vrai seulement si les neuf
 étages sont présents et qu'aucun n'est en échec. C'est le champ qu'une plateforme
 surveille.
+
+Exemple de compte rendu positif : HG00140, génome public du 1000 Genomes, porteur de
+HLA-A\*31:01 et HLA-B\*57:01, deux allèles concordants avec le typage Sanger.
+
+<p align="center"><img src="doc/figures/exemple_cr_HG00140.png" alt="Compte rendu de HG00140 : contre-indication carbamazépine (HLA-A*31:01) et abacavir (HLA-B*57:01), génotypes des onze gènes rendus, conduites à tenir" width="620"></p>
 
 ## Traçabilité
 
