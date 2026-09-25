@@ -19,6 +19,7 @@
 | `positions_exactes.bed` | étage 2b | positions exactes où mesurer la profondeur (`samtools depth -b`) |
 | `pharmcat_positions.vcf` | étage 2b | les 1 226 positions diagnostiques attendues + tag `PX=` gène |
 | `perimetre_rnpgx.json` | étage 2b + provenance | les 12 gènes du périmètre clinique RNPGx |
+| `traductions_cpic_fr.json` | étage 7 | traduction de chaque texte CPIC émis, type de consigne, médicaments restitués, règle HLA-B*15:11 hors PharmCAT |
 | `tranche.bed` | non embarquée | le script construit son propre `travail/tranche.bed` dynamiquement (contigs HLA lus dans l'en-tête) |
 
 Note : `alleles_pharmcat.json` et `definitions_alleles.json` ne sont pas utilisées par le pipeline de production (uniquement par l'outillage de validation, hors de ce dépôt).
@@ -37,7 +38,7 @@ Note : `alleles_pharmcat.json` et `definitions_alleles.json` ne sont pas utilis�
 | **4. HLA** | `tranche.bam`, contigs HLA | Extrait les lectures MHC → paires ; si ≥ 200 paires, OptiType type HLA I | `samtools` + Docker **OptiType** 1.3.5 | `mhc_1.fq`, `mhc_2.fq`, `hla/<ts>/<ts>_result.tsv`, `hla.tsv` | < 200 paires ou OptiType échoue |
 | **5. appels externes** | `cyp2d6.tsv`, `hla.tsv` | Traduit au format PharmCAT `-po` ; espaces autour du `+` des tandems | **Python `appels_externes.py`** | `appels_externes.tsv` | un étage OK n'a pas déposé sa ligne |
 | **6. interprétation** | `qualifie.vcf.gz` (aucun repli), `appels_externes.tsv` | Préprocesseur `--absent-to-ref` puis `pharmcat.jar -reporterJson` ; 22 gènes | Docker **PharmCAT** 3.4.0 | `qualifie.vcf.preprocessed.vcf.bgz`, `sortie/<ECH>.report.json`, `match_warnings.txt` | `qualifie.vcf.gz` absent ; préproc. ou jar échoue |
-| **7. compte rendu** | `<ECH>.report.json`, `perimetre.json` | CR PDF 1 page ; ne rapporte que les 12 gènes cliniques ; hors périmètre nommés à part | **Python `compte_rendu.py`** + reportlab | `sortie/CR_<ECH>.pdf` | `report.json` ou `perimetre.json` absent |
+| **7. compte rendu** | `<ECH>.report.json`, `perimetre.json`, `traductions_cpic_fr.json` | CR PDF : médicaments concernés d'abord, puis 12 gènes, conclusion, limites ; recommandations CPIC fortes ou modérées qui modifient la prise en charge | **Python `compte_rendu.py`** + reportlab | `sortie/CR_<ECH>.pdf` | `report.json`, `perimetre.json` ou traductions absents |
 | **provenance** | `etats.tsv`, empreintes CRAM/VCF/FASTA, hash RES, digests images, git Cyrius | Agrège tout ; `reussite_complete` vrai ssi 9 étages présents et aucun échec (SANS_RESULTAT n'est pas un échec) | **Python `provenance.py`** | `sortie/provenance.json` | toujours exécuté ; code de sortie du module |
 
 ---

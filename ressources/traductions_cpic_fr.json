@@ -1,0 +1,308 @@
+{
+ "version": "1.0",
+ "etabli_le": "2026-09-25",
+ "statut": "proposition",
+ "statut_note": "Traductions proposées, à valider par un pharmacologue ou un biologiste avant usage clinique. Passer 'statut' à 'validée' une fois relues.",
+ "referentiel": "CPIC, textes émis par PharmCAT 3.4.0",
+ "types": {
+  "contre-indication": "ne pas prescrire ; restitué en tête",
+  "éviter": "éviter le médicament ou en choisir un autre ; restitué",
+  "adaptation": "posologie ou choix modifié ; restitué",
+  "vigilance": "posologie inchangée mais seuil de vigilance ; restitué",
+  "standard": "prise en charge usuelle ; non restitué dans le bloc des médicaments",
+  "sans recommandation": "non restitué"
+ },
+ "medicaments_restitues": {
+  "tacrolimus": "tacrolimus",
+  "azathioprine": "azathioprine",
+  "allopurinol": "allopurinol",
+  "carbamazepine": "carbamazépine",
+  "oxcarbazepine": "oxcarbazépine",
+  "phenytoin": "phénytoïne",
+  "fosphenytoin": "fosphénytoïne",
+  "abacavir": "abacavir",
+  "tramadol": "tramadol",
+  "codeine": "codéine",
+  "omeprazole": "oméprazole",
+  "esomeprazole": "ésoméprazole",
+  "lansoprazole": "lansoprazole",
+  "pantoprazole": "pantoprazole",
+  "rabeprazole": "rabéprazole",
+  "simvastatin": "simvastatine",
+  "atorvastatin": "atorvastatine",
+  "rosuvastatin": "rosuvastatine",
+  "pravastatin": "pravastatine",
+  "fluvastatin": "fluvastatine"
+ },
+ "note_medicaments": "Liste du POC néphrologie et épilepsie. Lovastatine, pitavastatine et dexlansoprazole sont écartés ; à ajuster avec le pharmacologue.",
+ "regles_hla_rnpgx": {
+  "note": "Allèles de classe 1 du RNPGx que PharmCAT n'évalue pas ; déclenchés par le typage HLA du module.",
+  "HLA-B*15:11": {
+   "medicaments": [
+    "carbamazepine",
+    "oxcarbazepine"
+   ],
+   "fr": "Chez un patient qui n'en a jamais reçu, ne pas utiliser : risque de SJS/NET (allèle B*15:11).",
+   "type": "contre-indication",
+   "source": "RNPGx 2026, classe 1"
+  }
+ },
+ "traductions": {
+  "Abacavir is not recommended": {
+   "fr": "Ne pas prescrire l'abacavir : risque de syndrome d'hypersensibilité.",
+   "type": "contre-indication"
+  },
+  "Allopurinol is contraindicated": {
+   "fr": "Allopurinol contre-indiqué : risque de réaction cutanée sévère (SJS/NET, DRESS).",
+   "type": "contre-indication"
+  },
+  "Avoid codeine use because of possibility of diminished analgesia. If opioid use is warranted, consider a non-tramadol opioid.": {
+   "fr": "Éviter la codéine : analgésie insuffisante attendue. Si un opioïde est nécessaire, préférer un opioïde autre que le tramadol.",
+   "type": "éviter"
+  },
+  "Avoid codeine use because of potential for serious toxicity. If opioid use is warranted, consider a non-tramadol opioid.": {
+   "fr": "Éviter la codéine : risque de toxicité grave. Si un opioïde est nécessaire, préférer un opioïde autre que le tramadol.",
+   "type": "éviter"
+  },
+  "Avoid tramadol use because of possibility of diminished analgesia. If opioid use is warranted, consider a non-codeine opioid.": {
+   "fr": "Éviter le tramadol : analgésie insuffisante attendue. Si un opioïde est nécessaire, préférer un opioïde autre que la codéine.",
+   "type": "éviter"
+  },
+  "Avoid tramadol use because of potential for toxicity. If opioid use is warranted, consider a non-codeine opioid.": {
+   "fr": "Éviter le tramadol : risque de toxicité. Si un opioïde est nécessaire, préférer un opioïde autre que la codéine.",
+   "type": "éviter"
+  },
+  "Based on ABCG2 status, prescribe desired starting dose and adjust doses of rosuvastatin based on disease-specific and specific population guidelines. SLCO1B1 phenotype could not be assigned based on genotyping.": {
+   "fr": "D'après ABCG2 : dose initiale souhaitée, adaptée selon la pathologie et la population. Phénotype SLCO1B1 non attribuable.",
+   "type": "standard"
+  },
+  "Based on ABCG2 status, prescribe desired starting dose and adjust doses of rosuvastatin based on disease-specific guidelines and specific population guidelines. SLCO1B1 phenotype could not be assigned based on genotyping.": {
+   "fr": "D'après ABCG2 : dose initiale souhaitée, adaptée selon la pathologie et la population. Phénotype SLCO1B1 non attribuable.",
+   "type": "standard"
+  },
+  "Based on CYP2C9 status, prescribe desired starting dose and adjust doses of fluvastatin based on disease-specific guidelines. SLCO1B1 phenotype could not be assigned based on genotyping.": {
+   "fr": "D'après CYP2C9 : dose initiale souhaitée, adaptée selon la pathologie. Phénotype SLCO1B1 non attribuable.",
+   "type": "standard"
+  },
+  "Based on CYP2C9 status, prescribe ≤40mg per day as a starting dose and adjust doses of fluvastatin based on disease-specific guidelines. If dose >40mg needed for desired efficacy, consider an alternative statin or combination therapy (i.e., fluvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391). SLCO1B1 phenotype could not be assigned based on genotyping.": {
+   "fr": "D'après CYP2C9 : dose initiale de 40 mg/j au plus ; au-delà, envisager une autre statine ou une association. Phénotype SLCO1B1 non attribuable.",
+   "type": "adaptation"
+  },
+  "Based on NUDT15, initiate therapy with reduced starting doses (30-80% of standard starting dose) if standard starting dose is ≥2 mg/kg/day. If starting dose is already below standard starting dose, dose reduction might not be necessary. During therapy, adjust the doses of azathioprine based on the degree of myelosuppression and disease-specific guidelines. It usually takes at least 2-4 weeks of stable dosing to reach steady state after each dose adjustment.": {
+   "fr": "D'après NUDT15 : dose initiale réduite à 30–80 % de la dose standard si celle-ci atteint 2 mg/kg/j ou plus (inutile si la dose initiale est déjà inférieure) ; adapter ensuite selon la myélosuppression et la pathologie, équilibre en 2 à 4 semaines de dose stable.",
+   "type": "adaptation"
+  },
+  "Based on NUDT15, initiate therapy with standard starting dose (e.g., 2 mg/kg/day for autoimmune diseases). During therapy, adjust doses of azathioprine based on disease-specific guidelines. It usually takes at least 2 weeks to reach steady state after each dose adjustment.": {
+   "fr": "D'après NUDT15 : dose initiale standard (par ex. 2 mg/kg/j dans les maladies auto-immunes), puis adaptée selon la pathologie.",
+   "type": "standard"
+  },
+  "Based on SLCO1B1 status, prescribe desired starting dose and adjust doses based on disease-specific guidelines. CYP2C9 phenotype could not be assigned based on genotyping.": {
+   "fr": "D'après SLCO1B1 : dose initiale souhaitée, adaptée selon la pathologie. Phénotype CYP2C9 non attribuable.",
+   "type": "standard"
+  },
+  "Consider alternative nonthiopurine immunosuppressant therapy.": {
+   "fr": "Envisager un immunosuppresseur non thiopurinique.",
+   "type": "éviter"
+  },
+  "For first dose, use typical initial or loading dose. For subsequent doses use approximately 50% less than typical maintenance dose. Subsequent doses should be adjusted according to therapeutic drug monitoring, response, and side effects. An HLA-B*15:02 negative test does not eliminate the risk of phenytoin-induced SJS/TEN, and patients should be carefully monitored according to a usual standard.": {
+   "fr": "Première dose : dose initiale ou de charge habituelle ; doses suivantes environ 50 % sous la dose d'entretien habituelle, puis adaptées au suivi thérapeutique pharmacologique, à la réponse et à la tolérance. L'absence de HLA-B*15:02 n'élimine pas le risque de SJS/NET.",
+   "type": "adaptation"
+  },
+  "For first dose, use typical initial or loading dose. For subsequent doses, use approximately 25% less than typical maintenance dose. Subsequent doses should be adjusted according to therapeutic drug monitoring, response and side effects. An HLA-B*15:02 negative test does not eliminate the risk of phenytoin-induced SJS/TEN, and patients should be carefully monitored according to a usual standard.": {
+   "fr": "Première dose : dose initiale ou de charge habituelle ; doses suivantes environ 25 % sous la dose d'entretien habituelle, puis adaptées au suivi thérapeutique pharmacologique, à la réponse et à la tolérance. L'absence de HLA-B*15:02 n'élimine pas le risque de SJS/NET.",
+   "type": "adaptation"
+  },
+  "If patient is carbamazepine-naïve and alternative agents are available, do not use carbamazepine.": {
+   "fr": "Chez un patient qui n'en a jamais reçu, ne pas utiliser la carbamazépine si une alternative existe : risque de réaction cutanée grave, dont le DRESS.",
+   "type": "contre-indication"
+  },
+  "If patient is carbamazepine-naïve and alternative agents are not available, consider the use of carbamazepine with increased frequency of clinical monitoring. Discontinue therapy at first evidence of a cutaneous adverse reaction.": {
+   "fr": "Chez un patient qui n'en a jamais reçu et sans alternative, envisager la carbamazépine sous surveillance clinique renforcée ; arrêter au premier signe de réaction cutanée.",
+   "type": "adaptation"
+  },
+  "If patient is carbamazepine-naïve, do not use carbamazepine.": {
+   "fr": "Chez un patient qui n'en a jamais reçu, ne pas utiliser la carbamazépine : risque de SJS/NET.",
+   "type": "contre-indication"
+  },
+  "If patient is oxcarbazepine-naïve, do not use oxcarbazepine.": {
+   "fr": "Chez un patient qui n'en a jamais reçu, ne pas utiliser l'oxcarbazépine : risque de SJS/NET.",
+   "type": "contre-indication"
+  },
+  "If patient is phenytoin-naive, do not use phenytoin/fosphenytoin. Avoid carbamazepine and oxcarbazepine.": {
+   "fr": "Chez un patient qui n'en a jamais reçu, ne pas utiliser la phénytoïne ni la fosphénytoïne (risque de SJS/NET) ; éviter aussi carbamazépine et oxcarbazépine.",
+   "type": "contre-indication"
+  },
+  "If the patient has previously used phenytoin continuously for longer than three months without incidence of cutaneous adverse reactions, cautiously consider use of phenytoin in the future. The latency period for drug-induced SJS/TEN is short with continuous dosing and adherence to therapy (4-28 days), and cases usually occur within three months of dosing.": {
+   "fr": "Chez un patient déjà traité plus de trois mois sans réaction cutanée, la phénytoïne peut être prudemment envisagée : les SJS/NET surviennent en général dans les trois premiers mois (4 à 28 jours).",
+   "type": "standard"
+  },
+  "Increase starting daily dose by 100%. Daily dose may be given in divided doses. Monitor for efficacy.": {
+   "fr": "Augmenter de 100 % la dose quotidienne initiale, fractionnable ; surveiller l'efficacité.",
+   "type": "adaptation"
+  },
+  "Increase starting dose 1.5 to 2 times recommended starting dose. Total starting dose should not exceed 0.3 mg/kg/day. Use therapeutic drug monitoring to guide dose adjustments.": {
+   "fr": "Envisager une dose initiale 1,5 à 2 fois supérieure à la dose standard, sans dépasser 0,3 mg/kg/j, puis adapter impérativement sur le suivi thérapeutique pharmacologique.",
+   "type": "adaptation"
+  },
+  "Initiate standard starting daily dose. Consider increasing dose by 50-100% for the treatment of H. pylori infection and erosive esophagitis. Daily dose may be given in divided doses. Monitor for efficacy.": {
+   "fr": "Dose quotidienne initiale standard ; augmentation de 50 à 100 % envisageable pour l'éradication d'H. pylori et l'œsophagite érosive, dose fractionnable. Surveiller l'efficacité.",
+   "type": "standard"
+  },
+  "Initiate standard starting daily dose. For chronic therapy (>12 weeks) and efficacy achieved, consider 50% reduction in daily dose and monitor for continued efficacy.": {
+   "fr": "Dose quotidienne initiale standard ; en traitement prolongé (plus de 12 semaines), une fois l'efficacité obtenue, envisager de réduire de 50 % la dose quotidienne en surveillant l'efficacité.",
+   "type": "adaptation"
+  },
+  "Initiate therapy with reduced starting doses (30-80% of standard starting dose) if standard starting dose is ≥2 mg/kg/day. If starting dose is already below standard starting dose, dose reduction might not be necessary. During therapy, adjust the doses of azathioprine based on the degree of myelosuppression and disease-specific guidelines. It usually takes at least 2-4 weeks of stable dosing to reach steady state after each dose adjustment.": {
+   "fr": "Dose initiale réduite à 30–80 % de la dose standard si celle-ci atteint 2 mg/kg/j ou plus (inutile si la dose initiale est déjà inférieure) ; adapter ensuite selon la myélosuppression et la pathologie, équilibre en 2 à 4 semaines de dose stable.",
+   "type": "adaptation"
+  },
+  "Initiate therapy with standard recommended dose. Use therapeutic drug monitoring to guide dose adjustments.": {
+   "fr": "Dose initiale standard ; adaptations guidées par le suivi thérapeutique pharmacologique.",
+   "type": "standard"
+  },
+  "Initiate therapy with standard starting dose (e.g., 2 mg/kg/day for autoimmune diseases). During therapy, adjust doses of azathioprine based on disease-specific guidelines. It usually takes at least 2 weeks to reach steady state after each dose adjustment.": {
+   "fr": "Dose initiale standard (par ex. 2 mg/kg/j dans les maladies auto-immunes), puis adaptée selon la pathologie ; équilibre atteint en au moins 2 semaines après chaque adaptation.",
+   "type": "standard"
+  },
+  "No adjustments needed from typical dosing strategies. Subsequent doses should be adjusted according to therapeutic drug monitoring, response and side effects. An HLA-B*15:02 negative test does not eliminate the risk of phenytoin-induced SJS/TEN and patients should be carefully monitored according to a usual standard.": {
+   "fr": "Pas d'adaptation de la posologie usuelle ; doses suivantes guidées par le suivi thérapeutique pharmacologique, la réponse et la tolérance. L'absence de HLA-B*15:02 n'élimine pas le risque de SJS/NET : surveillance habituelle.",
+   "type": "standard"
+  },
+  "No adjustments needed from typical dosing strategies. Subsequent doses should be adjusted according to therapeutic drug monitoring, response, and side effects. An HLA-B*15:02 negative test does not eliminate the risk of phenytoin-induced SJS/TEN and patients should be carefully monitored according to a usual standard.": {
+   "fr": "Pas d'adaptation de la posologie usuelle ; doses suivantes guidées par le suivi thérapeutique pharmacologique, la réponse et la tolérance. L'absence de HLA-B*15:02 n'élimine pas le risque de SJS/NET : surveillance habituelle.",
+   "type": "standard"
+  },
+  "No recommendation": {
+   "fr": "Pas de recommandation.",
+   "type": "sans recommandation"
+  },
+  "Prescribe an alternative statin depending on the desired potency (see Figure 1 of PMID: 35152405 for recommendations for alternative statins).": {
+   "fr": "Privilégier une autre statine selon la puissance recherchée.",
+   "type": "adaptation"
+  },
+  "Prescribe an alternative statin depending on the desired potency (see Figure 1 of PMID: 35152405 for recommendations for alternative statins). If lovastatin therapy is warranted, limit dose to ≤20mg/day.": {
+   "fr": "Privilégier une autre statine selon la puissance recherchée. Si la lovastatine est maintenue, limiter la dose à 20 mg/j au plus.",
+   "type": "adaptation"
+  },
+  "Prescribe an alternative statin depending on the desired potency (see Figure 1 of PMID: 35152405 for recommendations for alternative statins). If simvastatin therapy is warranted, limit dose to <20mg/day.": {
+   "fr": "Privilégier une autre statine selon la puissance recherchée. Si la simvastatine est maintenue, limiter la dose à moins de 20 mg/j.",
+   "type": "adaptation"
+  },
+  "Prescribe an alternative statin depending on the desired potency. (see Table 2 and Figure 1 of PMID: 35152405 for recommendations for alternative statins).": {
+   "fr": "Privilégier une autre statine selon la puissance recherchée.",
+   "type": "adaptation"
+  },
+  "Prescribe desired starting dose and adjust doses based on disease-specific guidelines.": {
+   "fr": "Dose initiale souhaitée, adaptée selon les recommandations de la pathologie.",
+   "type": "standard"
+  },
+  "Prescribe desired starting dose and adjust doses of fluvastatin based on disease-specific guidelines.": {
+   "fr": "Dose initiale souhaitée, adaptée selon les recommandations de la pathologie.",
+   "type": "standard"
+  },
+  "Prescribe desired starting dose and adjust doses of fluvastatin based on disease-specific guidelines. Prescriber should be aware of possible increased risk for myopathy especially for doses >40mg per day.": {
+   "fr": "Dose initiale souhaitée ; risque de myopathie accru, surtout au-delà de 40 mg/j.",
+   "type": "vigilance"
+  },
+  "Prescribe desired starting dose and adjust doses of pravastatin based on disease-specific guidelines. Prescriber should be aware of possible increased risk for myopathy with pravastatin especially with doses >40mg per day.": {
+   "fr": "Dose initiale souhaitée ; risque de myopathie accru, surtout au-delà de 40 mg/j.",
+   "type": "vigilance"
+  },
+  "Prescribe desired starting dose and adjust doses of rosuvastatin based on disease-specific and specific population guidelines.": {
+   "fr": "Dose initiale souhaitée, adaptée selon les recommandations de la pathologie et de la population.",
+   "type": "standard"
+  },
+  "Prescribe desired starting dose and adjust doses of rosuvastatin based on disease-specific and specific population guidelines. Prescriber should be aware of possible increased risk for myopathy especially for doses >20mg.": {
+   "fr": "Dose initiale souhaitée ; risque de myopathie accru, surtout au-delà de 20 mg/j.",
+   "type": "vigilance"
+  },
+  "Prescribe ≤ 2mg as a starting dose and adjust doses of pitavastatin based on disease-specific guidelines. Prescriber should be aware of possible increased risk for myopathy especially for doses >1mg. If dose >2mg needed for desired efficacy, consider an alternative statin (see Figure 1 of PMID: 35152405 for recommendations for alternative statins) or combination therapy (i.e. pitavastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
+   "fr": "Dose initiale de 2 mg/j au plus ; risque de myopathie accru au-delà de 1 mg. Au-delà de 2 mg, envisager une autre statine ou une association.",
+   "type": "adaptation"
+  },
+  "Prescribe ≤10mg as a starting dose and adjust doses of rosuvastatin based on disease-specific and specific population guidelines. If dose >10mg needed for desired efficacy, consider an alternative statin or combination therapy (i.e., rosuvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
+   "fr": "Dose initiale de 10 mg/j au plus ; au-delà, envisager une autre statine ou une association.",
+   "type": "adaptation"
+  },
+  "Prescribe ≤1mg as a starting dose and adjust doses of pitavastatin based on disease-specific guidelines. If dose >1mg needed for desired efficacy, consider an alternative statin (see Figure 1 of PMID: 35152405 for recommendations for alternative statins) or combination therapy (i.e. pitavastatin plus non-statin guideline directed medical therapy)(PMID: 30423391).": {
+   "fr": "Dose initiale de 1 mg/j au plus ; au-delà, envisager une autre statine ou une association.",
+   "type": "adaptation"
+  },
+  "Prescribe ≤20mg as a starting dose and adjust doses of atorvastatin based on disease-specific guidelines. If dose >20mg is needed for desired efficacy, consider rosuvastatin or combination therapy (i.e., atorvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
+   "fr": "Dose initiale de 20 mg/j au plus ; au-delà, envisager la rosuvastatine ou une association.",
+   "type": "adaptation"
+  },
+  "Prescribe ≤20mg as a starting dose and adjust doses of rosuvastatin based on disease-specific and specific population guidelines. If dose > 20mg needed for desired efficacy, consider combination therapy (i.e., rosuvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
+   "fr": "Dose initiale de 20 mg/j au plus ; au-delà, envisager une association à un hypolipémiant non statine.",
+   "type": "adaptation"
+  },
+  "Prescribe ≤20mg as a starting dose and adjust doses of rosuvastatin based on disease-specific and specific population guidelines. If dose >20mg needed for desired efficacy, consider an alternative statin or combination therapy (i.e., rosuvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
+   "fr": "Dose initiale de 20 mg/j au plus ; au-delà, envisager une autre statine ou une association.",
+   "type": "adaptation"
+  },
+  "Prescribe ≤20mg per day as a starting dose and adjust doses of fluvastatin based on disease-specific guidelines. If dose >20mg needed for desired efficacy, consider an alternative statin or combination therapy (i.e., fluvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
+   "fr": "Dose initiale de 20 mg/j au plus ; au-delà, envisager une autre statine ou une association.",
+   "type": "adaptation"
+  },
+  "Prescribe ≤40mg as a starting dose and adjust doses of atorvastatin based on disease-specific guidelines. Prescriber should be aware of possible increased risk for myopathy especially for 40mg dose. If dose >40mg needed for desired efficacy, consider combination therapy (i.e., atorvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
+   "fr": "Dose initiale de 40 mg/j au plus, puis adaptée selon la pathologie ; risque de myopathie accru, surtout à 40 mg. Au-delà de 40 mg, envisager une association à un hypolipémiant non statine.",
+   "type": "adaptation"
+  },
+  "Prescribe ≤40mg as a starting dose and adjust doses of pravastatin based on disease-specific guidelines. If patient is tolerating 40mg dose but higher potency is needed, a higher dose (>40mg) or an alternative statin (see Figure 1 of of PMID: 35152405 for recommendations for alternative statins) or combination therapy (i.e. pravastatin plus non-statin guideline directed medical therapy)(PMID: 30423391) could be considered. Prescriber should be aware of possible increased risk for myopathy especially with pravastatin doses >40mg.": {
+   "fr": "Dose initiale de 40 mg/j au plus. Si 40 mg sont tolérés mais qu'une puissance supérieure est nécessaire : dose plus élevée, autre statine ou association ; risque de myopathie accru au-delà de 40 mg/j.",
+   "type": "adaptation"
+  },
+  "Prescribe ≤40mg per day as a starting dose and adjust doses of fluvastatin based on disease-specific guidelines. If dose >40mg needed for desired efficacy, consider an alternative statin or combination therapy (i.e., fluvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
+   "fr": "Dose initiale de 40 mg/j au plus ; au-delà, envisager une autre statine ou une association.",
+   "type": "adaptation"
+  },
+  "Prescribe ≤40mg per day as a starting dose and adjust doses of fluvastatin based on disease-specific guidelines. If patient is tolerating 40mg per day but higher potency is needed, a higher dose (>40mg) or an alternative statin or combination therapy (i.e. fluvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391) could be considered. Prescriber should be aware of possible increased risk for myopathy with fluvastatin especially with doses >40mg per day.": {
+   "fr": "Dose initiale de 40 mg/j au plus. Si 40 mg sont tolérés mais qu'une puissance supérieure est nécessaire : dose plus élevée, autre statine ou association ; risque de myopathie accru au-delà de 40 mg/j.",
+   "type": "adaptation"
+  },
+  "The latency period for cutaneous adverse drug reactions is variable depending on phenotype; however, all usually occur within three months of regular dosing. Therefore, if the patient has previously used carbamazepine consistently for longer than three months without incidence of cutaneous adverse reactions, cautiously consider use of carbamazepine.": {
+   "fr": "Les réactions cutanées surviennent en général dans les trois premiers mois : chez un patient déjà traité plus de trois mois sans réaction, l'utilisation peut être prudemment envisagée.",
+   "type": "standard"
+  },
+  "The latency period for drug-induced SJS/TEN is short with continuous dosing and adherence to therapy (~4-28 days), and cases usually occur within three months of dosing; therefore, if the patient has previously used carbamazepine consistently for longer than three months without incidence of cutaneous adverse reactions, cautiously consider use of carbamazepine in the future.": {
+   "fr": "Les SJS/NET surviennent en général dans les trois premiers mois : chez un patient déjà traité plus de trois mois sans réaction, l'utilisation peut être prudemment envisagée.",
+   "type": "standard"
+  },
+  "The latency period for drug-induced SJS/TEN is short with continuous dosing and adherence to therapy (~4-28 days), and cases usually occur within three months of dosing; therefore, if the patient has previously used oxcarbazepine consistently for longer than three months without incidence of cutaneous adverse reactions, cautiously consider use of oxcarbazepine in the future.": {
+   "fr": "Les SJS/NET surviennent en général dans les trois premiers mois : chez un patient déjà traité plus de trois mois sans réaction, l'utilisation peut être prudemment envisagée.",
+   "type": "standard"
+  },
+  "Use abacavir per standard dosing guidelines": {
+   "fr": "Posologie usuelle.",
+   "type": "standard"
+  },
+  "Use allopurinol per standard dosing guidelines": {
+   "fr": "Posologie usuelle.",
+   "type": "standard"
+  },
+  "Use carbamazepine per standard dosing guidelines.": {
+   "fr": "Posologie usuelle.",
+   "type": "standard"
+  },
+  "Use codeine label recommended age- or weight-specific dosing.": {
+   "fr": "Posologie du RCP selon l'âge ou le poids.",
+   "type": "standard"
+  },
+  "Use codeine label recommended age- or weight-specific dosing. If no response and opioid use is warranted, consider a non-tramadol opioid.": {
+   "fr": "Posologie du RCP selon l'âge ou le poids. En l'absence de réponse, si un opioïde reste nécessaire, préférer un opioïde autre que le tramadol.",
+   "type": "standard"
+  },
+  "Use oxcarbazepine per standard dosing guidelines.": {
+   "fr": "Posologie usuelle.",
+   "type": "standard"
+  },
+  "Use tramadol label recommended age- or weight-specific dosing.": {
+   "fr": "Posologie du RCP selon l'âge ou le poids.",
+   "type": "standard"
+  },
+  "Use tramadol label recommended age- or weight-specific dosing. If no response and opioid use is warranted, consider non-codeine opioid.": {
+   "fr": "Posologie du RCP selon l'âge ou le poids. En l'absence de réponse, si un opioïde reste nécessaire, préférer un opioïde autre que la codéine.",
+   "type": "standard"
+  }
+ }
+}

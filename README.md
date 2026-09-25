@@ -16,7 +16,7 @@ neuf étages ont abouti.
 pour un génome :
 
 - un avis structuré exploitable par une machine (`report.json`) ;
-- un compte rendu d'une page en français (`CR_<ECH>.pdf`) ;
+- un compte rendu en français, médicaments concernés en tête (`CR_<ECH>.pdf`) ;
 - une trace d'exécution complète (`provenance.json`).
 
 Il couvre le sous-ensemble néphrologie et épilepsie du panel socle RNPGx 2026 :
@@ -205,7 +205,7 @@ autre assemblage, un alignement sans index lisible.
 | Sortie | Contenu |
 |---|---|
 | `sortie/<ECH>.report.json` | l'avis complet, structuré |
-| `sortie/CR_<ECH>.pdf` | le compte rendu d'une page |
+| `sortie/CR_<ECH>.pdf` | le compte rendu (une page ; deux si les recommandations sont nombreuses) |
 | `sortie/provenance.json` | entrées, empreintes, versions d'images, seuils, état de chaque étage |
 | `travail/perimetre.json` | par gène : positions attendues, retenues, perdues, statut |
 | `travail/qc_positions.tsv` | une ligne par position diagnostique, ce qui a été lu |
@@ -214,10 +214,11 @@ autre assemblage, un alignement sans index lisible.
 étages sont présents et qu'aucun n'est en échec. C'est le champ qu'une plateforme
 surveille.
 
-Exemple de compte rendu positif : HG00140, génome public du 1000 Genomes, porteur de
-HLA-A\*31:01 et HLA-B\*57:01, deux allèles concordants avec le typage Sanger.
+Exemple de compte rendu positif, contexte « néphropathies » : HG00699, génome public du
+1000 Genomes, porteur de HLA-B\*58:01 (concordant avec le typage Sanger) et de CYP3A5 \*1/\*3.
+Les traductions des recommandations CPIC sont une proposition, à valider par un pharmacologue.
 
-<p align="center"><img src="doc/figures/exemple_cr_HG00140.png" alt="Compte rendu de HG00140 : contre-indication carbamazépine (HLA-A*31:01) et abacavir (HLA-B*57:01), génotypes des onze gènes rendus, conduites à tenir" width="620"></p>
+<p align="center"><img src="doc/figures/exemple_cr_HG00699.png" alt="Compte rendu de HG00699 : allopurinol contre-indiqué (HLA-B*58:01), tacrolimus à dose initiale majorée (CYP3A5 *1/*3), résultats des douze gènes, conclusion et limites" width="620"></p>
 
 ## Traçabilité
 
@@ -239,7 +240,7 @@ identique produisent le même résultat.
 
 ```
 bin/            les sept scripts du pipeline
-ressources/     les quatre ressources figées, lues au runtime
+ressources/     les ressources figées, lues au runtime (dont les traductions CPIC)
 doc/            le mode d'emploi complet et le schéma du flux de fichiers
 env/            requirements Python et empreintes des conteneurs
 exemples/       un manifeste type

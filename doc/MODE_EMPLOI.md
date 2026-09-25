@@ -59,7 +59,7 @@ ignorés, et le résultat est le même qu'avec un VCF de variants.
 | Sortie | Contenu |
 |---|---|
 | `sortie/<ECH>.report.json` | l'avis complet, structuré, exploitable par une machine |
-| `sortie/CR_<ECH>.pdf` | compte rendu d'une page en français, provisoire |
+| `sortie/CR_<ECH>.pdf` | compte rendu en français (une page, deux si recommandations nombreuses), provisoire |
 | `sortie/provenance.json` | entrées, empreintes, versions d'images, seuils, état de chaque étage |
 | `travail/perimetre.json` | par gène : positions attendues, retenues, perdues, statut |
 | `travail/qc_positions.tsv` | une ligne par position diagnostique, ce qui a été lu |
@@ -150,8 +150,14 @@ externes. **Aucun repli** : si le fichier qualifié est absent, l'étage échoue
 Se rabattre sur le fichier filtré remettrait en service les génotypes écartés sur
 leur qualité, et la garantie du module disparaîtrait sans une ligne de trace.
 
-**7. Compte rendu.** Le document d'une page. Le périmètre de l'étage 2b commande
-ce qu'il a le droit d'écrire.
+**7. Compte rendu.** Structuré selon le cahier des charges du POC PFMG : médicaments
+concernés d'abord, puis résultats par gène, conclusion, périmètre et limites. Seules
+les recommandations CPIC fortes ou modérées qui modifient la prise en charge sont
+restituées ; un diplotype ambigu n'en déclenche aucune. Les textes CPIC sont traduits
+par `ressources/traductions_cpic_fr.json` (correspondance exacte ; un texte inconnu
+est rendu tel quel et signalé). Options `--patient`, `--naissance`, `--contexte`,
+`--sans-mention-prototype`. Le périmètre de l'étage 2b commande ce qu'il a le droit
+d'écrire.
 
 Les étages 3 et 4 ne dépendent pas de l'étage 2b.
 

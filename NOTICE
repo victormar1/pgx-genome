@@ -12,6 +12,12 @@ Mozilla Public License 2.0 (https://mozilla.org/MPL/2.0/) :
   ressources/pharmcat_positions.bed
   ressources/positions_exactes.bed
 
+Le fichier ressources/traductions_cpic_fr.json reprend les textes de
+recommandation CPIC tels qu'émis par PharmCAT (données PharmGKB), avec leur
+traduction française ; ces textes et leurs traductions restent soumis aux
+conditions d'utilisation de CPIC (https://cpicpgx.org) et de PharmGKB
+(https://www.pharmgkb.org).
+
 Outils tiers appelés, non distribués dans ce dépôt
 --------------------------------------------------
 PharmCAT, Cyrius, OptiType, PyPGx, bcftools et samtools sont exécutés depuis
