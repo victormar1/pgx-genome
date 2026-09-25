@@ -32,17 +32,32 @@ Sorties :
 import argparse, collections, csv, gzip, json, os, sys
 
 
-def lire_positions(chemin):
+def lire_positions(chemin, complement=False):
+    """Positions diagnostiques attendues, depuis un VCF de positions.
+
+    Le fichier complementaire du core panel RNPGx porte en plus PXCLASSE (1 ou 2),
+    PXTYPE (snv, indel, vntr), PXINTERP et PXNOTE. Un VNTR n'est pas genotypable en
+    lectures courtes : sa couverture est mesuree, son genotype n'est pas juge.
+    """
     attendu = {}
     with open(chemin, encoding="utf-8") as fh:
         for l in fh:
             if l.startswith("#"):
                 continue
             c = l.rstrip("\n").split("\t")
-            genes = [x[3:] for x in c[7].split(";") if x.startswith("PX=")]
+            info = {}
+            for x in c[7].split(";"):
+                k, _, v = x.partition("=")
+                info[k] = v
             attendu[(c[0], int(c[1]))] = {
                 "rsid": c[2], "ref": c[3], "alt": c[4],
-                "genes": genes[0].split(",") if genes else [],
+                "genes": info.get("PX", "").split(",") if info.get("PX") else [],
+                "complement": complement,
+                "classe": entier(info.get("PXCLASSE")),
+                "type": info.get("PXTYPE", "snv"),
+                "interpreteur": info.get("PXINTERP", "pharmcat"),
+                "note": info.get("PXNOTE", "").replace("_", " "),
+                "fin": entier(info.get("END")) or int(c[1]) + len(c[3]) - 1,
             }
     return attendu
 
@@ -150,6 +165,8 @@ def main():
     p.add_argument("--vcf", required=True)
     p.add_argument("--profondeur", default=None)
     p.add_argument("--positions", required=True)
+    p.add_argument("--positions-complement", default=None, dest="complement",
+                   help="VCF des positions RNPGx absentes des definitions PharmCAT")
     p.add_argument("--sortie", required=True)
     p.add_argument("--gq", type=int, default=20)
     p.add_argument("--profondeur-min", type=int, default=10, dest="prof_min")
@@ -165,6 +182,19 @@ def main():
     if not attendu:
         print("fichier de positions vide ou illisible :", a.positions, file=sys.stderr)
         return 1
+    if a.complement:
+        if not os.path.exists(a.complement):
+            print("fichier complementaire introuvable :", a.complement, file=sys.stderr)
+            return 1
+        comp = lire_positions(a.complement, complement=True)
+        if not comp:
+            print("fichier complementaire vide :", a.complement, file=sys.stderr)
+            return 1
+        # une position deja suivie par PharmCAT reste sous son propre regime
+        doublons = sorted(set(comp) & set(attendu))
+        attendu.update({k: v for k, v in comp.items() if k not in attendu})
+        if doublons:
+            print("positions complementaires deja suivies, ignorees : %d" % len(doublons))
     clinique = set()
     if a.clinique and os.path.exists(a.clinique):
         clinique = set(json.load(open(a.clinique, encoding="utf-8")).get("genes", {}))
@@ -178,7 +208,7 @@ def main():
               file=sys.stderr)
         return 1
 
-    lignes_qc = []
+    lignes_qc, complement_qc = [], []
     par_gene = collections.defaultdict(collections.Counter)
     a_masquer = set()
     sans_gq = 0
@@ -208,7 +238,12 @@ def main():
         part = None if gene_sans_equilibre else (
             part_minimale(gt, ad) if gt and appele(gt) else None)
 
-        if gt is None:
+        if info.get("type") == "vntr":
+            # Un VNTR ne se genotype pas en lectures courtes : on mesure sa couverture
+            # et on s'arrete la. Le pretendre appele serait un resultat invente.
+            statut = ("couverture seule" if profondeur is not None and profondeur >= a.prof_min
+                      else ("non lue" if profondeur is not None else "profondeur inconnue"))
+        elif gt is None:
             if profondeur is not None and profondeur >= a.prof_min:
                 statut = "reference, lue"
             elif profondeur is not None:
@@ -242,7 +277,7 @@ def main():
         else:
             statut = "mesuree"
 
-        retenue = statut in ("mesuree", "reference, lue")
+        retenue = statut in ("mesuree", "reference, lue", "couverture seule")
         lignes_qc.append({
             "chrom": cle[0], "pos": cle[1], "rsid": info["rsid"],
             "ref": info["ref"], "alt": info["alt"], "genes": ",".join(info["genes"]),
@@ -251,11 +286,32 @@ def main():
             "profondeur_alignement": "" if lu is None else lu,
             "profondeur_VCF": "" if dp is None else dp,
             "statut": statut, "retenue": "oui" if retenue else "non",
+            "source": "RNPGx" if info.get("complement") else "PharmCAT",
+            "classe_rnpgx": info.get("classe") or "",
         })
-        for g in info["genes"]:
-            par_gene[g]["attendu"] += 1
-            par_gene[g]["retenue" if retenue else "perdue"] += 1
-            par_gene[g][statut] += 1
+        if info.get("complement"):
+            genotype_rendu = ("non génotypé (VNTR)" if info.get("type") == "vntr"
+                              else (gt if retenue and gt else ("référence" if statut == "reference, lue" else "")))
+            complement_qc.append({
+                "gene": info["genes"][0] if info["genes"] else "", "rsid": info["rsid"],
+                "chrom": cle[0], "pos": cle[1], "classe": info.get("classe"),
+                "type": info.get("type"), "interpreteur": info.get("interpreteur"),
+                "genotype": genotype_rendu, "statut": statut,
+                "profondeur": "" if profondeur is None else profondeur, "note": info.get("note", ""),
+            })
+        # Le statut d'un gene ne compte que les positions dont l'interpreteur se sert.
+        # Une position complementaire ratee ne doit pas faire passer le gene en
+        # « partiel » : elle est suivie a part, dans complement_rnpgx.
+        if not info.get("complement"):
+            for g in info["genes"]:
+                par_gene[g]["attendu"] += 1
+                par_gene[g]["retenue" if retenue else "perdue"] += 1
+                par_gene[g][statut] += 1
+
+    # Une position complementaire n'est pas utilisee par l'interpreteur : la masquer
+    # ne changerait rien a son appel, mais modifierait son entree. On la laisse donc
+    # intacte, et le VCF qualifie reste identique a ce qu'il serait sans complement.
+    a_masquer -= {c for c in a_masquer if attendu[c].get("complement")}
 
     with open(os.path.join(a.sortie, "qc_positions.tsv"), "w", newline="\n", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=list(lignes_qc[0].keys()), delimiter="\t")
@@ -277,14 +333,22 @@ def main():
         "echantillon": a.echantillon,
         "seuil_GQ": a.gq,
         "seuil_profondeur": a.prof_min,
-        "positions_visees": len(attendu),
-        "positions_retenues": sum(1 for x in lignes_qc if x["retenue"] == "oui"),
+        "positions_visees": sum(1 for x in lignes_qc if x["source"] == "PharmCAT"),
+        "positions_retenues": sum(1 for x in lignes_qc if x["source"] == "PharmCAT" and x["retenue"] == "oui"),
+        "positions_visees_toutes": len(attendu),
         "positions_sans_GQ": sans_gq,
         "positions_a_plusieurs_enregistrements": sum(1 for x in lignes_qc if x["enregistrements"] > 1),
         "profondeur_lue_depuis_alignement": True,
         "perimetre_clinique": sorted(clinique) if clinique else [],
         "perimetre_clinique_hors_interpreteur": sorted(clinique - set(perimetre)) if clinique else [],
         "genes": perimetre,
+        "complement_rnpgx": sorted(complement_qc, key=lambda x: (x["gene"], x["pos"])),
+        "complement_rnpgx_resume": {
+            "positions": len(complement_qc),
+            "retenues": sum(1 for x in complement_qc if x["statut"] in ("mesuree", "reference, lue", "couverture seule")),
+            "classe_1": sum(1 for x in complement_qc if x["classe"] == 1),
+            "classe_2": sum(1 for x in complement_qc if x["classe"] == 2),
+        } if complement_qc else None,
     }
     with open(os.path.join(a.sortie, "perimetre.json"), "w", encoding="utf-8") as fh:
         json.dump(meta, fh, ensure_ascii=False, indent=1)

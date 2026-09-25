@@ -12,6 +12,11 @@ Mozilla Public License 2.0 (https://mozilla.org/MPL/2.0/) :
   ressources/pharmcat_positions.bed
   ressources/positions_exactes.bed
 
+Le fichier ressources/rnpgx_complement.vcf liste des positions du core panel
+RNPGx 2026 (Picard N. et coll., PMID 41491663, Table 2). Leurs coordonnées
+GRCh38 proviennent d'Ensembl (https://ensembl.org), données publiques ; chaque
+allèle de référence a été vérifié contre GRCh38 avant publication.
+
 Le fichier ressources/traductions_cpic_fr.json reprend les textes de
 recommandation CPIC tels qu'émis par PharmCAT (données PharmGKB), avec leur
 traduction française ; ces textes et leurs traductions restent soumis aux

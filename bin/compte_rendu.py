@@ -47,7 +47,8 @@ def _perimetre(rapport):
       partiel  au moins une position non lue           -> rendu avec reserve
       absent   aucune position lue, ou aucun diplotype -> non rendu
     Les genes venus d'un outil dedie (Cyrius, OptiType) ont le perimetre de cet outil."""
-    meta = json.load(open(_a.perimetre, encoding="utf-8"))
+    global META
+    META = meta = json.load(open(_a.perimetre, encoding="utf-8"))
     qc = meta.get("genes", {})
     clinique = set(meta.get("perimetre_clinique") or [])
     hors_interpreteur = list(meta.get("perimetre_clinique_hors_interpreteur") or [])
@@ -75,9 +76,11 @@ def _perimetre(rapport):
     return sorted(rendus), sorted(absents), reserves
 
 
+META = {}
 rep = json.load(open(SRC, encoding="utf-8"))
 genes = rep["genes"]
 MESURES, ABSENTS, RESERVES = _perimetre(rep)
+COMPLEMENT = META.get("complement_rnpgx") or []
 
 # ------------------------------------------------------------------ libelles
 PHENO_FR = {
@@ -327,6 +330,32 @@ for g, motif in ABSENTS:
     rows.append([Paragraph(g, st_gras), Paragraph("non analysé", st_corps), Paragraph("—", st_corps),
                  Paragraph(f"Aucune conclusion : {e_(motif)}. Ni normal ni anormal, non mesuré.", st_corps)])
 h.append(tableau(rows, [17, 32, 45, 76], {i: FOND_G for i in range(2, len(rows), 2)}))
+
+# --- 2 bis. positions du core panel RNPGx hors definitions de l'interpreteur
+# Elles sont mesurees pour repondre a l'exigence d'extraction des ROI, mais aucune
+# n'est interpretee : on rend le genotype, jamais un phenotype.
+if COMPLEMENT:
+    ref = [x for x in COMPLEMENT if x["genotype"] == "référence"]
+    var = [x for x in COMPLEMENT if x not in ref and x["statut"] in ("mesuree", "couverture seule")]
+    perdu = [x for x in COMPLEMENT if x["statut"] not in ("mesuree", "reference, lue", "couverture seule")]
+    h.append(Paragraph("POSITIONS DU CORE PANEL RNPGx HORS PÉRIMÈTRE INTERPRÉTÉ", st_section))
+    if var:
+        rows = [[Paragraph(x, st_tete) for x in ("Gène", "Variant", "Classe", "Génotype", "Commentaire")]]
+        for x in sorted(var, key=lambda x: (x["classe"] or 9, x["gene"])):
+            rows.append([Paragraph(f"<b>{e_(x['gene'])}</b>", st_gras), Paragraph(e_(x["rsid"]), st_corps),
+                         Paragraph(str(x["classe"] or "—"), st_corps), Paragraph(e_(x["genotype"]), st_gras),
+                         Paragraph(e_(x["note"]), st_petit)])
+        h.append(tableau(rows, [20, 24, 14, 22, 90]))
+    resume = (f"{len(ref)} position{'s' if len(ref) > 1 else ''} à l'état de référence"
+              if ref else "") + (" ; " if ref and perdu else "") + (
+              f"{len(perdu)} non mesurée{'s' if len(perdu) > 1 else ''} "
+              + "(" + ", ".join(sorted({x['rsid'] for x in perdu})) + ")" if perdu else "")
+    h.append(Paragraph(
+        (resume + ". " if resume else "")
+        + "Ces positions sont extraites et contrôlées au titre du core panel RNPGx 2026, mais "
+          "<b>aucune n'est interprétée</b> : le génotype est rendu, sans phénotype ni recommandation. "
+        + ("L'hétéroplasmie mitochondriale n'est pas évaluée. " if any(x["gene"] == "MT-RNR1" for x in COMPLEMENT) else "")
+        + "Le VNTR de TYMS n'est pas génotypable en lectures courtes : seule sa couverture est mesurée.", st_petit))
 
 # --- 3. conclusion
 h.append(Paragraph("CONCLUSION", st_section))

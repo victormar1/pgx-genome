@@ -24,6 +24,13 @@ CYP2C9, CYP2C19, CYP2D6, CYP3A4, CYP3A5, SLCO1B1, TPMT, NUDT15, ABCG2, et HLA-A,
 HLA-B. POR est dans le périmètre mais l'interpréteur ne le couvre pas ; il sort
 « non analysé ».
 
+**Positions complémentaires du core panel.** 18 positions de classe 1 et 2 du core
+panel RNPGx 2026 sont absentes des définitions de l'interpréteur : BCHE, MT-RNR1,
+MTHFR, GGCX, TYMS, POR, le cluster CYP2C, et trois positions de NAT2 et VKORC1.
+Elles sont **extraites, contrôlées et rendues en génotype**, mais **aucune n'est
+interprétée** : pas de phénotype, pas de recommandation. Le VNTR de TYMS n'étant pas
+génotypable en lectures courtes, seule sa couverture est mesurée.
+
 Trois outils font le travail biologique, orchestrés par un script bash :
 
 | Étape | Outil |

@@ -19,6 +19,8 @@
 | `positions_exactes.bed` | étage 2b | positions exactes où mesurer la profondeur (`samtools depth -b`) |
 | `pharmcat_positions.vcf` | étage 2b | les 1 226 positions diagnostiques attendues + tag `PX=` gène |
 | `perimetre_rnpgx.json` | étage 2b + provenance | les 12 gènes du périmètre clinique RNPGx |
+| `rnpgx_complement.vcf` | étage 2b | 18 positions de classe 1 et 2 du core panel RNPGx absentes des définitions PharmCAT (`PXCLASSE`, `PXTYPE`, `PXINTERP`, `PXNOTE`) ; mesurées, jamais interprétées |
+| `rnpgx_complement.bed` / `_positions.bed` | étages 1, 2a, 2b | régions ±50 pb pour le filtre et la tranche ; positions exactes pour la profondeur |
 | `traductions_cpic_fr.json` | étage 7 | traduction de chaque texte CPIC émis, type de consigne, médicaments restitués, règle HLA-B*15:11 hors PharmCAT |
 | `tranche.bed` | non embarquée | le script construit son propre `travail/tranche.bed` dynamiquement (contigs HLA lus dans l'en-tête) |
 
@@ -33,7 +35,7 @@ Note : `alleles_pharmcat.json` et `definitions_alleles.json` ne sont pas utilis�
 | **0. recevabilité** | CRAM + index, VCF, FASTA+`.fai`, `pharmcat_positions.bed` | Cinq contrôles : VCF mono-échantillon ; concordance d'identité ; CRAM non tronqué ; contigs de même longueur que la référence ; accès aléatoire possible | Bash + `samtools` (hôte) + `bcftools` (conteneur) + awk | `travail/etats.tsv`, `entete_alignement.txt`, `signature.txt`. Si refus : purge de `travail/`, 8 étages `ECHEC`, `provenance.json` seul, `exit 2` | l'un des 5 contrôles échoue |
 | **1. filtre** | VCF externe, `pharmcat_positions.bed` | Restreint le VCF aux 258 régions cibles puis indexe | Docker **bcftools** 1.24 | `travail/filtre.vcf.gz` + `.tbi` | `bcftools view` ou `index` échoue |
 | **2a. tranche** | CRAM + FASTA, `pharmcat_positions.bed`, en-tête CRAM | Construit `tranche.bed` (cible + MHC + contigs HLA), une seule traversée `view -M -L` → sort → index | Bash + `samtools` (hôte) | `travail/tranche.bam` + `.bai`, `tranche.bed` | `view`, `sort` ou `index` échoue |
-| **2b. contrôle qualité** | `filtre.vcf.gz`, `tranche.bam`, `pharmcat_positions.vcf`, `perimetre_rnpgx.json` | Profondeur sur la tranche → `profondeur.txt` ; écarte les positions (5 motifs), établit le périmètre, marque le périmètre clinique ; réécrit le VCF GT seul | `samtools` + **Python `qc_perimetre.py`** + Docker bcftools (bgzip) | `profondeur.txt`, `qc_positions.tsv`, `perimetre.json`, `qualifie.vcf.gz` + `.tbi` | profondeur non mesurée, script échoue, >1 échantillon, perte d'enregistrement |
+| **2b. contrôle qualité** | `filtre.vcf.gz`, `tranche.bam`, `pharmcat_positions.vcf`, `rnpgx_complement.vcf`, `perimetre_rnpgx.json` | Profondeur sur la tranche → `profondeur.txt` ; écarte les positions (5 motifs), établit le périmètre, marque le périmètre clinique ; mesure à part les positions complémentaires RNPGx (jamais masquées dans le VCF) ; réécrit le VCF GT seul | `samtools` + **Python `qc_perimetre.py`** + Docker bcftools (bgzip) | `profondeur.txt`, `qc_positions.tsv`, `perimetre.json`, `qualifie.vcf.gz` + `.tbi` | profondeur non mesurée, script échoue, >1 échantillon, perte d'enregistrement |
 | **3. CYP2D6** | CRAM complet + FASTA, dépôt Cyrius | `star_caller.py -g 38` sur le CRAM entier ; diplotype non-unitaire → SANS_RESULTAT | **Dépôt Cyrius** (`python3`, hôte) | `cyp2d6.tsv`, `cyp2d6.json` | Cyrius échoue ou sortie vide |
 | **4. HLA** | `tranche.bam`, contigs HLA | Extrait les lectures MHC → paires ; si ≥ 200 paires, OptiType type HLA I | `samtools` + Docker **OptiType** 1.3.5 | `mhc_1.fq`, `mhc_2.fq`, `hla/<ts>/<ts>_result.tsv`, `hla.tsv` | < 200 paires ou OptiType échoue |
 | **5. appels externes** | `cyp2d6.tsv`, `hla.tsv` | Traduit au format PharmCAT `-po` ; espaces autour du `+` des tandems | **Python `appels_externes.py`** | `appels_externes.tsv` | un étage OK n'a pas déposé sa ligne |
@@ -50,4 +52,11 @@ Note : `alleles_pharmcat.json` et `definitions_alleles.json` ne sont pas utilis�
 3. **Cyrius lit le CRAM entier, pas la tranche.** Seule branche à recevoir le CRAM complet ; ~3 000 régions de normalisation dispersées, d'où sa durée (~la moitié du total).
 4. **L'appel externe CYP2D6 exige des espaces autour du `+`.** `*36+*10` deviendrait « indéterminé » en silence ; `*36 + *10` est interprété.
 5. **Le périmètre clinique de 12 gènes ne restreint pas ce que PharmCAT reçoit, mais ce que le CR rapporte.** PharmCAT interprète 22 gènes ; le filtrage clinique est en aval, à l'étage 7.
-6. **Aucun repli, purge liée à l'empreinte.** L'étage 6 échoue si `qualifie.vcf.gz` manque (pas de rabattement sur `filtre.vcf.gz`). `travail/` n'est réutilisé qu'avec `--reprise` et signature d'entrées identique.
+6. **Le complément RNPGx est strictement additif.** Les positions hors définitions
+   PharmCAT ne comptent pas dans le statut d'un gène et ne sont **jamais masquées**
+   dans le VCF remis à l'interpréteur : son entrée est identique à ce qu'elle serait
+   sans complément. Vérifié sur les 243 génomes du banc, zéro écart.
+7. **Une région sur un contig absent de l'alignement est écartée** du BED de tranche.
+   Un `chrM` manquant donne alors une position « profondeur inconnue », jamais un
+   étage en échec ni un faux « référence ».
+8. **Aucun repli, purge liée à l'empreinte.** L'étage 6 échoue si `qualifie.vcf.gz` manque (pas de rabattement sur `filtre.vcf.gz`). `travail/` n'est réutilisé qu'avec `--reprise` et signature d'entrées identique.

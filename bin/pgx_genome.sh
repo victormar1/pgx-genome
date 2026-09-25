@@ -34,6 +34,10 @@ GQ="${PGX_GQ:-20}"
 PROF="${PGX_PROFONDEUR:-10}"
 IGNORER_FILTRE="${PGX_IGNORER_FILTRE:+--ignorer-filtre}"
 FILS="${PGX_FILS:-4}"
+# Complement RNPGx (classes 1 et 2 hors definitions PharmCAT) : present, il est
+# mesure ; absent, le module se comporte comme avant.
+COMPLEMENT=""
+[ -s "$RES/rnpgx_complement.vcf" ] && COMPLEMENT="$RES/rnpgx_complement.vcf"
 IMG_BCF="${PGX_IMG_BCFTOOLS:-quay.io/biocontainers/bcftools:1.24--h118bc1c_2}"
 IMG_PHARMCAT="${PGX_IMG_PHARMCAT:-pgkb/pharmcat:3.4.0}"
 IMG_OPTITYPE="${PGX_IMG_OPTITYPE:-quay.io/biocontainers/optitype:1.3.5--hdfd78af_3}"
@@ -227,10 +231,17 @@ if [ "$RECEVABLE" != 1 ]; then
 fi
 
 # ------------------------------------------------------------------ 1. filtre
+# Les regions visees reunissent les definitions PharmCAT et le complement RNPGx
+# (classes 1 et 2 absentes de PharmCAT). Le complement est optionnel : absent, le
+# module se comporte exactement comme avant.
 t0=$(date +%s)
 FIL="$T/filtre.vcf.gz"
+BEDR="$T/regions.bed"
+cat "$RES/pharmcat_positions.bed" > "$BEDR"
+[ -s "$RES/rnpgx_complement.bed" ] && cat "$RES/rnpgx_complement.bed" >> "$BEDR"
+sort -k1,1 -k2,2n "$BEDR" -o "$BEDR"
 if [ "$RECEVABLE" = 1 ] \
-   && BCF view -R "$RES/pharmcat_positions.bed" -Oz -o "$FIL" "$D_VCF/$(basename "$VCF")" >>"$JOURNAL" 2>&1 \
+   && BCF view -R "$D_SORTIE/travail/regions.bed" -Oz -o "$FIL" "$D_VCF/$(basename "$VCF")" >>"$JOURNAL" 2>&1 \
    && BCF index -f -t "$FIL" >>"$JOURNAL" 2>&1; then
   n=$(BCF view -H "$FIL" 2>/dev/null | wc -l)
   dire "1. filtre : $n enregistrements dans les regions visees"
@@ -248,10 +259,21 @@ TRANCHE="$T/tranche.bam"
 BEDT="$T/tranche.bed"
 if [ ! -s "$TRANCHE" ] && [ "$RECEVABLE" = 1 ]; then
   cat "$RES/pharmcat_positions.bed" > "$BEDT"
+  [ -s "$RES/rnpgx_complement.bed" ] && cat "$RES/rnpgx_complement.bed" >> "$BEDT"
   printf 'chr6\t29600000\t33100000\n' >> "$BEDT"
   samtools view -H ${FASTA:+--reference "$FASTA"} "$CRAM" 2>/dev/null \
     | awk '$0 ~ /SN:HLA-/ {sn=""; ln=""; for(i=1;i<=NF;i++){if($i ~ /^SN:/) sn=substr($i,4); if($i ~ /^LN:/) ln=substr($i,4)} if(sn!="" && ln!="") printf "%s\t0\t%s\n", sn, ln}' \
     >> "$BEDT"
+  # Une region sur un contig absent de l'alignement ferait echouer l'extraction.
+  # On ne garde que les contigs reellement presents : un chrM absent, ou un
+  # nommage different sur la plateforme, se traduit alors par une position
+  # « profondeur inconnue », jamais par un etage en echec.
+  samtools view -H ${FASTA:+--reference "$FASTA"} "$CRAM" 2>/dev/null \
+    | awk '/^@SQ/ {for(i=1;i<=NF;i++) if($i ~ /^SN:/) print substr($i,4)}' > "$T/contigs.txt"
+  awk 'NR==FNR {ok[$1]=1; next} ok[$1]' "$T/contigs.txt" "$BEDT" > "$BEDT.tmp"
+  ecartes=$(( $(grep -c . "$BEDT") - $(grep -c . "$BEDT.tmp") ))
+  [ "$ecartes" -gt 0 ] && dire "2a. tranche : $ecartes region(s) ecartee(s), contig absent de l'alignement"
+  mv "$BEDT.tmp" "$BEDT"
   sort -k1,1 -k2,2n "$BEDT" -o "$BEDT"
   if samtools view -b -M -L "$BEDT" ${FASTA:+--reference "$FASTA"} -o "$TRANCHE.tmp" "$CRAM" 2>>"$JOURNAL" \
      && samtools sort -@ "$FILS" -o "$TRANCHE" "$TRANCHE.tmp" 2>>"$JOURNAL" \
@@ -274,8 +296,12 @@ t0=$(date +%s)
 DEPTH="$T/profondeur.txt"
 QUAL="$T/qualifie.vcf.gz"
 PROFOK=0
+BEDP="$T/positions_mesurees.bed"
+cat "$RES/positions_exactes.bed" > "$BEDP"
+[ -s "$RES/rnpgx_complement_positions.bed" ] && cat "$RES/rnpgx_complement_positions.bed" >> "$BEDP"
+sort -k1,1 -k2,2n "$BEDP" -o "$BEDP"
 if [ -s "$TRANCHE.bai" ]; then
-  if samtools depth -a -b "$RES/positions_exactes.bed" -Q 0 -q 0 "$TRANCHE" > "$DEPTH" 2>>"$JOURNAL" \
+  if samtools depth -a -b "$BEDP" -Q 0 -q 0 "$TRANCHE" > "$DEPTH" 2>>"$JOURNAL" \
      && [ -s "$DEPTH" ]; then PROFOK=1; else rm -f "$DEPTH"; fi
 fi
 if [ "$PROFOK" = 0 ]; then
@@ -283,6 +309,7 @@ if [ "$PROFOK" = 0 ]; then
   etat qc ECHEC $(( $(date +%s)-t0 )) "samtools depth"
 elif python3 "$RACINE/bin/qc_perimetre.py" --vcf "$FIL" --profondeur "$DEPTH" \
        --positions "$RES/pharmcat_positions.vcf" --sortie "$T" \
+       ${COMPLEMENT:+--positions-complement "$COMPLEMENT"} \
        --gq "$GQ" --profondeur-min "$PROF" --echantillon "$ECH" \
        --perimetre-clinique "$RES/perimetre_rnpgx.json" $IGNORER_FILTRE >>"$JOURNAL" 2>&1 \
      && docker run --rm "${MONTE[@]}" "$IMG_BCF" bgzip -f "$T/qualifie.vcf" >>"$JOURNAL" 2>&1 \

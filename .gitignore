@@ -28,5 +28,7 @@ __pycache__/
 *.avant_correctif
 *.fige
 
-# Exception : ressource figée du pipeline, pas une donnée
-!ressources/pharmcat_positions.vcf
+# Exception : les ressources figées du pipeline ne sont pas des données.
+# La règle porte sur tout le dossier, pour qu'une ressource ajoutée plus tard ne
+# soit pas ignorée en silence.
+!ressources/*.vcf

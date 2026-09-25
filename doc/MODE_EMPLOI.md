@@ -150,6 +150,12 @@ externes. **Aucun repli** : si le fichier qualifié est absent, l'étage échoue
 Se rabattre sur le fichier filtré remettrait en service les génotypes écartés sur
 leur qualité, et la garantie du module disparaîtrait sans une ligne de trace.
 
+**2b bis. Complément RNPGx.** Les 18 positions de classe 1 et 2 du core panel absentes
+des définitions PharmCAT sont mesurées au même titre (profondeur, qualité, filtre),
+mais suivies à part dans `perimetre.json` → `complement_rnpgx`. Elles n'entrent pas
+dans le statut d'un gène et ne sont jamais masquées dans le VCF de l'interpréteur.
+Un VNTR n'est pas génotypé : seule sa couverture est mesurée.
+
 **7. Compte rendu.** Structuré selon le cahier des charges du POC PFMG : médicaments
 concernés d'abord, puis résultats par gène, conclusion, périmètre et limites. Seules
 les recommandations CPIC fortes ou modérées qui modifient la prise en charge sont
