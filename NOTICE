@@ -1,0 +1,18 @@
+pgx-genome
+Copyright (c) 2026 Victor Marin
+Licence : PolyForm Strict 1.0.0 (voir LICENSE), sauf les fichiers ci-dessous.
+
+Composants tiers inclus
+-----------------------
+Les fichiers suivants dérivent des définitions d'allèles de PharmCAT
+(PharmGKB, https://github.com/PharmGKB/PharmCAT) et restent soumis à la
+Mozilla Public License 2.0 (https://mozilla.org/MPL/2.0/) :
+
+  ressources/pharmcat_positions.vcf
+  ressources/pharmcat_positions.bed
+  ressources/positions_exactes.bed
+
+Outils tiers appelés, non distribués dans ce dépôt
+--------------------------------------------------
+PharmCAT, Cyrius, OptiType, PyPGx, bcftools et samtools sont exécutés depuis
+leurs propres conteneurs ou installations, sous leurs licences respectives.

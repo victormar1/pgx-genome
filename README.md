@@ -267,4 +267,6 @@ elles-mêmes ambiguës). **Le premier champ — l'allèle à risque — reste r�
 
 ## Licence
 
-À définir. Voir `LICENSE`.
+[PolyForm Strict 1.0.0](https://polyformproject.org/licenses/strict/1.0.0) — © 2026 Victor Marin.
+Usage non commercial uniquement ; ni modification ni redistribution. Voir `LICENSE`
+et, pour les composants tiers (MPL-2.0), `NOTICE`.
