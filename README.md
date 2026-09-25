@@ -220,6 +220,11 @@ Les traductions des recommandations CPIC sont une proposition, à valider par un
 
 <p align="center"><img src="doc/figures/exemple_cr_HG00699.png" alt="Compte rendu de HG00699 : allopurinol contre-indiqué (HLA-B*58:01), tacrolimus à dose initiale majorée (CYP3A5 *1/*3), résultats des douze gènes, conclusion et limites" width="620"></p>
 
+Second exemple, contexte « épilepsie » : HG00140, porteur de HLA-A\*31:01 et HLA-B\*57:01,
+deux allèles concordants avec le typage Sanger.
+
+<p align="center"><img src="doc/figures/exemple_cr_HG00140.png" alt="Compte rendu de HG00140 : carbamazépine contre-indiquée (HLA-A*31:01) et abacavir contre-indiqué (HLA-B*57:01), résultats des douze gènes, conclusion et limites" width="620"></p>
+
 ## Traçabilité
 
 Chaque exécution enregistre dans `provenance.json` : l'empreinte des entrées, le
