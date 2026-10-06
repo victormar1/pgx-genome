@@ -79,7 +79,50 @@ générées, et la consigne « éviter les aminosides » figure au compte rendu 
 les onze molécules. Cela valide la chaîne logicielle, **non la détection** :
 l'alignement ne porte pas le variant (`outils/cas_construit.py`).
 
-### 3.4 Indépendance à l'appeleur de variants
+### 3.4 Domaine de validité en couverture
+
+L'alignement est sous-échantillonné, les variants rappelés depuis l'alignement
+réduit — sans quoi seule la mesure de profondeur changerait, pas les génotypes —
+puis le module repasse en entier. Les niveaux sont des fractions ; la profondeur
+indiquée est celle que le module mesure lui-même sur ses positions.
+
+| Couverture | Profondeur médiane | Gènes complets | partiels | absents | Diplotypes changés |
+|---|---|---|---|---|---|
+| pleine | 34 × | 9 | 0 | 0 | **0 / 12** |
+| 67 % | 24 × | 8 | 1 | 0 | **0 / 12** |
+| 50 % | 17 × | 5 | 3 | 1 | **0 / 12** |
+| 33 % | 11 × | 0 | 8 | 1 | 2 / 12 |
+
+**Le module se dégrade en avouant, non en se trompant.** À 17 ×, aucune réponse
+ne change ; trois gènes passent simplement en « partiel », et le compte rendu
+porte la réserve. À 11 ×, plus aucun gène n'est déclaré complet, et les deux
+diplotypes qui changent ne deviennent pas faux :
+
+| Gène | Pleine couverture | À 11 × |
+|---|---|---|
+| CYP2C19 | `*1/*1` | `*1/*1 ; *1/*38 ; *38/*38` — ambiguïté déclarée |
+| CYP2D6 | `*4/*41` | `Unknown/Unknown` — abstention de l'outil dédié |
+
+Une ambiguïté ne déclenche aucune recommandation, et une abstention est rendue
+comme telle. Aucun étage n'échoue à aucun niveau.
+
+**Conséquence : le domaine de validité s'arrête autour de 17 ×**, au-dessous
+duquel le périmètre se réduit sans que les réponses deviennent fausses. Mesure
+établie sur un génome ; à étendre.
+
+### 3.5 Profil de ressources
+
+| Mesure | Valeur |
+|---|---|
+| Mémoire de pointe du module, conteneurs exclus | 668 à 733 Mio |
+| Mémoire de pointe du typage HLA, dans son conteneur | **1 235 Mio** |
+| Durée d'un génome, somme des médianes par étage | 295 s |
+
+L'interpréteur n'a pas été capté : son étage dure sept secondes, trop peu pour
+être échantillonné. Une réservation de 4 Gio par génome couvre les valeurs
+mesurées avec une marge.
+
+### 3.6 Indépendance à l'appeleur de variants
 
 20 génomes, mêmes alignements, mêmes positions, appel par l'appeleur de la
 plateforme (GATK) et par bcftools.
@@ -94,7 +137,7 @@ toutes deux sont déjà traitées à part : CYP2D6 est appelé par un outil déd
 l'alignement complet, CYP4F2 est hors périmètre clinique. **Aucun gène rendu
 depuis le fichier de variants n'est touché.**
 
-### 3.5 Vérification du code
+### 3.7 Vérification du code
 
 | Mesure | Résultat |
 |---|---|
