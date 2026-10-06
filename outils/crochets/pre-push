@@ -1,0 +1,45 @@
+#!/bin/sh
+# Porte locale avant toute poussee : tests du module, controles du depot, et
+# relecture des messages de commit qui partent. Ce depot n'a pas d'integration
+# continue distante ; cette porte en tient le role, sur le poste.
+#
+# Active par : git config core.hooksPath outils/crochets
+# Contournable par : git push --no-verify   (a n'utiliser qu'en connaissance)
+set -e
+R=$(git rev-parse --show-toplevel)
+cd "$R"
+
+# Sous WSL, python3 porte pypgx et permet de verifier la regeneration des
+# ressources ; sous Git bash, python suffit pour le reste.
+PY=python
+command -v python3 >/dev/null 2>&1 && PY=python3
+
+echo "--- tests du module ---"
+"$PY" -m unittest discover -s tests -q
+
+echo "--- controles du depot ---"
+"$PY" outils/verifier_depot.py
+
+echo "--- messages de commit qui partent ---"
+while read -r locale_ref locale_sha distante_ref distante_sha; do
+  [ "$locale_sha" = "0000000000000000000000000000000000000000" ] && continue
+  case "$distante_sha" in
+    0000000000000000000000000000000000000000) plage="$locale_sha" ;;
+    *) plage="$distante_sha..$locale_sha" ;;
+  esac
+  n=0
+  for c in $(git rev-list --max-count=50 "$plage"); do
+    f=$(mktemp)
+    git log -1 --format=%B "$c" > "$f"
+    if ! "$PY" outils/valider_message.py "$f"; then
+      echo "  commit $(git log -1 --format=%h "$c") refuse"
+      rm -f "$f"
+      exit 1
+    fi
+    rm -f "$f"
+    n=$((n+1))
+  done
+  echo "  $n message(s) conformes"
+done
+
+echo "--- porte franchie ---"

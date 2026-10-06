@@ -1,0 +1,4 @@
+#!/bin/sh
+# Valide le message de commit contre CONTRIBUTING.md. Refuse le commit sinon.
+# Active par : git config core.hooksPath outils/crochets
+exec python "$(git rev-parse --show-toplevel)/outils/valider_message.py" "$1"
