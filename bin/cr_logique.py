@@ -94,7 +94,11 @@ def perimetre(rapport, meta):
             rendus.append(sym)
         elif statut == "partiel":
             rendus.append(sym)
-            reserves[sym] = v["positions_perdues"]
+            # La reserve porte son denominateur : perdre quatre positions sur
+            # sept n'est pas perdre trois positions sur quarante-six, et c'est
+            # la proportion qui dit si le diplotype est utilisable.
+            reserves[sym] = (v.get("positions_perdues"),
+                             v.get("positions_attendues"))
         else:
             absents.append((sym, "aucune position lue"))
     for sym in sorted(clinique - set(rapport.get("genes", {}))):

@@ -143,10 +143,15 @@ class Perimetre(unittest.TestCase):
         rap = {"genes": {"TPMT": gene(labels=["*1/*1"])}}
         meta = {"perimetre_clinique": ["TPMT"],
                 "genes": {"TPMT": {"statut": "partiel",
-                                   "positions_perdues": ["chr6:1"]}}}
+                                   "positions_perdues": 4,
+                                   "positions_attendues": 7}}}
         rendus, _, reserves = L.perimetre(rap, meta)
         self.assertEqual(rendus, ["TPMT"])
-        self.assertEqual(reserves["TPMT"], ["chr6:1"])
+        # La reserve porte son denominateur : quatre positions perdues sur
+        # sept et quatre sur quarante-six ne se lisent pas de la meme facon,
+        # et la titration a montre qu'un faux diplotype sort dans le premier
+        # cas et pas dans le second.
+        self.assertEqual(reserves["TPMT"], (4, 7))
 
     def test_aucune_position_lue_n_est_pas_rendu(self):
         # Le coeur de la garantie : un diplotype calcule sur des positions non

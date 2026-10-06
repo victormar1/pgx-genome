@@ -86,25 +86,43 @@ réduit — sans quoi seule la mesure de profondeur changerait, pas les génotyp
 puis le module repasse en entier. Les niveaux sont des fractions ; la profondeur
 indiquée est celle que le module mesure lui-même sur ses positions.
 
+3 génomes, 12 exécutions.
+
 | Couverture | Profondeur médiane | Gènes complets | partiels | absents | Diplotypes changés |
 |---|---|---|---|---|---|
-| pleine | 34 × | 9 | 0 | 0 | **0 / 12** |
-| 67 % | 24 × | 8 | 1 | 0 | **0 / 12** |
-| 50 % | 17 × | 5 | 3 | 1 | **0 / 12** |
-| 33 % | 11 × | 0 | 8 | 1 | 2 / 12 |
+| pleine | 35 × | 9,0 | 0,0 | 0,0 | **0 / 36** |
+| 67 % | 24 × | 8,7 | 0,3 | 0,0 | **0 / 36** |
+| 50 % | 18 × | 5,3 | 3,3 | 0,3 | **1 / 36** |
+| 33 % | 11 × | 0,7 | 8,0 | 0,3 | 7 / 36 |
 
-**Le module se dégrade en avouant, non en se trompant.** À 17 ×, aucune réponse
-ne change ; trois gènes passent simplement en « partiel », et le compte rendu
-porte la réserve. À 11 ×, plus aucun gène n'est déclaré complet, et les deux
-diplotypes qui changent ne deviennent pas faux :
+**À 18 ×, le seul changement est une ambiguïté déclarée** — SLCO1B1 passe de
+`*1/*15` à deux diplotypes possibles — et une ambiguïté ne déclenche aucune
+recommandation. Aucune réponse ne devient fausse.
 
-| Gène | Pleine couverture | À 11 × |
-|---|---|---|
-| CYP2C19 | `*1/*1` | `*1/*1 ; *1/*38 ; *38/*38` — ambiguïté déclarée |
-| CYP2D6 | `*4/*41` | `Unknown/Unknown` — abstention de l'outil dédié |
+**À 11 ×, deux faux diplotypes apparaissent, et c'est la limite basse réelle du
+produit :**
 
-Une ambiguïté ne déclenche aucune recommandation, et une abstention est rendue
-comme telle. Aucun étage n'échoue à aucun niveau.
+| Génome | Gène | Pleine couverture | À 11 × | Nature |
+|---|---|---|---|---|
+| HG00101 | CYP2C19 | `*1/*1` | `*1/*1 ; *1/*38 ; *38/*38` | ambiguïté |
+| HG00100 | CYP2D6 | `*4/*41` | `Unknown/Unknown` | abstention |
+| **HG00101** | **CYP3A5** | **`*3/*3`** | **`*1/*1`** | **faux** |
+| **HG00111** | **CYP3A4** | **`*1/*22`** | **`*1/*1`** | **faux** |
+
+Les deux faux appels sont des pertes d'allèle : un homozygote variant lu comme
+homozygote de référence. Sur CYP3A5, `*3/*3` contre `*1/*1` sépare un
+non-expresseur d'un expresseur, ce qui change la dose initiale de tacrolimus.
+
+**La garantie de conception tient dans sa lettre** : les deux gènes étaient
+marqués « partiel », jamais « complet ». CYP3A5 n'avait retenu que 3 positions
+sur 7. Aucun faux diplotype n'a été rendu sur un gène déclaré complet, à aucun
+niveau. Aucun étage n'échoue à aucun niveau.
+
+**Mais une réserve n'est pas un refus**, et c'est ce que cette mesure a appris :
+la mention « partiel » couvrait indifféremment un gène ayant perdu 4 positions
+sur 7 et un gène en ayant perdu 3 sur 46. Le compte rendu annonce désormais la
+proportion — « 4 sur 7 positions non lues » — parce que c'est elle qui dit si un
+diplotype est opposable.
 
 Le typage complémentaire se comporte de même, et c'est la démonstration la plus
 directe de sa règle de recevabilité :
@@ -121,9 +139,9 @@ de décrochage suit le nombre de positions définissantes à réunir : POR en
 compte 46, MTHFR 8, BCHE 2, et MT-RNR1 siège sur l'ADN mitochondrial, dont la
 couverture est très supérieure.
 
-**Conséquence : le domaine de validité s'arrête autour de 17 ×**, au-dessous
-duquel le périmètre se réduit sans que les réponses deviennent fausses. Mesure
-établie sur un génome ; à étendre.
+**Conséquence : le domaine de validité s'arrête à 18 ×.** Au-dessous, des
+pertes d'allèle produisent de faux diplotypes, signalés mais rendus. Mesure
+établie sur 3 génomes ; à étendre.
 
 ### 3.5 Profil de ressources
 
