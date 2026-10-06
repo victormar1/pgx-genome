@@ -447,8 +447,20 @@ FQ1="$T/mhc_1.fq"; FQ2="$T/mhc_2.fq"
 # memes ressources — son resultat est reutilise tel quel. Sans cette condition,
 # tout genome repris repayait cent soixante-dix secondes pour un resultat
 # identique.
+# L'empreinte immuable de l'image, et non son etiquette : une etiquette peut
+# etre repointee sur une autre image sans changer de nom.
+empreinte_image() {
+  case "$MOTEUR" in
+    docker) docker image inspect "$1" \
+              --format '{{index .RepoDigests 0}}' 2>/dev/null \
+            || docker image inspect "$1" --format '{{.Id}}' 2>/dev/null;;
+    *) echo "$1";;   # Apptainer resout l'image a chaque appel
+  esac
+}
 HLA_REPRIS=0
-if [ "$REPRISE" = 1 ] && [ -s "$T/hla.tsv" ] && [ "$(wc -l < "$T/hla.tsv")" -ge 2 ]; then
+if [ "$REPRISE" = 1 ] && [ -s "$T/hla.tsv" ] && [ "$(wc -l < "$T/hla.tsv")" -ge 2 ] \
+   && [ -s "$T/hla.image" ] \
+   && [ "$(cat "$T/hla.image")" = "$(empreinte_image "$IMG_OPTITYPE")" ]; then
   HLA_REPRIS=1
 else
   rm -rf "$T/hla"
@@ -475,6 +487,9 @@ else
   HLA=$(find "$T/hla" -name "*_result.tsv" 2>/dev/null | sort | tail -1)
   if [ $rc -eq 0 ] && [ -n "$HLA" ] && [ "$(wc -l < "$HLA")" -ge 2 ]; then
     cp "$HLA" "$T/hla.tsv"
+    # L'image qui a produit ce resultat, pour que la reprise puisse verifier
+    # qu'elle n'a pas change.
+    empreinte_image "$IMG_OPTITYPE" > "$T/hla.image"
     r=$(awk -F'\t' 'NR==2{print $2"/"$3" "$4"/"$5}' "$T/hla.tsv")
     dire "4. HLA : $r, sur $NPAIRES paires"; etat hla OK $(( $(date +%s)-t0 )) "$r"
   else

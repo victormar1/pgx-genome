@@ -1,6 +1,6 @@
 {
  "source": "PyPGx ?",
- "genere_le": "2026-09-27",
+ "genere_le": "2026-10-06",
  "genes": {
   "MT-RNR1": {
    "classe_rnpgx": 1,
@@ -15,8 +15,8 @@
     "chrM:669:T:C",
     "chrM:747:A:G",
     "chrM:786:G:A",
-    "chrM:807:A:G",
     "chrM:807:A:C",
+    "chrM:807:A:G",
     "chrM:827:A:G",
     "chrM:839:A:G",
     "chrM:896:A:G",
