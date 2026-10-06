@@ -76,7 +76,7 @@ sont le comportement attendu : les contrôles d'entrée les écartent *avant* de
 lancer un seul étage, plutôt que de rendre un résultat faux sur une entrée
 corrompue.
 
-**Concordance sur le périmètre clinique (12 gènes) : 1000 / 1009 = 99,1 %.** Les
+**Concordance sur les 12 gènes du périmètre pour lesquels une vérité existe : 1000 / 1009 = 99,1 %.** Les
 neuf écarts sont tous des quasi-concordances HLA à quatre chiffres (un champ sur
 deux), aucun sur un allèle à risque.
 
@@ -323,8 +323,9 @@ identique produisent le même résultat.
 ## Structure du dépôt
 
 ```
-bin/            les sept scripts du pipeline
+bin/            les huit scripts du pipeline
 ressources/     les ressources figées, lues au runtime (dont les traductions CPIC)
+outils/         les générateurs reproductibles des ressources dérivées
 doc/            le mode d'emploi complet et le schéma du flux de fichiers
 env/            requirements Python et empreintes des conteneurs
 exemples/       un manifeste type
