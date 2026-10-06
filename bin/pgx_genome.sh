@@ -29,7 +29,7 @@ set -uo pipefail
 RACINE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RES="$RACINE/ressources"
 
-CRAM=""; VCF=""; SORTIE=""; ECH=""; REPRISE=0; FORCER=0
+CRAM=""; VCF=""; SORTIE=""; ECH=""; REPRISE=0; FORCER=0; IDENTITE=""
 FASTA="${PGX_FASTA:-}"
 GQ="${PGX_GQ:-20}"
 PROF="${PGX_PROFONDEUR:-10}"
@@ -61,6 +61,7 @@ while [ $# -gt 0 ]; do
     --gq) GQ="$2"; shift 2;;
     --profondeur) PROF="$2"; shift 2;;
     --fils) FILS="$2"; shift 2;;
+    --identite) IDENTITE="$2"; shift 2;;
     --reprise) REPRISE=1; shift;;
     --forcer) FORCER=1; shift;;
     --ignorer-filtre) IGNORER_FILTRE="--ignorer-filtre"; shift;;
@@ -104,12 +105,56 @@ etat() { printf '%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" >> "$ETATS"; }
 D_CRAM="$(cd "$(dirname "$CRAM")" && pwd)"
 D_VCF="$(cd "$(dirname "$VCF")" && pwd)"
 D_SORTIE="$(cd "$SORTIE" && pwd)"
-MONTE=(-v "$D_CRAM":"$D_CRAM":ro -v "$D_VCF":"$D_VCF":ro -v "$D_SORTIE":"$D_SORTIE" -v "$RES":"$RES":ro)
+DOSSIERS=("$D_CRAM" "$D_VCF" "$RES")
+ECRIVABLES=("$D_SORTIE")
 if [ -n "$FASTA" ]; then
   D_FASTA="$(cd "$(dirname "$FASTA")" && pwd)"
-  MONTE+=(-v "$D_FASTA":"$D_FASTA":ro)
+  DOSSIERS+=("$D_FASTA")
 fi
-BCF() { docker run --rm "${MONTE[@]}" -w "$D_SORTIE" "$IMG_BCF" bcftools "$@"; }
+
+# Le moteur de conteneurs est interchangeable. Docker reclame un demon
+# privilegie, que beaucoup de plateformes de calcul n'autorisent pas ; elles
+# disposent d'Apptainer, qui s'execute sans privilege. Les deux montent les
+# memes dossiers, avec une syntaxe differente — et Apptainer monte le dossier
+# courant de l'hote par defaut, ce qu'on desactive pour que l'execution ne
+# depende pas du repertoire d'appel.
+MOTEUR="${PGX_MOTEUR:-docker}"
+conteneur() {   # $1 dossier de travail  $2 image  $3... commande
+  local cwd="$1" image="$2"; shift 2
+  local m=() d
+  case "$MOTEUR" in
+    docker)
+      for d in "${DOSSIERS[@]}"; do m+=(-v "$d":"$d":ro); done
+      for d in "${ECRIVABLES[@]}"; do m+=(-v "$d":"$d"); done
+      docker run --rm "${m[@]}" -w "$cwd" "$image" "$@"
+      ;;
+    apptainer|singularity)
+      for d in "${DOSSIERS[@]}"; do m+=(--bind "$d":"$d":ro); done
+      for d in "${ECRIVABLES[@]}"; do m+=(--bind "$d":"$d"); done
+      "$MOTEUR" exec --cleanenv --no-home --pwd "$cwd" "${m[@]}" \
+        "docker://$image" "$@"
+      ;;
+    *)
+      echo "moteur de conteneurs inconnu : $MOTEUR" >&2; return 127
+      ;;
+  esac
+}
+BCF() { conteneur "$D_SORTIE" "$IMG_BCF" bcftools "$@"; }
+
+# Le moteur se verifie ici, avant tout etage. Sans ce controle, un moteur
+# inconnu ou absent faisait echouer la recevabilite sur « le fichier de
+# variants porte 0 echantillons » : un message qui envoie chercher la faute
+# dans les donnees du patient alors qu'elle est dans la configuration.
+case "$MOTEUR" in
+  docker|apptainer|singularity) ;;
+  *) echo "pgx_genome : moteur de conteneurs inconnu : $MOTEUR" >&2
+     echo "             attendus : docker, apptainer, singularity" >&2
+     exit 2;;
+esac
+if ! command -v "$MOTEUR" >/dev/null 2>&1; then
+  echo "pgx_genome : $MOTEUR demande par PGX_MOTEUR mais introuvable" >&2
+  exit 2
+fi
 
 T="$SORTIE/travail"
 
@@ -163,7 +208,20 @@ empreinte() {
   printf '%s %s %s' "$(stat -c '%s' "$f")" "$(stat -c '%Y' "$f")" \
     "$(head -c 1048576 "$f" | sha256sum | cut -c1-32)"
 }
-SIGNATURE="$(empreinte "$CRAM")|$(empreinte "$VCF")|gq=$GQ|prof=$PROF|filtre=${IGNORER_FILTRE:-respecte}"
+# La reference fait partie des entrees : la tranche, la profondeur et tout ce
+# qui en decoule changent avec elle. Son absence de la signature laissait une
+# reprise reutiliser le travail de la veille apres un changement de reference,
+# et un alignement decode avec la mauvaise reference ne leve rien. Les
+# ressources y entrent aussi : une position ajoutee au perimetre change la
+# tranche sans toucher aux entrees. Le seuil d'equilibre allelique n'y
+# figure pas : il n'est pas reglable en ligne de commande, et l'etage de
+# controle qualite qui le porte est rejoue a chaque execution.
+# Le contenu, et non le nom ni la taille : une position corrigee a taille
+# egale doit invalider la reprise. Cent soixante kilooctets, cent cinquante
+# millisecondes.
+EMPREINTE_RES=$(find "$RES" -type f -print0 2>/dev/null | sort -z \
+  | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -c1-16)
+SIGNATURE="$(empreinte "$CRAM")|$(empreinte "$VCF")|$(empreinte "$FASTA")|gq=$GQ|prof=$PROF|filtre=${IGNORER_FILTRE:-respecte}|res=$EMPREINTE_RES"
 SIG_FICHIER="$T/signature.txt"
 if [ -s "$SIG_FICHIER" ]; then
   if [ "$(cat "$SIG_FICHIER")" = "$SIGNATURE" ] && [ "$REPRISE" = 1 ]; then
@@ -328,7 +386,7 @@ elif python3 "$RACINE/bin/qc_perimetre.py" --vcf "$FIL" --profondeur "$DEPTH" \
        ${COMPLEMENT:+--positions-complement "$COMPLEMENT"} \
        --gq "$GQ" --profondeur-min "$PROF" --echantillon "$ECH" \
        --perimetre-clinique "$RES/perimetre_rnpgx.json" $IGNORER_FILTRE >>"$JOURNAL" 2>&1 \
-     && docker run --rm "${MONTE[@]}" "$IMG_BCF" bgzip -f "$T/qualifie.vcf" >>"$JOURNAL" 2>&1 \
+     && conteneur "$D_SORTIE" "$IMG_BCF" bgzip -f "$T/qualifie.vcf" >>"$JOURNAL" 2>&1 \
      && BCF index -f -t "$QUAL" >>"$JOURNAL" 2>&1 && [ -s "$QUAL" ]; then
   ret=$(python3 -c "import json;d=json.load(open(r'$T/perimetre.json',encoding='utf-8'));print(d['positions_retenues'],d['positions_visees'],sum(1 for v in d['genes'].values() if v['statut']=='complet'),len(d['genes']),d.get('positions_sans_GQ',0))")
   dire "2b. controle qualite : $(echo $ret | awk '{print $1" positions retenues sur "$2", "$3" genes complets sur "$4", "$5" sans qualite"}')"
@@ -384,8 +442,18 @@ fi
 # ------------------------------------------------------------------ 4. HLA
 t0=$(date +%s)
 FQ1="$T/mhc_1.fq"; FQ2="$T/mhc_2.fq"
-rm -rf "$T/hla"
-if [ ! -s "$FQ1" ] && [ -s "$TRANCHE.bai" ]; then
+# Le typage HLA coute a lui seul la moitie du temps d'un genome. Quand la
+# reprise est legitime — meme signature, donc memes entrees, meme reference et
+# memes ressources — son resultat est reutilise tel quel. Sans cette condition,
+# tout genome repris repayait cent soixante-dix secondes pour un resultat
+# identique.
+HLA_REPRIS=0
+if [ "$REPRISE" = 1 ] && [ -s "$T/hla.tsv" ] && [ "$(wc -l < "$T/hla.tsv")" -ge 2 ]; then
+  HLA_REPRIS=1
+else
+  rm -rf "$T/hla"
+fi
+if [ "$HLA_REPRIS" = 0 ] && [ ! -s "$FQ1" ] && [ -s "$TRANCHE.bai" ]; then
   CONTIGS=$(samtools view -H "$TRANCHE" 2>/dev/null | grep -oE 'SN:HLA-[^[:space:]]+' | sed 's/SN://' | tr '\n' ' ')
   samtools view -u "$TRANCHE" chr6:29600000-33100000 $CONTIGS 2>>"$JOURNAL" \
     | samtools collate -u -O - 2>>"$JOURNAL" \
@@ -393,11 +461,15 @@ if [ ! -s "$FQ1" ] && [ -s "$TRANCHE.bai" ]; then
 fi
 NPAIRES=0
 [ -s "$FQ1" ] && NPAIRES=$(( $(wc -l < "$FQ1") / 4 ))
-if [ "$NPAIRES" -lt 200 ]; then
+if [ "$HLA_REPRIS" = 1 ]; then
+  r=$(awk -F'\t' 'NR==2{print $2"/"$3" "$4"/"$5}' "$T/hla.tsv")
+  dire "4. HLA : $r, repris de l'execution precedente"
+  etat hla OK $(( $(date +%s)-t0 )) "$r (repris)"
+elif [ "$NPAIRES" -lt 200 ]; then
   dire "4. HLA : ECHEC, seulement $NPAIRES paires extraites du complexe majeur"
   etat hla ECHEC $(( $(date +%s)-t0 )) "$NPAIRES paires"
 else
-  docker run --rm "${MONTE[@]}" -w "$T" "$IMG_OPTITYPE" \
+  conteneur "$T" "$IMG_OPTITYPE" \
     OptiTypePipeline.py -i "$T/mhc_1.fq" "$T/mhc_2.fq" --dna -v -o "$T/hla" >>"$JOURNAL" 2>&1
   rc=$?
   HLA=$(find "$T/hla" -name "*_result.tsv" 2>/dev/null | sort | tail -1)
@@ -484,11 +556,11 @@ rm -f "$PRE" "$RAP"
 if [ ! -s "$QUAL" ]; then
   dire "6. interpretation : ECHEC, VCF qualifie absent"
   etat pharmcat ECHEC 0 "qualifie.vcf.gz absent"
-elif docker run --rm "${MONTE[@]}" -w "$T" "$IMG_PHARMCAT" \
+elif conteneur "$T" "$IMG_PHARMCAT" \
        /pharmcat/pharmcat_vcf_preprocessor -vcf "$QUAL" -o "$T" --absent-to-ref >>"$JOURNAL" 2>&1 \
      && [ -s "$PRE" ]; then
   ARG=(); [ -s "$PO" ] && ARG=(-po "$PO")
-  if docker run --rm "${MONTE[@]}" -w "$D_SORTIE" "$IMG_PHARMCAT" \
+  if conteneur "$D_SORTIE" "$IMG_PHARMCAT" \
        java -jar /pharmcat/pharmcat.jar -vcf "$PRE" "${ARG[@]}" \
        -o "$D_SORTIE/sortie" -bf "$ECH" -reporterJson -del >>"$JOURNAL" 2>&1 \
      && [ -s "$RAP" ]; then
@@ -506,8 +578,12 @@ fi
 # --------------------------------------------------------------- 7. rendu
 t0=$(date +%s)
 if [ -s "$RAP" ] && [ -s "$T/perimetre.json" ]; then
+  # L'identite, si elle a ete fournie, passe par un chemin de fichier et non
+  # par sa valeur : un nom en argument serait lisible dans la table des
+  # processus et dans les journaux de l'ordonnanceur.
   if python3 "$RACINE/bin/compte_rendu.py" --rapport "$RAP" --perimetre "$T/perimetre.json" \
-       --sortie "$SORTIE/sortie/CR_$ECH.pdf" --echantillon "$ECH" >>"$JOURNAL" 2>&1 \
+       --sortie "$SORTIE/sortie/CR_$ECH.pdf" --echantillon "$ECH" \
+       ${IDENTITE:+--identite "$IDENTITE"} >>"$JOURNAL" 2>&1 \
      && [ -s "$SORTIE/sortie/CR_$ECH.pdf" ]; then
     dire "7. compte rendu : $SORTIE/sortie/CR_$ECH.pdf"
     etat rendu OK $(( $(date +%s)-t0 )) "CR_$ECH.pdf"
