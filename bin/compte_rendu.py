@@ -255,8 +255,9 @@ for g in ordre:
     else:
         cons = "Pas de modification de la prise en charge."
     if g in RESERVES:
-        n = RESERVES[g]
-        cons += f" Sous réserve : {n} position{'s' if n > 1 else ''} non lue{'s' if n > 1 else ''}."
+        n, tot = RESERVES[g]
+        cons += (f" Sous réserve : {n} position{'s' if n > 1 else ''} non lue"
+                 f"{'s' if n > 1 else ''} sur {tot}.")
     rows.append([Paragraph(g, st_gras), Paragraph(e_(libelle(g)), st_corps),
                  Paragraph(e_(phenotype(g)), st_corps), Paragraph(cons, st_corps)])
 _TYPE_RENDU = {r["gene"]: r for r in TYPAGE if r.get("statut") == "rendu"}
@@ -374,9 +375,14 @@ limites = [
     "recherchés : un résultat normal n'exclut pas un déficit.",
 ]
 if RESERVES:
-    limites.append("Sous réserve pour " + ", ".join(f"{g} ({n} position{'s' if n > 1 else ''} non lue{'s' if n > 1 else ''})"
-                                                     for g, n in sorted(RESERVES.items()))
-                   + " : un allèle défini par l'une de ces positions n'aurait pas été vu.")
+    limites.append(
+        "Sous réserve pour "
+        + ", ".join(f"{g} ({n} sur {tot} position{'s' if tot > 1 else ''} non lue"
+                    f"{'s' if n > 1 else ''})"
+                    for g, (n, tot) in sorted(RESERVES.items()))
+        + " : un allèle défini par l'une de ces positions n'aurait pas été vu. "
+          "Plus la part de positions perdues est grande, moins le diplotype "
+          "est opposable.")
 for x in limites:
     h.append(Paragraph("• " + x, st_petit))
 

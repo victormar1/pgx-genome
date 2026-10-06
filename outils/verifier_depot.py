@@ -158,7 +158,37 @@ def controle_ressources(regenerer):
         print("        regenere sur place")
 
 
-# ------------------------------------- 5. coherence entre les ressources
+# ------------------------------------- 5. les fichiers Python compilent
+def controle_compilation():
+    """Tout fichier Python du depot doit compiler.
+
+    Un script qui n'est pas importable — il lit ses arguments a l'import —
+    echappe aux tests : une faute de syntaxe y est passee inapercue alors que
+    cent cinquante-neuf cas etaient au vert. La compilation ne depend pas de
+    l'importabilite."""
+    print("\nCompilation des fichiers Python")
+    mauvais = []
+    for rel in suivis():
+        if not rel.endswith(".py"):
+            continue
+        chemin = os.path.join(RACINE, rel)
+        try:
+            with io.open(chemin, encoding="utf-8") as fh:
+                # compile() verifie la syntaxe sans rien ecrire, et sans
+                # dependre d'un fichier nul dont la nature varie selon le
+                # systeme.
+                compile(fh.read(), chemin, "exec")
+        except SyntaxError as e:
+            mauvais.append("%s ligne %s : %s" % (rel, e.lineno, e.msg))
+        except OSError as e:
+            mauvais.append("%s : %s" % (rel, e))
+    dire(not mauvais, "tous les fichiers Python compilent",
+         "" if not mauvais else mauvais[0])
+    for m in mauvais[1:5]:
+        print("        %s" % m)
+
+
+# ------------------------------------- 6. coherence entre les ressources
 def intervalles(chemin):
     """Les intervalles d'un BED, en coordonnees a demi-ouvertes."""
     out = []
@@ -261,6 +291,7 @@ def main():
     controle_svg()
     controle_perimetre()
     controle_motifs()
+    controle_compilation()
     controle_coherence()
     controle_ressources(regenerer)
     print()
