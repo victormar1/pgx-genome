@@ -196,7 +196,7 @@ Sur la machine qui exécute le module :
 | Linux ou WSL2 | — | l'environnement |
 | `bash` | ≥ 4 | l'orchestrateur |
 | `docker` | ≥ 20 | les conteneurs |
-| `pypgx` | 0.27, python 3.10 | l'étage 4b, optionnel (`PGX_PYPGX`) ; sur l'hôte, l'image 3.12 échoue sur un bug pandas |
+| `pypgx` | image 0.27.0 | l'étage 4b, optionnel (`PGX_PYPGX`) ; image construite sur place, voir `env/pypgx.Dockerfile` |
 | `samtools` | ≥ 1.13 | tranche, profondeur, extraction du complexe majeur |
 | `python3` | ≥ 3.8, avec `reportlab` | contrôle qualité, provenance, compte rendu |
 | GNU coreutils / findutils | — | `stat -c`, `xargs -d` pour le traitement de lot |
@@ -209,9 +209,13 @@ Deux ressources externes, volumineuses, non versionnées dans ce dépôt :
   1000 Genomes). Un CRAM en exige une.
 - **Le dépôt Cyrius.** Cloné et épinglé au commit ci-dessus.
 
-Les trois images Docker sont épinglées par étiquette **et** par empreinte immuable
-dans `env/conteneurs.txt`. Un changement de version change les résultats et doit
-être remesuré.
+Les images sont épinglées par étiquette **et** par empreinte immuable dans
+`env/conteneurs.txt`. Un changement de version change les résultats et doit être
+remesuré : `doc/VALIDATION.md` donne le protocole.
+
+**Le moteur de conteneurs est interchangeable.** `docker` par défaut,
+`apptainer` ou `singularity` par `PGX_MOTEUR` — les plateformes de calcul qui
+n'autorisent pas de démon privilégié disposent du second.
 
 Deux réglages mesurés sur ce banc :
 
@@ -326,7 +330,8 @@ identique produisent le même résultat.
 ```
 bin/            les huit scripts du pipeline
 ressources/     les ressources figées, lues au runtime (dont les traductions CPIC)
-outils/         les générateurs reproductibles des ressources dérivées
+outils/         les générateurs de ressources, les contrôles, les crochets
+tests/          139 cas, audités par mutation
 doc/            le mode d'emploi complet et le schéma du flux de fichiers
 env/            requirements Python et empreintes des conteneurs
 exemples/       un manifeste type
@@ -335,7 +340,13 @@ bench/          la fiche de résultats condensée (une ligne par gène)
 
 `doc/MODE_EMPLOI.md` est le manuel de référence, étage par étage, avec la
 justification de chaque garde-fou. `doc/FLUX_FICHIERS.md` décrit le cheminement
-des fichiers d'un bout à l'autre.
+des fichiers d'un bout à l'autre. `doc/VALIDATION.md` rassemble les preuves, les
+limites à déclarer et le protocole de revalidation. `exemples/pgx_genome.nf` est
+une recette d'intégration pour un ordonnanceur, à adapter.
+
+**L'identité du patient se passe dans un fichier**, par `--identite`, et non en
+argument : un argument est lisible dans la table des processus par tout
+utilisateur de la machine, et se retrouve dans les journaux de l'ordonnanceur.
 
 ## Annexe — les neuf écarts HLA en détail
 
