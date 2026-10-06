@@ -123,11 +123,62 @@ VDR). Les deux outils s'accordent sur **97,2 %** des couples. Contre la vérité
 GeT-RM, le module est à **100 % (621 / 621)** et PyPGx à **98,4 % (613 / 623)** ; les
 rares écarts sont à l'avantage du module (CYP2D6, SLCO1B1, NUDT15), qui s'abstient ou
 tranche par classe de fonction là où PyPGx force un appel. En sens inverse, PyPGx
-type **POR** — 129 porteurs de `*28` sur les 244 — que l'interpréteur du module ne
-couvre pas ; c'est le seul apport où PyPGx complète le module plutôt que de le
-confirmer.
+type **POR** — 129 porteurs de `*28` sur les 244 — que l'interpréteur ne couvre
+pas. C'est ce constat qui a conduit à en faire un étage du module plutôt qu'un
+outil de comparaison (voir ci-dessous).
 
 <p align="center"><img src="doc/figures/module_vs_pypgx.svg" alt="Contre-vérification indépendante : module 100 % (621/621) et PyPGx 98,4 % (613/623) contre GeT-RM, accord inter-outils 97,2 %" width="720"></p>
+
+**Typage complémentaire (étage 4b).** Les quatre gènes que l'interpréteur ne
+sait pas appeler ont été typés sur **243 génomes**. Aucune vérité externe
+n'existe pour eux ; la mesure de référence est le génotype relevé position par
+position par le contrôle qualité, sur un chemin technique indépendant — l'un lit
+l'alignement et sa profondeur, l'autre le seul fichier de variants.
+
+| Gène | Rendus | Non conclusifs | Concordance avec la mesure |
+|---|---|---|---|
+| MT-RNR1 | 242 / 243 | 1 (contig `chrM` absent du fichier de variants) | aucun porteur sur ce banc |
+| BCHE | 243 / 243 | 0 | 243 / 243 sur ses deux positions |
+| MTHFR | 243 / 243 | 0 | 243 / 243 sur C677T et A1298C |
+| POR | 243 / 243 | 0 | 243 / 243 sur `rs1057868` |
+
+Les fréquences alléliques observées rejoignent les valeurs publiées : BCHE
+`rs1803274` 0,18 contre 0,20 attendu, MTHFR C677T 0,35 contre 0,33. Le gène non
+conclusif est le comportement voulu : sans le contig mitochondrial dans le
+fichier de variants, le typeur rendrait « référence » — donc « risque normal de
+surdité sous aminoside » — sur un gène jamais lu.
+
+**Limite à connaître : MT-RNR1 n'a aucun porteur sur ce banc.** Ses trois
+positions du panel — m.1095T>C, m.1494C>T, m.1555A>G — sont de référence sur les
+243 génomes. Le gène porte pourtant toute la valeur clinique de l'étage, puisque
+c'est le seul à rendre un phénotype et une recommandation. L'appel négatif est
+donc vérifié 242 fois, l'appel positif pas une seule : la recommandation
+« éviter les aminosides » n'a jamais été déclenchée par une donnée réelle, mais
+seulement sur appel construit.
+
+**Cinq garde-fous éprouvés.** Chacun a été déclenché sur un génome réel et
+refuse le seul gène concerné, jamais le génome : contig absent du fichier de
+variants, profondeur non mesurée, profondeur sous le seuil, génotype sans GQ,
+`FILTER` autre que `PASS`.
+
+**Coût mesuré** sur les 243 génomes, vingt-quatre cœurs, données sur disque
+local, deux génomes en parallèle :
+
+| Étage | Médiane | p90 | Max |
+|---|---|---|---|
+| recevabilité | 1 s | 2 s | 2 s |
+| filtre | 3 s | 4 s | 5 s |
+| tranche | 19 s | 24 s | 33 s |
+| contrôle qualité | 71 s | 75 s | 113 s |
+| CYP2D6 | 39 s | 51 s | 86 s |
+| HLA | 170 s | 209 s | 306 s |
+| typage complémentaire | 17 s | 20 s | 35 s |
+| appels externes | < 1 s | < 1 s | 1 s |
+| interprétation | 6 s | 7 s | 15 s |
+| compte rendu | < 1 s | 1 s | 1 s |
+
+Le HLA domine le temps d'exécution ; le typage complémentaire pèse **5 % du
+total** par génome.
 
 Le banc de validation lui-même — cohorte, vérités, scripts de comparaison — n'est
 pas versionné dans ce dépôt de production ; il est reproductible à partir des
