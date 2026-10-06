@@ -29,8 +29,17 @@ _p.add_argument("--rapport", required=True, help="le JSON produit par PharmCAT")
 _p.add_argument("--perimetre", required=True, help="perimetre.json produit par le controle qualite")
 _p.add_argument("--sortie", required=True, help="chemin du PDF a ecrire")
 _p.add_argument("--echantillon", default="")
-_p.add_argument("--patient", default="", help="identite du patient, fournie par le SIL")
-_p.add_argument("--naissance", default="", help="date de naissance, fournie par le SIL")
+# L'identite se lit dans un fichier, et non en argument : un argument est
+# visible dans la table des processus par tout utilisateur de la machine, et il
+# se retrouve dans les journaux de l'ordonnanceur. Le fichier attendu est un
+# JSON a deux cles, « patient » et « naissance ».
+_p.add_argument("--identite", default="",
+                help="JSON {patient, naissance} fourni par le SIL ; "
+                     "a preferer aux deux arguments suivants")
+_p.add_argument("--patient", default="",
+                help="deconseille : visible dans la table des processus")
+_p.add_argument("--naissance", default="",
+                help="deconseille : visible dans la table des processus")
 _p.add_argument("--contexte", default="", help="preindication PFMG, par ex. « néphropathies »")
 _p.add_argument("--traductions", default=os.path.join(RACINE, "ressources", "traductions_cpic_fr.json"))
 _p.add_argument("--sans-mention-prototype", action="store_true",
@@ -41,6 +50,23 @@ _a = _p.parse_args()
 SRC, OUT = _a.rapport, _a.sortie
 ECH = _a.echantillon or os.path.basename(SRC).split(".")[0]
 os.makedirs(os.path.dirname(os.path.abspath(OUT)) or ".", exist_ok=True)
+# La version du module figure au compte rendu : un document de biologie doit
+# dire quel logiciel l'a produit, et dans quelle version.
+_vf = os.path.join(RACINE, "VERSION")
+VERSION_MODULE = ""
+if os.path.exists(_vf):
+    with open(_vf, encoding="utf-8") as _fh:
+        VERSION_MODULE = _fh.read().strip()
+
+PATIENT, NAISSANCE = _a.patient, _a.naissance
+if _a.identite:
+    with open(_a.identite, encoding="utf-8") as _fh:
+        _id = json.load(_fh)
+    PATIENT = _id.get("patient", "") or PATIENT
+    NAISSANCE = _id.get("naissance", "") or NAISSANCE
+elif PATIENT or NAISSANCE:
+    sys.stderr.write("avertissement : identite passee en argument, donc visible"
+                     " dans la table des processus ; utiliser --identite\n")
 TR = json.load(open(_a.traductions, encoding="utf-8"))
 MEDS = TR["medicaments_restitues"]
 
@@ -176,8 +202,9 @@ def tableau(rows, widths, fonds=None):
 h = [Paragraph("COMPTE RENDU DE PHARMACOGÉNÉTIQUE", st_titre), Spacer(1, 4)]
 proto = not _a.sans_mention_prototype
 ident = []
-if _a.patient:
-    ident.append(("Patient", e_(_a.patient) + (f" — né(e) le {e_(_a.naissance)}" if _a.naissance else "")))
+if PATIENT:
+    ident.append(("Patient", e_(PATIENT)
+                  + (f" — né(e) le {e_(NAISSANCE)}" if NAISSANCE else "")))
 ident.append(("Prélèvement", f"{e_(ECH)}" + (" — génome public du projet 1000 Genomes, aucun patient" if proto else "")))
 ident.append(("Contexte", f"Préindication PFMG : {e_(_a.contexte)}" if _a.contexte else
               "Sous-ensemble néphrologie et épilepsie du panel socle RNPGx 2026"))
@@ -366,6 +393,7 @@ if refs:
 h.append(Paragraph(
     "<b>Méthode.</b> Séquençage du génome entier, lectures courtes appariées, alignement sur GRCh38. CYP2D6 par Cyrius "
     "sur alignement complet ; HLA de classe I par OptiType ; autres gènes et interprétation par PharmCAT. "
+    f"Module pgx-genome {e_(VERSION_MODULE or '?')}. "
     f"Traductions des recommandations CPIC : version {e_(TR.get('version', '?'))}"
     + (" (proposition, à valider)." if TR.get("statut") != "validée" else " (validée).")
     + (f" Texte d'origine conservé pour : {', '.join(NON_TRADUITS)}." if NON_TRADUITS else ""), st_petit))

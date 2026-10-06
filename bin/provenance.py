@@ -56,6 +56,20 @@ def version_pypgx(cmd):
         return {"commande": cmd, "version": ""}
 
 
+def version_module(racine):
+    """La version du module lui-meme. Le fichier VERSION fait foi : une copie
+    deployee n'est pas forcement un depot git. Le commit s'y ajoute quand il
+    est disponible, ce qui leve l'ambiguite entre deux etats portant la meme
+    version pendant le developpement."""
+    d = {"version": "", "commit": ""}
+    f = os.path.join(racine, "VERSION")
+    if os.path.exists(f):
+        with open(f, encoding="utf-8") as fh:
+            d["version"] = fh.read().strip()
+    d["commit"] = version_git(racine)
+    return d
+
+
 def version_git(chemin):
     if not chemin or not os.path.isdir(chemin):
         return ""
@@ -128,6 +142,8 @@ def main():
             "reference": os.path.abspath(a.fasta) if a.fasta else "",
             "empreinte_reference": sha256(a.fasta, limite=64 << 20) if a.fasta else "",
         },
+        "module": version_module(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
         "ressources": ressources,
         "outils": {img: version_image(img) for img in a.images.split(",") if img},
         "cyrius": {"chemin": a.cyrius, "version": version_git(a.cyrius)} if a.cyrius else {},

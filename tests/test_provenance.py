@@ -155,6 +155,15 @@ class ReussiteComplete(unittest.TestCase):
         d = self.trace([(e, "OK") for e in REQUIS] + [("pypgx", "ECHEC")])
         self.assertFalse(d["reussite_complete"])
 
+    def test_la_trace_porte_la_version_du_module(self):
+        # Le module tracait la version de chacune de ses dependances et pas la
+        # sienne. C'est la premiere chose qu'un auditeur demande d'un compte
+        # rendu : quelle version du logiciel l'a produit.
+        d = self.trace([(e, "OK") for e in REQUIS])
+        self.assertIn("module", d)
+        self.assertTrue(d["module"].get("version"),
+                        "la version du module est vide")
+
     def test_la_trace_porte_les_seuils_et_les_empreintes(self):
         d = self.trace([(e, "OK") for e in REQUIS])
         texte = json.dumps(d)
