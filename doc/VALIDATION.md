@@ -106,6 +106,21 @@ diplotypes qui changent ne deviennent pas faux :
 Une ambiguïté ne déclenche aucune recommandation, et une abstention est rendue
 comme telle. Aucun étage n'échoue à aucun niveau.
 
+Le typage complémentaire se comporte de même, et c'est la démonstration la plus
+directe de sa règle de recevabilité :
+
+| Couverture | BCHE | MT-RNR1 | MTHFR | POR |
+|---|---|---|---|---|
+| pleine, 67 % | rendu | rendu | rendu | rendu |
+| 50 % | rendu | rendu | rendu | **non conclusif** |
+| 33 % | rendu | rendu | **non conclusif** | **non conclusif** |
+
+**Aucun génotype du typage ne change en restant rendu.** Quand la couverture ne
+suffit plus, le gène sort non conclusif au lieu d'affirmer autre chose. L'ordre
+de décrochage suit le nombre de positions définissantes à réunir : POR en
+compte 46, MTHFR 8, BCHE 2, et MT-RNR1 siège sur l'ADN mitochondrial, dont la
+couverture est très supérieure.
+
 **Conséquence : le domaine de validité s'arrête autour de 17 ×**, au-dessous
 duquel le périmètre se réduit sans que les réponses deviennent fausses. Mesure
 établie sur un génome ; à étendre.
