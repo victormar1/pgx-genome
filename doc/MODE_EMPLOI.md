@@ -152,6 +152,11 @@ le critère de l'étage 2b, sinon non conclusif. Le génotype est reconstruit de
 les deux haplotypes, non depuis le diplotype du typeur, qui n'en garde qu'un
 allèle par haplotype.
 
+Le typeur vit dans une image construite sur place, `env/pypgx.Dockerfile` :
+ses auteurs ne le distribuent pas en conteneur, et une installation Python à
+maintenir sur chaque nœud n'est pas acceptable sur une plateforme. Sa ressource
+de données reste montée, et non copiée dans l'image.
+
 **5. Appels externes.** Met les résultats précédents au format attendu par
 l'interpréteur. Les tandems de CYP2D6 sont écrits avec des espaces autour du
 plus, faute de quoi l'interpréteur rend un résultat indéterminé sans lever
