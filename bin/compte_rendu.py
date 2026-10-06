@@ -13,7 +13,7 @@ Regles de securite :
  3. aucune recommandation n'est tue faute de traduction : le texte source est alors rendu,
     signale comme tel.
 """
-import argparse, csv, html, json, os, re, datetime
+import argparse, csv, html, json, os, re, sys, datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib import colors
@@ -22,6 +22,8 @@ from reportlab.lib.enums import TA_LEFT
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import cr_logique as L   # la logique, testable, sans mise en page
 _p = argparse.ArgumentParser(description="Compte rendu pharmacogenetique, francais.")
 _p.add_argument("--rapport", required=True, help="le JSON produit par PharmCAT")
 _p.add_argument("--perimetre", required=True, help="perimetre.json produit par le controle qualite")
@@ -44,38 +46,9 @@ MEDS = TR["medicaments_restitues"]
 
 
 def _perimetre(rapport):
-    """Croise ce que le controle qualite a mesure et ce que l'interpreteur a rendu.
-      complet  toutes les positions diagnostiques lues -> rendu sans reserve
-      partiel  au moins une position non lue           -> rendu avec reserve
-      absent   aucune position lue, ou aucun diplotype -> non rendu
-    Les genes venus d'un outil dedie (Cyrius, OptiType) ont le perimetre de cet outil."""
     global META
-    META = meta = json.load(open(_a.perimetre, encoding="utf-8"))
-    qc = meta.get("genes", {})
-    clinique = set(meta.get("perimetre_clinique") or [])
-    hors_interpreteur = list(meta.get("perimetre_clinique_hors_interpreteur") or [])
-    rendus, reserves, absents = [], {}, []
-    for sym, e in rapport.get("genes", {}).items():
-        if clinique and sym not in clinique:
-            continue
-        dips = e.get("recommendationDiplotypes") or e.get("sourceDiplotypes") or []
-        lab = ";".join(sorted({x.get("label", "") for x in dips if x.get("label")}))
-        appele = bool(lab) and "Unknown" not in lab
-        v = qc.get(sym)
-        statut = (v or {}).get("statut")
-        if not appele:
-            absents.append((sym, "aucun diplotype rendu" if v else "non appelable depuis le fichier de variants"))
-        elif e.get("callSource") == "OUTSIDE" or v is None or statut == "complet":
-            rendus.append(sym)
-        elif statut == "partiel":
-            rendus.append(sym)
-            reserves[sym] = v["positions_perdues"]
-        else:
-            absents.append((sym, "aucune position lue"))
-    for sym in sorted(clinique - set(rapport.get("genes", {}))):
-        absents.append((sym, "gène absent des tables de l'interpréteur" if sym in hors_interpreteur
-                        else "non rendu par l'interpréteur"))
-    return sorted(rendus), sorted(absents), reserves
+    META = json.load(open(_a.perimetre, encoding="utf-8"))
+    return L.perimetre(rapport, META)
 
 
 META = {}
@@ -94,135 +67,26 @@ if os.path.exists(_tc):
     with open(_tc, encoding="utf-8") as _fh:
         TYPAGE = list(csv.DictReader(_fh, delimiter="\t"))
 
-# ------------------------------------------------------------------ libelles
-PHENO_FR = {
-    "Normal Metabolizer": "métaboliseur normal", "Intermediate Metabolizer": "métaboliseur intermédiaire",
-    "Poor Metabolizer": "métaboliseur lent", "Rapid Metabolizer": "métaboliseur rapide",
-    "Ultrarapid Metabolizer": "métaboliseur ultrarapide",
-    "Likely Intermediate Metabolizer": "métaboliseur intermédiaire probable",
-    "Likely Poor Metabolizer": "métaboliseur lent probable",
-    "Normal Function": "fonction normale", "Decreased Function": "fonction diminuée",
-    "Possible Decreased Function": "fonction possiblement diminuée", "Poor Function": "fonction faible",
-    "Increased Function": "fonction augmentée", "Indeterminate": "non interprétable",
-    "No Result": "non appelé", "n/a": "—",
-    # MT-RNR1 : l'interpreteur rend un niveau de risque, pas un metabolisme.
-    "normal risk of aminoglycoside-induced hearing loss":
-        "risque normal de surdité sous aminoside",
-    "uncertain risk of aminoglycoside-induced hearing loss":
-        "risque incertain de surdité sous aminoside",
-    "increased risk of aminoglycoside-induced hearing loss":
-        "risque augmenté de surdité sous aminoside",
-}
-CYP3A5_EXPR = {"Normal Metabolizer": "expresseur", "Intermediate Metabolizer": "expresseur",
-               "Poor Metabolizer": "non-expresseur"}
-FORCE_FR = {"Strong": "forte", "Moderate": "modérée"}
-RESTITUES = {"contre-indication": 0, "éviter": 1, "adaptation": 2, "vigilance": 3}
-STATINES = {"simvastatin", "atorvastatin", "rosuvastatin", "pravastatin", "fluvastatin"}
-# Les onze aminosides de la recommandation MT-RNR1 portent la meme consigne :
-# les nommer un par un remplirait la page sans rien ajouter.
-AMINOSIDES = {"amikacin", "dibekacin", "gentamicin", "kanamycin", "neomycin", "netilmicin",
-              "paromomycin", "plazomicin", "ribostamycin", "streptomycin", "tobramycin"}
-NORMAUX = {"Normal Metabolizer", "Normal Function",
-           "normal risk of aminoglycoside-induced hearing loss"}
+# ---------------------------------------------- libelles et logique
+# Tables et regles vivent dans cr_logique ; on les reprend sous leurs noms
+# d'origine pour que la mise en page ci-dessous reste inchangee.
+PHENO_FR, CYP3A5_EXPR = L.PHENO_FR, L.CYP3A5_EXPR
+FORCE_FR, RESTITUES = L.FORCE_FR, L.RESTITUES
+STATINES, AMINOSIDES, NORMAUX = L.STATINES, L.AMINOSIDES, L.NORMAUX
+e_, norm = L.e_, L.norm
 ordre_med = lambda n: (n == "fosphenytoin", MEDS[n])   # phenytoine avant fosphenytoine
-e_ = lambda t: html.escape(str(t), quote=False)
-norm = lambda t: re.sub(r"\s+", " ", html.unescape(str(t))).strip()
 
 
-def diplotypes(sym):
-    e = genes.get(sym) or {}
-    dips = e.get("recommendationDiplotypes") or e.get("sourceDiplotypes") or []
-    labs = sorted({x.get("label", "") for x in dips if x.get("label")})
-    phen = sorted({p for x in dips for p in (x.get("phenotypes") or [])})
-    return labs, phen
+diplotypes = lambda sym: L.diplotypes(genes, sym)
+libelle = lambda sym: L.libelle(genes, sym)
+phenotype = lambda sym: L.phenotype(genes, sym)
+gene_normal = lambda sym: L.gene_normal(genes, sym)
+AMBIGUS = L.ambigus(genes, MESURES)
 
-
-def libelle(sym):
-    labs, _ = diplotypes(sym)
-    out = []
-    for lab in labs:
-        m = re.findall(r"(rs\d+) (?:reference|variant) \((\w+)\)", lab)   # ABCG2 : rsID par allele
-        if m and len(m) == 2:
-            lab = f"{m[0][0]} {m[0][1]}/{m[1][1]}"
-        lab = lab.replace("Reference", "référence").replace("Unknown", "non déterminé")
-        out.append(lab)
-    return ("ambigu : " + " ou ".join(out)) if len(out) > 1 else (out[0] if out else "—")
-
-
-def phenotype(sym):
-    _, phen = diplotypes(sym)
-    if sym.startswith("HLA-"):
-        pos = [p.replace(" positive", "") for p in phen if p.endswith("positive")]
-        neg = [p.replace(" negative", "") for p in phen if p.endswith("negative")]
-        if pos:
-            return ", ".join(f"{a} présent" for a in pos)
-        return (", ".join(neg) + (" absents" if len(neg) > 1 else " absent")) if neg else "—"
-    fr = []
-    for p in phen:
-        t = PHENO_FR.get(p, p)
-        if sym == "CYP3A5" and p in CYP3A5_EXPR:
-            t += f" ({CYP3A5_EXPR[p]})"
-        fr.append(t)
-    return ", ".join(fr) or "—"
-
-
-AMBIGUS = {s for s in MESURES if len(diplotypes(s)[0]) > 1}
-
-
-def gene_normal(sym):
-    """Phenotype normal, ou aucun allele HLA a risque : ce gene ne declenche pas la consigne.
-    (La cle de PharmCAT porte parfois un score d'activite, d'ou ce jugement sur le phenotype.)"""
-    ph = diplotypes(sym)[1]
-    return bool(ph) and all(p in NORMAUX or p.endswith("negative") for p in ph)
 
 # --------------------------------------------------- recommandations restituees
-brutes = []   # (severite, med, fr, type, force, genes, pmid, traduit)
-for nom, m in rep["drugs"].get("CPIC Guideline Annotation", {}).items():
-    if nom not in MEDS:
-        continue
-    cites = sorted(m.get("citations") or [], key=lambda c: c.get("year") or 0)
-    pmid = cites[-1].get("pmid", "") if cites else ""
-    for gl in m.get("guidelines") or []:
-        for a in gl.get("annotations") or []:
-            cl = a.get("classification")
-            if cl not in FORCE_FR:
-                continue
-            cle = [(g, str(v)) for d in (a.get("lookupKey") or []) for g, v in d.items()]
-            if not cle or any(g not in MESURES or g in AMBIGUS for g, _ in cle):
-                continue
-            # le resultat qui declenche la consigne : pas un gene normal ni un allele absent
-            gcle = [g for g, v in cle if not gene_normal(g) and not v.endswith("negative")] or [g for g, _ in cle]
-            src = norm(a.get("drugRecommendation", ""))
-            t = TR["traductions"].get(src)
-            if t:
-                fr, ty, ok = t["fr"], t["type"], True
-            else:   # texte inconnu de la ressource : rendu tel quel, jamais tu
-                fr, ok = src, False
-                ty = "adaptation" if (a.get("alternateDrugAvailable") or a.get("dosingInformation")) else "standard"
-            if ty in RESTITUES:
-                brutes.append((RESTITUES[ty], nom, fr, ty, f"CPIC, {FORCE_FR[cl]}", tuple(sorted(gcle)), pmid, ok))
-
-# allèles de classe 1 du RNPGx que PharmCAT n'évalue pas
-for cle, r in {k: v for k, v in TR.get("regles_hla_rnpgx", {}).items() if k.startswith("HLA-")}.items():
-    g, allele = cle.split("*", 1)
-    if g in MESURES and g not in AMBIGUS and f"*{allele}" in " ".join(diplotypes(g)[0]):
-        for nom in r["medicaments"]:
-            brutes.append((RESTITUES[r["type"]], nom, r["fr"], r["type"], r["source"], (g,), "", True))
-
-# un medicament = la consigne la plus severe ; a severite egale, les textes distincts s'additionnent
-par_med = {}
-for b in sorted(brutes):
-    s, nom = b[0], b[1]
-    cur = par_med.get(nom)
-    if cur is None or s < cur["sev"]:
-        par_med[nom] = {"sev": s, "fr": [b[2]], "type": b[3], "source": [b[4]], "genes": set(b[5]),
-                        "pmid": {b[6]} - {""}, "ok": b[7]}
-    elif s == cur["sev"]:
-        if b[2] not in cur["fr"]:
-            cur["fr"].append(b[2])
-        if b[4] not in cur["source"]:
-            cur["source"].append(b[4])
-        cur["genes"] |= set(b[5]); cur["pmid"] |= {b[6]} - {""}; cur["ok"] &= b[7]
+brutes = L.recommandations(rep, genes, MESURES, AMBIGUS, TR, MEDS)
+par_med = L.par_medicament(brutes)
 
 # regroupe les medicaments a consigne identique (IPP, phenytoine/fosphenytoine) ; statines sur une ligne
 lignes, vus = [], set()
