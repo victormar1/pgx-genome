@@ -177,8 +177,10 @@ local, deux génomes en parallèle :
 | interprétation | 6 s | 7 s | 15 s |
 | compte rendu | < 1 s | 1 s | 1 s |
 
-Le HLA domine le temps d'exécution ; le typage complémentaire pèse **5 % du
-total** par génome.
+<p align="center"><img src="doc/figures/cout_par_etage.svg" alt="Coût par étage, médiane par génome sur 243 génomes : HLA 170 s, contrôle qualité 71 s, CYP2D6 39 s, tranche 19 s, typage complémentaire 17 s, interprétation 6 s, les autres sous 5 s" width="720"></p>
+
+Le HLA domine le temps d'exécution ; le typage complémentaire pèse **5 % des
+326 secondes** de la somme des médianes.
 
 Le banc de validation lui-même — cohorte, vérités, scripts de comparaison — n'est
 pas versionné dans ce dépôt de production ; il est reproductible à partir des
