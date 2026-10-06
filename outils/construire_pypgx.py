@@ -85,7 +85,11 @@ def positions(gene):
     for v in pypgx.list_variants(gene, mode="all", assembly="GRCh38"):
         c, pos, ref, alt = v.split("-", 3)
         out.append(("chr" + c, int(pos), ref, alt))
-    return sorted(set(out), key=lambda x: x[1])
+    # Le tri doit etre total : deux alleles a la meme coordonnee seraient
+    # sinon departages par l'ordre d'iteration de l'ensemble, qui varie d'une
+    # execution a l'autre. La coordonnee reste la cle principale, pour que le
+    # fichier se lise dans l'ordre du genome.
+    return sorted(set(out), key=lambda x: (x[1], x[2], x[3]))
 
 
 catalogue, exact, larges = {}, [], []
