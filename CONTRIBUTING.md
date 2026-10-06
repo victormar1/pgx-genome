@@ -1,5 +1,27 @@
 # Conventions du dépôt
 
+## Garde-fous
+
+Une règle écrite n'est pas un garde-fou : ces conventions sont vérifiées par des
+scripts, et c'est la vérification qui fait foi.
+
+```bash
+git config core.hooksPath outils/crochets   # une fois par copie de travail
+```
+
+| Contrôle | Quand | Ce qu'il refuse |
+|---|---|---|
+| `outils/valider_message.py` | crochet `commit-msg`, à chaque commit | sujet hors format, corps au-delà de 72 caractères, motif interdit, casse de ligne de fin |
+| `python -m unittest discover -s tests` | crochet `pre-push` | régression sur un garde-fou de l'étage 4b |
+| `outils/verifier_depot.py` | crochet `pre-push` | SVG non conforme XML, nombre de gènes incohérent, chemin de poste, ressource générée périmée |
+
+Ce dépôt n'a pas d'intégration continue distante : le crochet `pre-push` en tient
+le rôle, sur le poste. `git push --no-verify` le contourne, en connaissance.
+
+Les tests valent ce que vaut leur capacité à échouer. Ceux de l'étage 4b ont été
+audités par mutation : dix défauts déjà constatés réintroduits un à un, dix
+suites en échec, aucune mutation survivante.
+
 ## Messages de commit
 
 Le style suit celui du projet Git (`Documentation/SubmittingPatches`), et non
