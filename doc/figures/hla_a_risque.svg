@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 272" width="720" height="272" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+  <rect x="0.5" y="0.5" width="719" height="271" rx="10" fill="#FBFAF7" stroke="#E2E6E3"/>
+  <text x="24" y="34" font-size="17" font-weight="700" fill="#17332B">Allèles HLA à risque — le résultat cliniquement décisif</text>
+  <text x="24" y="54" font-size="12.5" fill="#5F726B">porteurs (Sanger) tous retrouvés par le module, aucun faux positif</text>
+  
+  <text x="24" y="80" font-size="13" fill="#17332B">Bilan : <tspan font-weight="700" fill="#1B9E77">81 / 81 porteurs retrouvés</tspan>  ·  <tspan font-weight="700">0 faux positif</tspan></text>
+  <text x="122" y="109.0" font-size="12.5" fill="#17332B" text-anchor="end" font-weight="700">A*31:01</text>
+  <rect x="132.0" y="96.0" width="388.0" height="17" rx="3" fill="#1B9E77"/>
+  <text x="530.0" y="109.0" font-size="12" fill="#17332B" font-weight="600">25/25 ✓</text>
+  <text x="578.0" y="109.0" font-size="11" fill="#5F726B">carbamazépine</text>
+  <text x="122" y="141.0" font-size="12.5" fill="#17332B" text-anchor="end" font-weight="700">B*15:02</text>
+  <rect x="132.0" y="128.0" width="186.2" height="17" rx="3" fill="#1B9E77"/>
+  <text x="328.2" y="141.0" font-size="12" fill="#17332B" font-weight="600">12/12 ✓</text>
+  <text x="376.2" y="141.0" font-size="11" fill="#5F726B">carbamazépine (SJS/NET)</text>
+  <text x="122" y="173.0" font-size="12.5" fill="#17332B" text-anchor="end" font-weight="700">B*58:01</text>
+  <rect x="132.0" y="160.0" width="341.4" height="17" rx="3" fill="#1B9E77"/>
+  <text x="483.4" y="173.0" font-size="12" fill="#17332B" font-weight="600">22/22 ✓</text>
+  <text x="531.4" y="173.0" font-size="11" fill="#5F726B">allopurinol</text>
+  <text x="122" y="205.0" font-size="12.5" fill="#17332B" text-anchor="end" font-weight="700">B*57:01</text>
+  <rect x="132.0" y="192.0" width="325.9" height="17" rx="3" fill="#1B9E77"/>
+  <text x="467.9" y="205.0" font-size="12" fill="#17332B" font-weight="600">21/21 ✓</text>
+  <text x="515.9" y="205.0" font-size="11" fill="#5F726B">abacavir</text>
+  <text x="122" y="237.0" font-size="12.5" fill="#17332B" text-anchor="end" font-weight="700">B*15:11</text>
+  <rect x="132.0" y="224.0" width="15.5" height="17" rx="3" fill="#1B9E77"/>
+  <text x="157.5" y="237.0" font-size="12" fill="#17332B" font-weight="600">1/1 ✓</text>
+  <text x="205.5" y="237.0" font-size="11" fill="#5F726B">carbamazépine</text>
+</svg>

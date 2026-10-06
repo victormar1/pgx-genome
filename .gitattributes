@@ -1,0 +1,4 @@
+# Ce dépôt s'exécute sous Linux/WSL : fins de ligne LF partout.
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf

@@ -1,0 +1,408 @@
+{
+ "source": "PyPGx ?",
+ "genere_le": "2026-09-27",
+ "genes": {
+  "MT-RNR1": {
+   "classe_rnpgx": 1,
+   "motif": "surdite sous aminoside ; PharmCAT a la table, pas l'appeleur",
+   "contig": "chrM",
+   "debut": 410,
+   "fin": 1840,
+   "alleles": 24,
+   "allele_reference": "Reference",
+   "positions": [
+    "chrM:663:A:G",
+    "chrM:669:T:C",
+    "chrM:747:A:G",
+    "chrM:786:G:A",
+    "chrM:807:A:G",
+    "chrM:807:A:C",
+    "chrM:827:A:G",
+    "chrM:839:A:G",
+    "chrM:896:A:G",
+    "chrM:930:G:A",
+    "chrM:951:G:A",
+    "chrM:955:AC:A",
+    "chrM:960:CT:C",
+    "chrM:961:T:G",
+    "chrM:988:G:A",
+    "chrM:1095:T:C",
+    "chrM:1189:T:C",
+    "chrM:1243:T:C",
+    "chrM:1494:C:T",
+    "chrM:1520:T:C",
+    "chrM:1537:C:T",
+    "chrM:1555:A:G",
+    "chrM:1556:C:T"
+   ],
+   "positions_panel": [
+    "chrM:1095",
+    "chrM:1494",
+    "chrM:1555"
+   ],
+   "alleles_positions": {
+    "m.663A>G": [
+     "chrM:663"
+    ],
+    "m.669T>C": [
+     "chrM:669"
+    ],
+    "m.747A>G": [
+     "chrM:747"
+    ],
+    "m.786G>A": [
+     "chrM:786"
+    ],
+    "m.807A>C": [
+     "chrM:807"
+    ],
+    "m.807A>G": [
+     "chrM:807"
+    ],
+    "m.827A>G": [
+     "chrM:827"
+    ],
+    "m.839A>G": [
+     "chrM:839"
+    ],
+    "m.896A>G": [
+     "chrM:896"
+    ],
+    "m.930G>A": [
+     "chrM:930"
+    ],
+    "m.951G>A": [
+     "chrM:951"
+    ],
+    "m.960C>del": [
+     "chrM:955"
+    ],
+    "m.961T>del": [
+     "chrM:960"
+    ],
+    "m.961T>G": [
+     "chrM:961"
+    ],
+    "m.988G>A": [
+     "chrM:988"
+    ],
+    "m.1095T>C": [
+     "chrM:1095"
+    ],
+    "m.1189T>C": [
+     "chrM:1189"
+    ],
+    "m.1243T>C": [
+     "chrM:1243"
+    ],
+    "m.1494C>T": [
+     "chrM:1494"
+    ],
+    "m.1520T>C": [
+     "chrM:1520"
+    ],
+    "m.1537C>T": [
+     "chrM:1537"
+    ],
+    "m.1555A>G": [
+     "chrM:1555"
+    ],
+    "m.1556C>T": [
+     "chrM:1556"
+    ]
+   },
+   "phenotype": "Diplotype",
+   "appel_externe_pharmcat": true,
+   "haploide": true
+  },
+  "BCHE": {
+   "classe_rnpgx": 1,
+   "motif": "allele atypique et variante K ; gene absent de PharmCAT",
+   "contig": "chr3",
+   "debut": 165769903,
+   "fin": 165840423,
+   "alleles": 3,
+   "allele_reference": "Reference",
+   "positions": [
+    "chr3:165773492:C:T",
+    "chr3:165830741:T:C"
+   ],
+   "positions_panel": [
+    "chr3:165773492",
+    "chr3:165830741"
+   ],
+   "alleles_positions": {
+    "rs1803274": [
+     "chr3:165773492"
+    ],
+    "rs1799807": [
+     "chr3:165830741"
+    ]
+   },
+   "phenotype": null,
+   "appel_externe_pharmcat": false,
+   "haploide": false
+  },
+  "MTHFR": {
+   "classe_rnpgx": 2,
+   "motif": "C677T et A1298C ; gene absent de PharmCAT",
+   "contig": "chr1",
+   "debut": 11782722,
+   "fin": 11808964,
+   "alleles": 9,
+   "allele_reference": "Reference",
+   "positions": [
+    "chr1:11787392:G:A",
+    "chr1:11790870:C:T",
+    "chr1:11792243:C:T",
+    "chr1:11794400:G:A",
+    "chr1:11794419:T:G",
+    "chr1:11796321:G:A",
+    "chr1:11797731:G:A",
+    "chr1:11802721:A:G"
+   ],
+   "positions_panel": [
+    "chr1:11794419",
+    "chr1:11796321"
+   ],
+   "alleles_positions": {
+    "rs1801131": [
+     "chr1:11794419"
+    ],
+    "rs1801133": [
+     "chr1:11796321"
+    ],
+    "rs4846051": [
+     "chr1:11794400"
+    ],
+    "rs1476413": [
+     "chr1:11792243"
+    ],
+    "rs17421511": [
+     "chr1:11797731"
+    ],
+    "rs17367504": [
+     "chr1:11802721"
+    ],
+    "rs3737967": [
+     "chr1:11787392"
+    ],
+    "rs2274976": [
+     "chr1:11790870"
+    ]
+   },
+   "phenotype": null,
+   "appel_externe_pharmcat": false,
+   "haploide": false
+  },
+  "POR": {
+   "classe_rnpgx": 2,
+   "motif": "POR*28 ; gene absent de PharmCAT",
+   "contig": "chr7",
+   "debut": 75912154,
+   "fin": 75989855,
+   "alleles": 47,
+   "allele_reference": "*1",
+   "positions": [
+    "chr7:75954134:AG:A",
+    "chr7:75954139:G:C",
+    "chr7:75979517:T:C",
+    "chr7:75979557:C:T",
+    "chr7:75980396:A:G",
+    "chr7:75980430:A:G",
+    "chr7:75980462:G:A",
+    "chr7:75981072:T:G",
+    "chr7:75981102:G:A",
+    "chr7:75981102:G:C",
+    "chr7:75981111:C:CTACGTGGACAAGC",
+    "chr7:75981132:C:T",
+    "chr7:75981558:C:T",
+    "chr7:75981607:G:A",
+    "chr7:75982279:A:G",
+    "chr7:75983548:G:C",
+    "chr7:75983820:G:A",
+    "chr7:75983831:CGTC:C",
+    "chr7:75984903:A:C",
+    "chr7:75984947:G:A",
+    "chr7:75985067:C:A",
+    "chr7:75985132:G:GC",
+    "chr7:75985148:C:A",
+    "chr7:75985157:C:CGAGC",
+    "chr7:75985179:G:A",
+    "chr7:75985184:T:C",
+    "chr7:75985195:C:CATCGCC",
+    "chr7:75985655:T:A",
+    "chr7:75985688:C:T",
+    "chr7:75985731:C:CTGCCCATGTTCGTGCGC",
+    "chr7:75985795:G:A",
+    "chr7:75985799:T:TCCTTCAAGGCCACCACGCCTGTCATCATGATGGGCCCCGGCACCGGGGT",
+    "chr7:75985801:G:GC",
+    "chr7:75985844:AG:A",
+    "chr7:75985947:T:C",
+    "chr7:75985950:A:AC",
+    "chr7:75985959:G:A",
+    "chr7:75985983:T:C",
+    "chr7:75985986:A:G",
+    "chr7:75985991:G:C",
+    "chr7:75986165:G:T",
+    "chr7:75986177:CTAAAGCAAGACCGAGAGCACCTGT:C",
+    "chr7:75986189:C:T",
+    "chr7:75986234:G:A",
+    "chr7:75986374:TTCT:T",
+    "chr7:75986413:G:A"
+   ],
+   "positions_panel": [
+    "chr7:75985688"
+   ],
+   "alleles_positions": {
+    "*2": [
+     "chr7:75985179"
+    ],
+    "*3": [
+     "chr7:75981607"
+    ],
+    "*4": [
+     "chr7:75985655"
+    ],
+    "*5": [
+     "chr7:75983548"
+    ],
+    "*6": [
+     "chr7:75985959"
+    ],
+    "*7": [
+     "chr7:75986165"
+    ],
+    "*8": [
+     "chr7:75981072"
+    ],
+    "*9": [
+     "chr7:75985132"
+    ],
+    "*10": [
+     "chr7:75985688",
+     "chr7:75985950"
+    ],
+    "*11": [
+     "chr7:75979557"
+    ],
+    "*12": [
+     "chr7:75980396"
+    ],
+    "*13": [
+     "chr7:75980430"
+    ],
+    "*14": [
+     "chr7:75982279"
+    ],
+    "*15": [
+     "chr7:75985184"
+    ],
+    "*16": [
+     "chr7:75985795"
+    ],
+    "*17": [
+     "chr7:75985947"
+    ],
+    "*18": [
+     "chr7:75986189"
+    ],
+    "*19": [
+     "chr7:75986374"
+    ],
+    "*20": [
+     "chr7:75981111"
+    ],
+    "*21": [
+     "chr7:75985731"
+    ],
+    "*22": [
+     "chr7:75985799"
+    ],
+    "*23": [
+     "chr7:75985801"
+    ],
+    "*24": [
+     "chr7:75985157"
+    ],
+    "*25": [
+     "chr7:75954139"
+    ],
+    "*26": [
+     "chr7:75985067"
+    ],
+    "*27": [
+     "chr7:75985983"
+    ],
+    "*28": [
+     "chr7:75985688"
+    ],
+    "*29": [
+     "chr7:75981102"
+    ],
+    "*30": [
+     "chr7:75985148"
+    ],
+    "*31": [
+     "chr7:75981132"
+    ],
+    "*32": [
+     "chr7:75985195",
+     "chr7:75985688"
+    ],
+    "*33": [
+     "chr7:75985688",
+     "chr7:75986177"
+    ],
+    "*34": [
+     "chr7:75985986"
+    ],
+    "*35": [
+     "chr7:75985991"
+    ],
+    "*36": [
+     "chr7:75981558",
+     "chr7:75985688"
+    ],
+    "*37": [
+     "chr7:75985688",
+     "chr7:75986234"
+    ],
+    "*38": [
+     "chr7:75954134"
+    ],
+    "*39": [
+     "chr7:75985844"
+    ],
+    "*40": [
+     "chr7:75983831",
+     "chr7:75985688"
+    ],
+    "*42": [
+     "chr7:75984947"
+    ],
+    "*43": [
+     "chr7:75986413"
+    ],
+    "*44": [
+     "chr7:75979517"
+    ],
+    "*45": [
+     "chr7:75980462"
+    ],
+    "*46": [
+     "chr7:75981102"
+    ],
+    "*47": [
+     "chr7:75983820"
+    ],
+    "*48": [
+     "chr7:75984903"
+    ]
+   },
+   "phenotype": null,
+   "appel_externe_pharmcat": false,
+   "haploide": false
+  }
+ }
+}

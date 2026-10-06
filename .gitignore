@@ -1,0 +1,34 @@
+# Données et sorties : jamais versionnées
+*.cram
+*.crai
+*.bam
+*.bai
+*.fa
+*.fa.fai
+*.fasta
+*.fasta.fai
+*.vcf
+*.vcf.gz
+*.vcf.gz.tbi
+
+# Résultats d'exécution
+travail/
+sortie/
+lot*/
+*.report.json
+provenance.json
+CR_*.pdf
+tableau_de_bord.tsv
+*.log
+
+# Caches et sauvegardes
+__pycache__/
+*.pyc
+.verrou/
+*.avant_correctif
+*.fige
+
+# Exception : les ressources figées du pipeline ne sont pas des données.
+# La règle porte sur tout le dossier, pour qu'une ressource ajoutée plus tard ne
+# soit pas ignorée en silence.
+!ressources/*.vcf

@@ -1,0 +1,39 @@
+##fileformat=VCFv4.2
+##source=Core panel RNPGx 2026 (Picard N. et coll., PMID 41491663, Table 2), positions de classe 1 et 2 absentes des definitions PharmCAT
+##reference=GRCh38
+##note=Coordonnees GRCh38 via Ensembl ; allele de reference verifie contre GRCh38_full_analysis_set_plus_decoy_hla.fa
+##contig=<ID=chr1,assembly=GRCh38>
+##contig=<ID=chr10,assembly=GRCh38>
+##contig=<ID=chr16,assembly=GRCh38>
+##contig=<ID=chr18,assembly=GRCh38>
+##contig=<ID=chr2,assembly=GRCh38>
+##contig=<ID=chr3,assembly=GRCh38>
+##contig=<ID=chr7,assembly=GRCh38>
+##contig=<ID=chr8,assembly=GRCh38>
+##contig=<ID=chrM,assembly=GRCh38>
+##INFO=<ID=PX,Number=.,Type=String,Description="Gene">
+##INFO=<ID=PXCLASSE,Number=1,Type=Integer,Description="Classe d actionnabilite RNPGx : 1 ou 2">
+##INFO=<ID=PXTYPE,Number=1,Type=String,Description="snv, indel ou vntr">
+##INFO=<ID=PXINTERP,Number=1,Type=String,Description="pharmcat si le gene est interprete mais pas cette position ; aucun sinon">
+##INFO=<ID=PXNOTE,Number=1,Type=String,Description="Commentaire">
+##INFO=<ID=END,Number=1,Type=Integer,Description="Borne droite des evenements multi-bases">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	RNPGx
+chr1	11794419	rs1801131	T	G	.	PASS	PX=MTHFR;PXCLASSE=2;PXTYPE=snv;PXINTERP=aucun;PXNOTE=p.Glu429Ala_(A1298C)	GT	0/0
+chr1	11796321	rs1801133	G	A,C	.	PASS	PX=MTHFR;PXCLASSE=2;PXTYPE=snv;PXINTERP=aucun;PXNOTE=p.Ala222Val_(C677T)	GT	0/0
+chr10	94709142	rs11188059	G	A	.	PASS	PX=CYP2C_cluster;PXCLASSE=2;PXTYPE=snv;PXINTERP=aucun;PXNOTE=haplotype_CYP2C:TG,_phasage_nécessaire_si_utilisé	GT	0/0
+chr10	94735475	rs2860840	C	T	.	PASS	PX=CYP2C_cluster;PXCLASSE=2;PXTYPE=snv;PXINTERP=aucun;PXNOTE=haplotype_CYP2C:TG,_phasage_nécessaire_si_utilisé	GT	0/0
+chr16	31093557	rs9934438	G	A,C	.	PASS	PX=VKORC1;PXCLASSE=1;PXTYPE=snv;PXINTERP=pharmcat;PXNOTE=intron_1_(1173C>T),_hors_définitions_PharmCAT	GT	0/0
+chr18	657646	rs45445694	C	<VNTR>	.	PASS	PX=TYMS;PXCLASSE=2;PXTYPE=vntr;PXINTERP=aucun;END=657712;PXNOTE=VNTR_28_pb_du_promoteur_(2R_à_9R),_chr18:657646-657712,_couverture_seule	GT	0/0
+chr18	657685	rs2853542	G	A,C,T	.	PASS	PX=TYMS;PXCLASSE=2;PXTYPE=snv;PXINTERP=aucun;PXNOTE=situé_dans_le_VNTR,_appel_peu_fiable_en_lectures_courtes	GT	0/0
+chr18	673444	rs11280056	TTAAAGTTA	TTA,TTAAAGTTAAAGTTA	.	PASS	PX=TYMS;PXCLASSE=2;PXTYPE=indel;PXINTERP=aucun;END=673452;PXNOTE=indel_6_pb_du_3'UTR,_la_représentation_peut_différer_selon_l'appelant	GT	0/0
+chr2	85550510	rs11676382	C	G	.	PASS	PX=GGCX;PXCLASSE=2;PXTYPE=snv;PXINTERP=aucun;PXNOTE=modulateur_de_la_dose_d'AVK	GT	0/0
+chr3	165773492	rs1803274	C	T	.	PASS	PX=BCHE;PXCLASSE=1;PXTYPE=snv;PXINTERP=aucun;PXNOTE=p.Ala539Thr,_variante_K	GT	0/0
+chr3	165830741	rs1799807	T	C	.	PASS	PX=BCHE;PXCLASSE=1;PXTYPE=snv;PXINTERP=aucun;PXNOTE=p.Asp70Gly,_allèle_atypique	GT	0/0
+chr7	75985688	rs1057868	C	T	.	PASS	PX=POR;PXCLASSE=2;PXTYPE=snv;PXINTERP=aucun;PXNOTE=POR*28,_gène_absent_des_tables_de_l'interpréteur	GT	0/0
+chr8	18400285	rs1041983	C	T	.	PASS	PX=NAT2;PXCLASSE=1;PXTYPE=snv;PXINTERP=pharmcat;PXNOTE=c.282C>T,_hors_définitions_PharmCAT	GT	0/0
+chr8	18400437	rs72554616	A	C	.	PASS	PX=NAT2;PXCLASSE=1;PXTYPE=snv;PXINTERP=pharmcat;PXNOTE=c.434A>C,_hors_définitions_PharmCAT	GT	0/0
+chr8	18400484	rs1799929	C	T	.	PASS	PX=NAT2;PXCLASSE=1;PXTYPE=snv;PXINTERP=pharmcat;PXNOTE=c.481C>T,_hors_définitions_PharmCAT	GT	0/0
+chrM	1095	rs267606618	T	C	.	PASS	PX=MT-RNR1;PXCLASSE=1;PXTYPE=snv;PXINTERP=aucun;PXNOTE=m.1095T>C,_surdité_sous_aminoside	GT	0/0
+chrM	1494	rs267606619	C	T	.	PASS	PX=MT-RNR1;PXCLASSE=1;PXTYPE=snv;PXINTERP=aucun;PXNOTE=m.1494C>T,_surdité_sous_aminoside	GT	0/0
+chrM	1555	rs267606617	A	G	.	PASS	PX=MT-RNR1;PXCLASSE=1;PXTYPE=snv;PXINTERP=aucun;PXNOTE=m.1555A>G,_surdité_sous_aminoside	GT	0/0
