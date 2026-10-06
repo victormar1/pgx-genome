@@ -1,11 +1,10 @@
 # Flux de fichiers — module `pgx_genome.sh`
 
-**Source de vérité :** `05_produit/bin/pgx_genome.sh`
-**Échantillon inspecté :** `lot2/NA06991/` (exécution complète, 9 étages OK)
+**Source de vérité :** `bin/pgx_genome.sh`
 
 ## Conventions et repères
 
-- **RES** = `05_produit/ressources/` (ressources figées, montées en lecture seule dans les conteneurs).
+- **RES** = `ressources/` (ressources figées, montées en lecture seule dans les conteneurs).
 - **T** = `<SORTIE>/travail/` (fichiers intermédiaires).
 - **sortie** = `<SORTIE>/sortie/` (livrables).
 - Le module ne modifie **jamais** ses deux entrées externes (le CRAM et le VCF), montées `:ro`.
@@ -18,7 +17,7 @@
 | `pharmcat_positions.bed` | étage 0, 1, 2a | régions cibles (258 intervalles, ±50 pb), test d'assemblage, base du BED de tranche |
 | `positions_exactes.bed` | étage 2b | positions exactes où mesurer la profondeur (`samtools depth -b`) |
 | `pharmcat_positions.vcf` | étage 2b | les 1 226 positions diagnostiques attendues + tag `PX=` gène |
-| `perimetre_rnpgx.json` | étage 2b + provenance | les 12 gènes du périmètre clinique RNPGx |
+| `perimetre_rnpgx.json` | étage 2b + provenance | les 13 gènes du périmètre clinique RNPGx |
 | `rnpgx_complement.vcf` | étage 2b | 18 positions de classe 1 et 2 du core panel RNPGx absentes des définitions PharmCAT (`PXCLASSE`, `PXTYPE`, `PXINTERP`, `PXNOTE`) ; mesurées, jamais interprétées |
 | `rnpgx_complement.bed` / `_positions.bed` | étages 1, 2a, 2b | régions ±50 pb pour le filtre et la tranche ; positions exactes pour la profondeur |
 | `pypgx_genes.json` | étage 4b | les 4 gènes typés hors interpréteur : région, 79 positions définissantes, positions du panel, carte allèle→position, nom de l'allèle de référence ; produit par `outils/construire_pypgx.py` depuis PyPGx |
@@ -41,11 +40,11 @@ Note : `alleles_pharmcat.json` et `definitions_alleles.json` ne sont pas utilis�
 | **2b. contrôle qualité** | `filtre.vcf.gz`, `tranche.bam`, `pharmcat_positions.vcf`, `rnpgx_complement.vcf`, `perimetre_rnpgx.json` | Profondeur sur la tranche → `profondeur.txt` ; écarte les positions (5 motifs), établit le périmètre, marque le périmètre clinique ; mesure à part les positions complémentaires RNPGx (jamais masquées dans le VCF) ; réécrit le VCF GT seul | `samtools` + **Python `qc_perimetre.py`** + Docker bcftools (bgzip) | `profondeur.txt`, `qc_positions.tsv`, `perimetre.json`, `qualifie.vcf.gz` + `.tbi` | profondeur non mesurée, script échoue, >1 échantillon, perte d'enregistrement |
 | **3. CYP2D6** | CRAM complet + FASTA, dépôt Cyrius | `star_caller.py -g 38` sur le CRAM entier ; diplotype non-unitaire → SANS_RESULTAT | **Dépôt Cyrius** (`python3`, hôte) | `cyp2d6.tsv`, `cyp2d6.json` | Cyrius échoue ou sortie vide |
 | **4. HLA** | `tranche.bam`, contigs HLA | Extrait les lectures MHC → paires ; si ≥ 200 paires, OptiType type HLA I | `samtools` + Docker **OptiType** 1.3.5 | `mhc_1.fq`, `mhc_2.fq`, `hla/<ts>/<ts>_result.tsv`, `hla.tsv` | < 200 paires ou OptiType échoue |
-| **4b. typage complémentaire** *(optionnel, `PGX_PYPGX`)* | VCF externe, `profondeur.txt`, `pypgx_genes.json`, `pypgx_regions.bed`, `pypgx_positions.bed` | Extrait les 4 régions du VCF ; relève contigs et qualités (FILTER/GQ/DP) ; un gène n'est typé que si **toutes** ses positions définissantes sont lues ≥ seuil **et** qualifiées, sinon non conclusif ; `run-ngs-pipeline` par gène (aucune variation de structure : ni profondeur ni contrôle requis) ; génotype reconstruit depuis les deux haplotypes, puis restreint aux positions du panel | Docker bcftools + **PyPGx 0.27** (hôte, python3.10) + **Python `typage_pypgx.py`** | `pypgx_entree.vcf.gz`, `contigs_vcf.txt`, `pypgx_qualites.tsv`, `pypgx.tsv`, `pypgx.json` | extraction ou script échoue. Non armé → `IGNORE`, sans effet sur le reste |
+| **4b. typage complémentaire** *(optionnel, `PGX_PYPGX`)* | VCF externe, `profondeur.txt`, `pypgx_genes.json`, `pypgx_regions.bed`, `pypgx_positions.bed` | Extrait les 4 régions du VCF ; relève contigs et qualités (FILTER/GQ/DP) ; un gène n'est typé que si **toutes** ses positions définissantes sont lues ≥ seuil **et** qualifiées, sinon non conclusif ; `run-ngs-pipeline` par gène (aucune variation de structure : ni profondeur ni contrôle requis) ; génotype reconstruit depuis les deux haplotypes, puis restreint aux positions du panel | Docker bcftools + **PyPGx 0.27** (hôte, python3.10) + **Python `typage_pypgx.py`** | `pypgx_entree.vcf.gz`, `contigs_vcf.txt`, `pypgx_qualites.tsv`, `pypgx.tsv` (génotype du panel, génotype complet, génotype brut du typeur, allèles écartés), `pypgx.json` | extraction ou script échoue. Non armé → `IGNORE`, sans effet sur le reste |
 | **5. appels externes** | `cyp2d6.tsv`, `hla.tsv`, `pypgx.tsv` | Traduit au format PharmCAT `-po` ; espaces autour du `+` des tandems ; MT-RNR1 en allèle seul (gène haploïde), repris uniquement si l'étage 4b l'a marqué rendu | **Python `appels_externes.py`** | `appels_externes.tsv` | un étage OK n'a pas déposé sa ligne |
 | **6. interprétation** | `qualifie.vcf.gz` (aucun repli), `appels_externes.tsv` | Préprocesseur `--absent-to-ref` puis `pharmcat.jar -reporterJson` ; 22 gènes | Docker **PharmCAT** 3.4.0 | `qualifie.vcf.preprocessed.vcf.bgz`, `sortie/<ECH>.report.json`, `match_warnings.txt` | `qualifie.vcf.gz` absent ; préproc. ou jar échoue |
-| **7. compte rendu** | `<ECH>.report.json`, `perimetre.json`, `traductions_cpic_fr.json` | CR PDF : médicaments concernés d'abord, puis 12 gènes, conclusion, limites ; recommandations CPIC fortes ou modérées qui modifient la prise en charge | **Python `compte_rendu.py`** + reportlab | `sortie/CR_<ECH>.pdf` | `report.json`, `perimetre.json` ou traductions absents |
-| **provenance** | `etats.tsv`, empreintes CRAM/VCF/FASTA, hash RES, digests images, git Cyrius | Agrège tout ; `reussite_complete` vrai ssi 9 étages présents et aucun échec (SANS_RESULTAT n'est pas un échec) | **Python `provenance.py`** | `sortie/provenance.json` | toujours exécuté ; code de sortie du module |
+| **7. compte rendu** | `<ECH>.report.json`, `perimetre.json`, `traductions_cpic_fr.json` | CR PDF : médicaments concernés d'abord, puis 13 gènes, conclusion, limites ; recommandations CPIC fortes ou modérées qui modifient la prise en charge | **Python `compte_rendu.py`** + reportlab | `sortie/CR_<ECH>.pdf` | `report.json`, `perimetre.json` ou traductions absents |
+| **provenance** | `etats.tsv`, empreintes CRAM/VCF/FASTA, hash RES, digests images, git Cyrius | Agrège tout ; `reussite_complete` vrai ssi les 9 étages requis sont présents et sans échec — l'étage 4b, optionnel, n'y entre pas (SANS_RESULTAT et IGNORE ne sont pas des échecs) | **Python `provenance.py`** | `sortie/provenance.json` | toujours exécuté ; code de sortie du module |
 
 ---
 
@@ -55,7 +54,7 @@ Note : `alleles_pharmcat.json` et `definitions_alleles.json` ne sont pas utilis�
 2. **La profondeur vient de l'alignement, pas du VCF.** Mesurée par `samtools depth` sur `tranche.bam` ; le `DP` du VCF n'est qu'un repli. Un gVCF est accepté, ses blocs ignorés.
 3. **Cyrius lit le CRAM entier, pas la tranche.** Seule branche à recevoir le CRAM complet ; ~3 000 régions de normalisation dispersées, d'où sa durée (~la moitié du total).
 4. **L'appel externe CYP2D6 exige des espaces autour du `+`.** `*36+*10` deviendrait « indéterminé » en silence ; `*36 + *10` est interprété.
-5. **Le périmètre clinique de 12 gènes ne restreint pas ce que PharmCAT reçoit, mais ce que le CR rapporte.** PharmCAT interprète 22 gènes ; le filtrage clinique est en aval, à l'étage 7.
+5. **Le périmètre clinique de 13 gènes ne restreint pas ce que PharmCAT reçoit, mais ce que le CR rapporte.** PharmCAT interprète 22 gènes ; le filtrage clinique est en aval, à l'étage 7.
 6. **Le complément RNPGx est strictement additif.** Les positions hors définitions
    PharmCAT ne comptent pas dans le statut d'un gène et ne sont **jamais masquées**
    dans le VCF remis à l'interpréteur : son entrée est identique à ce qu'elle serait
