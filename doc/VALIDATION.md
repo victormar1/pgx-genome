@@ -27,6 +27,8 @@ d'un fichier de variants **produits en amont par la plateforme**.
 | Équilibre allélique | ≥ 0,25 pour un hétérozygote, hors CYP2D6 | mesuré sur 105 génomes |
 | Parallélisme en lot | 2 génomes | OptiType lance `razers3` sur seize threads |
 | Dossier de sortie | disque local | 1 361 Mo/s contre 99 sur un disque monté |
+| Moteur de conteneurs | `docker`, `apptainer` ou `singularity` | vérifié avant tout étage ; un moteur absent est refusé, non diagnostiqué comme une donnée fautive |
+| Identité du patient | fichier, par `--identite` | un argument de ligne de commande est lisible dans la table des processus |
 
 ## 3. Preuves disponibles
 
@@ -53,6 +55,8 @@ conséquence de prescription.
 | Refus à l'entrée sur alignement non conforme | 13 / 13, aucun résultat produit |
 | Non-régression entre deux versions | **2 673 diplotypes, 0 écart** |
 | Garde-fous de l'étage 4b exercés sur donnée réelle | 5 / 5, chacun refusant le seul gène concerné |
+| **Répétabilité** | 3 exécutions indépendantes d'un même génome, **29 éléments comparés, 0 écart** |
+| Reprise d'une exécution interrompue | résultat identique ; le typage HLA est réutilisé, 201 s → 2 s |
 
 ### 3.3 Typage complémentaire
 
@@ -66,6 +70,14 @@ sur un chemin technique indépendant.
 | MTHFR | 243 / 243 | 243 / 243 |
 | POR | 243 / 243 | 243 / 243 |
 | MT-RNR1 | 242 / 243 | **aucun porteur sur ce banc** |
+
+**L'appel positif de MT-RNR1 est exercé par un cas construit.** Un fichier de
+variants portant `m.1555A>G` en homoplasmie traverse la chaîne entière :
+l'étage le type, l'allèle part en appel externe, l'interpréteur rend « risque
+augmenté de surdité sous aminoside », **onze recommandations CPIC fortes** sont
+générées, et la consigne « éviter les aminosides » figure au compte rendu avec
+les onze molécules. Cela valide la chaîne logicielle, **non la détection** :
+l'alignement ne porte pas le variant (`outils/cas_construit.py`).
 
 ### 3.4 Indépendance à l'appeleur de variants
 
@@ -86,9 +98,18 @@ depuis le fichier de variants n'est touché.**
 
 | Mesure | Résultat |
 |---|---|
-| Cas de test | 139 |
-| Audit par mutation | **37 défauts réintroduits, 37 suites en échec, 0 mutation survivante** |
+| Cas de test | 159 |
+| Audit par mutation | **47 défauts réintroduits, 47 suites en échec, 0 mutation survivante** |
 | Contrôles d'intégrité du dépôt | 4 fautes réintroduites, 4 attrapées |
+| Reproductibilité du catalogue généré | 3 régénérations, **même empreinte**, égale au fichier livré |
+
+**Deux défauts ont été trouvés par ces contrôles eux-mêmes**, et non par
+relecture. Le générateur de catalogue n'était pas déterministe : deux positions
+de même coordonnée changeaient de place selon l'ordre d'itération d'un
+ensemble. Et la réutilisation du typage HLA lors d'une reprise ne vérifiait pas
+l'image qui l'avait produit — une montée de version du typeur suivie d'une
+reprise aurait rendu l'ancien résultat sans rien signaler. Les deux sont
+corrigés.
 
 ## 4. Limites connues, à déclarer
 

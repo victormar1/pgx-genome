@@ -19,13 +19,24 @@ BCHE, MTHFR et POR par PyPGx, autres gènes et interprétation par PharmCAT.
 **Validation.** 243 génomes publics ; 99,1 % de concordance sur les douze gènes
 pour lesquels une vérité existe ; 81 porteurs d'allèle HLA à risque retrouvés
 sans faux positif ; typage complémentaire concordant 243/243 avec la mesure
-position par position. Limites déclarées dans `doc/VALIDATION.md`, dont
-l'absence de porteur de MT-RNR1 sur le banc.
+position par position. Répétabilité : 3 exécutions d'un même génome, 29 éléments
+comparés, 0 écart. Indépendance à l'appeleur de variants : 8 711 génotypes
+concordants sur 8 720, les 9 écarts en région paralogue déjà traitée à part.
+Limites déclarées dans `doc/VALIDATION.md`, dont l'absence de porteur de
+MT-RNR1 sur le banc — son appel positif est exercé par un cas construit.
 
 **Vérification.** 159 cas de test, audités par mutation — 47 défauts
 réintroduits, aucune mutation survivante. Contrôles d'intégrité du dépôt et
-crochets de validation des messages et de la poussée.
+crochets de validation des messages et de la poussée. Le catalogue généré se
+régénère à l'identique.
 
 **Intégration.** Toutes les dépendances en conteneur, y compris le typeur
-complémentaire. Moteur de conteneurs interchangeable, `docker` ou `apptainer`.
-Recette d'ordonnanceur dans `exemples/`.
+complémentaire. Moteur de conteneurs interchangeable, `docker` ou `apptainer`,
+vérifié avant tout étage. Contrat d'exécution documenté : codes de sortie,
+verrou de concurrence, champ à surveiller. Recette d'ordonnanceur dans
+`exemples/`.
+
+**Traçabilité et données personnelles.** La version du module figure dans la
+trace d'exécution et au pied du compte rendu. L'identité du patient se lit dans
+un fichier et non en argument de ligne de commande. La signature de reprise
+couvre la référence, les ressources et l'image du typeur HLA.
