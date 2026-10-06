@@ -8,8 +8,9 @@ appel de variants : il se branche en aval d'un pipeline de séquençage existant
 Règle de conception unique : **aucun résultat faux ne sort sans être signalé**.
 Chaque étage teste son code de retour, inscrit son état, et refuse de se rabattre
 sur une entrée de secours. Le code de retour du module ne vaut zéro que si les
-neuf étages requis ont abouti. Le typage complémentaire (4b) est optionnel et ne
-pèse pas sur ce résultat.
+neuf étages requis ont abouti. Le typage complémentaire (4b) est optionnel : non
+armé, il ne pèse pas sur ce résultat ; armé, son échec compte comme celui d'un
+autre étage.
 
 ## Ce qu'il fait
 

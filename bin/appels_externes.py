@@ -17,7 +17,8 @@ import argparse, csv, os, re, sys
 def cyp2d6(chemin):
     if not os.path.exists(chemin):
         return None, "fichier absent"
-    lignes = list(csv.DictReader(open(chemin, encoding="utf-8"), delimiter="\t"))
+    with open(chemin, encoding="utf-8") as fh:
+        lignes = list(csv.DictReader(fh, delimiter="\t"))
     if not lignes:
         return None, "fichier vide"
     g = (lignes[0].get("Genotype") or "").strip()
@@ -34,7 +35,8 @@ def cyp2d6(chemin):
 def hla(chemin):
     if not os.path.exists(chemin):
         return {}, "fichier absent"
-    lignes = list(csv.DictReader(open(chemin, encoding="utf-8"), delimiter="\t"))
+    with open(chemin, encoding="utf-8") as fh:
+        lignes = list(csv.DictReader(fh, delimiter="\t"))
     if not lignes:
         return {}, "fichier vide"
     r = lignes[0]
@@ -54,13 +56,14 @@ def mtrnr1(chemin):
     reprend que les lignes qu il a marquees rendues."""
     if not os.path.exists(chemin):
         return None, "fichier absent"
-    for r in csv.DictReader(open(chemin, encoding="utf-8"), delimiter="\t"):
-        if r.get("gene") != "MT-RNR1":
-            continue
-        if r.get("statut") != "rendu":
-            return None, r.get("motif") or "non conclusif"
-        a = (r.get("allele_externe") or "").strip()
-        return (a, None) if a else (None, "aucun allele")
+    with open(chemin, encoding="utf-8") as fh:
+        for r in csv.DictReader(fh, delimiter="\t"):
+            if r.get("gene") != "MT-RNR1":
+                continue
+            if r.get("statut") != "rendu":
+                return None, r.get("motif") or "non conclusif"
+            a = (r.get("allele_externe") or "").strip()
+            return (a, None) if a else (None, "aucun allele")
     return None, "gene absent du typage complementaire"
 
 
