@@ -81,6 +81,25 @@ exécution coûterait plus cher que l'analyse elle-même. Celle du fichier de
 variants et celle des ressources portent sur la totalité. Les conteneurs sont
 tracés par leur empreinte immuable, pas par leur étiquette.
 
+## 2 bis. Le contrat d'exécution
+
+Ce qu'un ordonnanceur doit savoir pour décider, sans lire le journal.
+
+| Code | Signification | Conduite |
+|---|---|---|
+| `0` | les neuf étages requis ont abouti | le compte rendu est exploitable |
+| `1` | au moins un étage en échec ; les sorties produites existent | à instruire, gène par gène, par `provenance.json` |
+| `2` | entrée refusée, option inconnue, ou moteur de conteneurs absent — **aucun étage n'a démarré** | corriger l'appel ou la machine ; relancer à l'identique ne sert à rien |
+| `3` | une autre exécution travaille dans le même dossier de sortie | réessayer plus tard, ou choisir un autre dossier |
+
+Le verrou qui produit le code `3` est pris par `mkdir`, qui est atomique. Si son
+détenteur est mort, le verrou est repris : une tâche tuée par l'ordonnanceur ne
+bloque pas le dossier.
+
+`provenance.json` porte l'état de chaque étage, les empreintes des entrées, les
+versions des outils et la version du module. C'est le fichier à surveiller, et
+`reussite_complete` le champ qui résume.
+
 ## 3. Les étages
 
 Neuf étages requis, plus un optionnel (4b, typage complémentaire), armé par

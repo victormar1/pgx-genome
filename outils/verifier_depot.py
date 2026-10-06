@@ -158,11 +158,110 @@ def controle_ressources(regenerer):
         print("        regenere sur place")
 
 
+# ------------------------------------- 5. coherence entre les ressources
+def intervalles(chemin):
+    """Les intervalles d'un BED, en coordonnees a demi-ouvertes."""
+    out = []
+    if not os.path.exists(chemin):
+        return out
+    with io.open(chemin, encoding="utf-8") as fh:
+        for l in fh:
+            c = l.rstrip("\n").split("\t")
+            if len(c) >= 3 and not l.startswith(("#", "track")):
+                try:
+                    out.append((c[0], int(c[1]), int(c[2])))
+                except ValueError:
+                    pass
+    return out
+
+
+def couvre(iv, contig, pos):
+    """La position, en coordonnees a partir de un, est-elle dans un intervalle ?"""
+    return any(c == contig and d < pos <= f for c, d, f in iv)
+
+
+def positions_vcf(chemin):
+    out = []
+    if not os.path.exists(chemin):
+        return out
+    with io.open(chemin, encoding="utf-8") as fh:
+        for l in fh:
+            if l.startswith("#"):
+                continue
+            c = l.split("\t")
+            if len(c) > 1:
+                try:
+                    out.append((c[0], int(c[1])))
+                except ValueError:
+                    pass
+    return out
+
+
+def controle_coherence():
+    print("\nCoherence entre les ressources")
+    R = os.path.join(RACINE, "ressources")
+    cat = os.path.join(R, "pypgx_genes.json")
+    if not os.path.exists(cat):
+        dire(False, "pypgx_genes.json", "absent")
+        return
+    genes = json.load(io.open(cat, encoding="utf-8"))["genes"]
+    attendues = []
+    for g, info in genes.items():
+        for p in info["positions"]:
+            c = p.split(":")
+            attendues.append((c[0], int(c[1]), g))
+
+    exactes = intervalles(os.path.join(R, "pypgx_positions.bed"))
+    manquantes = [(c, p, g) for c, p, g in attendues if not couvre(exactes, c, p)]
+    dire(not manquantes, "chaque position du catalogue est dans le BED exact",
+         "" if not manquantes
+         else "%d manquante(s), dont %s:%d (%s)"
+              % (len(manquantes), manquantes[0][0], manquantes[0][1],
+                 manquantes[0][2]))
+
+    tranche = intervalles(os.path.join(R, "pypgx_tranche.bed"))
+    hors = [(c, p, g) for c, p, g in attendues if not couvre(tranche, c, p)]
+    dire(not hors, "chaque position du catalogue est dans le BED de tranche",
+         "" if not hors else "%d hors tranche, dont %s:%d (%s)"
+                             % (len(hors), hors[0][0], hors[0][1], hors[0][2]))
+
+    regions = intervalles(os.path.join(R, "pypgx_regions.bed"))
+    dehors = [(c, p, g) for c, p, g in attendues if not couvre(regions, c, p)]
+    dire(not dehors, "chaque position du catalogue est dans la region de son gene",
+         "" if not dehors else "%d hors region, dont %s:%d (%s)"
+                               % (len(dehors), dehors[0][0], dehors[0][1],
+                                  dehors[0][2]))
+
+    # Le complement RNPGx : ses positions doivent etre mesurables.
+    comp = positions_vcf(os.path.join(R, "rnpgx_complement.vcf"))
+    cexact = intervalles(os.path.join(R, "rnpgx_complement_positions.bed"))
+    perdues = [(c, p) for c, p in comp if not couvre(cexact, c, p)]
+    dire(not perdues, "chaque position du complement est dans son BED exact",
+         "" if not perdues else "%d manquante(s), dont %s:%d"
+                                % (len(perdues), perdues[0][0], perdues[0][1]))
+
+    clarge = intervalles(os.path.join(R, "rnpgx_complement.bed"))
+    hors2 = [(c, p) for c, p in comp if not couvre(clarge, c, p)]
+    dire(not hors2, "chaque position du complement est dans son BED large",
+         "" if not hors2 else "%d hors BED, dont %s:%d"
+                              % (len(hors2), hors2[0][0], hors2[0][1]))
+
+    # Les positions de l'interpreteur et leur BED de mesure.
+    ph = positions_vcf(os.path.join(R, "pharmcat_positions.vcf"))
+    pexact = intervalles(os.path.join(R, "positions_exactes.bed"))
+    pperdues = [(c, p) for c, p in ph if not couvre(pexact, c, p)]
+    dire(not pperdues, "chaque position de l'interpreteur est dans le BED exact",
+         "%d positions" % len(ph) if not pperdues
+         else "%d manquante(s), dont %s:%d"
+              % (len(pperdues), pperdues[0][0], pperdues[0][1]))
+
+
 def main():
     regenerer = "--regenerer" in sys.argv
     controle_svg()
     controle_perimetre()
     controle_motifs()
+    controle_coherence()
     controle_ressources(regenerer)
     print()
     if echecs:

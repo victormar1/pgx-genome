@@ -66,6 +66,7 @@ while [ $# -gt 0 ]; do
     --forcer) FORCER=1; shift;;
     --ignorer-filtre) IGNORER_FILTRE="--ignorer-filtre"; shift;;
     -h|--help) sed -n '2,26p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0;;
+    --version) cat "$RACINE/VERSION" 2>/dev/null || echo inconnue; exit 0;;
     *) echo "option inconnue : $1" >&2; exit 2;;
   esac
 done
