@@ -124,8 +124,33 @@ allèle variant lu comme référence.
 | HG00131 | SLCO1B1 | `*1/*14` | `*1/*1` |
 | HG00118 | CYP2D6 | `*1/*41` | `*34/*119` |
 
-Sur CYP3A5, `*3/*3` contre `*1/*1` sépare un non-expresseur d'un expresseur, ce
-qui change la dose initiale de tacrolimus.
+La conséquence est vérifiée jusqu'à la conduite à tenir, et non supposée :
+
+| Couverture | CYP3A5 | Phénotype | Conduite pour le tacrolimus |
+|---|---|---|---|
+| 34 × | `*3/*3` | métaboliseur lent | dose standard |
+| 11 × | `*1/*1` | métaboliseur normal | **augmenter la dose initiale de 1,5 à 2 fois** |
+
+À 11 ×, le compte rendu recommanderait donc de doubler la dose de tacrolimus
+chez un patient qui est en réalité métaboliseur lent. Deux génomes sur neuf.
+
+**À la couverture du banc, en revanche, le masquage n'a aucune conséquence
+clinique.** Mesure directe : pour chaque gène du périmètre portant une position
+masquée, l'interpréteur a été relancé sur le fichier non masqué, les appels
+externes fournis des deux côtés.
+
+| Mesure | n |
+|---|---|
+| Couples gène × génome avec une position masquée | 35 |
+| Diplotype inchangé | 25 |
+| Devenu une ambiguïté **contenant** l'appel non masqué | 9 |
+| Devenu un appel unique différent | **1** |
+
+Les neuf ambiguïtés sont le garde-fou qui fonctionne : la position masquée
+aurait discriminé, et le module refuse de choisir — un gène ambigu ne déclenche
+aucune recommandation. Le seul appel différent, SLCO1B1 `*1/*1` au lieu de
+`*1/*37`, porte **le même phénotype, fonction normale, et les sept mêmes
+recommandations de statines**.
 
 **Conséquence : le domaine de validité s'arrête à 17 ×.** Jusque-là, aucun
 allèle à conséquence clinique n'est perdu. Au-dessous, des pertes d'allèle
