@@ -117,6 +117,15 @@ par défaut (GQ ≥ 20, profondeur ≥ 10×), 88 % des couples
 gène × génome sont complets ; le reste est rendu « partiel » et signalé comme tel,
 jamais rabattu sur une référence.
 
+**Domaine de validité en couverture.** 9 génomes sous-échantillonnés à quatre
+niveaux, 36 exécutions. Jusqu'à **18 ×** de couverture médiane sur le périmètre,
+aucun allèle à conséquence clinique n'est perdu ; à 11 ×, neuf faux appels
+apparaissent, dont un qui ferait doubler une dose de tacrolimus chez un
+métaboliseur lent. **Un génome sous 18 × est donc refusé** — code de sortie 2,
+aucun compte rendu — et la couverture mesurée figure sur le document.
+
+<p align="center"><img src="doc/figures/domaine_couverture.svg" alt="Domaine de validité en couverture : aucun faux appel jusqu'à 18 fois, neuf faux appels à 11 fois, porte de refus à 18 fois" width="720"></p>
+
 **Contre-vérification indépendante (PyPGx).** Les gènes à allèles étoile que PyPGx
 sait typer ont été appelés en parallèle par PyPGx sur les **244 génomes**, sur les
 mêmes entrées (avec le nombre de copies pour CYP2D6, calibré sur le gène de contrôle

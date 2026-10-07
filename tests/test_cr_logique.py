@@ -319,5 +319,33 @@ class TablesDuDepot(unittest.TestCase):
         self.assertEqual(len(L.AMINOSIDES), 11)
 
 
+class Couverture(unittest.TestCase):
+    """La couverture mesuree est une condition d'emploi : elle figure sur le
+    document, avec le seuil applique, ou elle n'y figure pas du tout."""
+
+    def test_couverture_et_domaine(self):
+        t = L.couverture({"couverture_mediane_retenue": 36}, 18)
+        self.assertIn("36", t)
+        self.assertIn("18", t)
+
+    def test_sans_seuil_le_domaine_n_est_pas_annonce(self):
+        # --couverture-min 0 : la porte est levee, et le compte rendu ne doit pas
+        # pretendre qu'un domaine a ete applique.
+        t = L.couverture({"couverture_mediane_retenue": 36}, 0)
+        self.assertIn("36", t)
+        self.assertNotIn("domaine", t)
+
+    def test_sans_mesure_rien_n_est_affirme(self):
+        self.assertEqual(L.couverture({}, 18), "")
+        self.assertEqual(L.couverture({"couverture_mediane_retenue": None}, 18), "")
+
+    def test_la_valeur_est_celle_sur_laquelle_la_porte_a_statue(self):
+        # Le rendu ne refait pas le choix entre mediane clinique et globale : il
+        # lit celle que l'etage a retenue, sans quoi les deux pourraient differer.
+        meta = {"couverture_mediane_retenue": 18, "couverture_mediane": 40,
+                "couverture_mediane_clinique": 18}
+        self.assertIn("18", L.couverture(meta, 18))
+        self.assertNotIn("40", L.couverture(meta, 18))
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

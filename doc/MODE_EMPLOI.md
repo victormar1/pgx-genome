@@ -324,11 +324,13 @@ pgx_genome.sh \
 | `--fasta` | `$PGX_FASTA` | référence d'alignement |
 | `--gq` | 20 | seuil de qualité de génotype |
 | `--profondeur` | 10 | seuil de profondeur par position |
+| `--couverture-min` | 18 | couverture médiane du périmètre sous laquelle le génome est refusé ; `0` lève la porte |
 | `--fils` | 4 | fils pour samtools et l'étage CYP2D6 |
 | `--reprise` | absente | réutilise les intermédiaires si les entrées sont identiques |
 | `--forcer` | absente | écrit dans un dossier non vide sans purger |
 
-Variables équivalentes : `PGX_GQ`, `PGX_PROFONDEUR`, `PGX_FILS`, et
+Variables équivalentes : `PGX_GQ`, `PGX_PROFONDEUR`, `PGX_COUVERTURE_MIN`,
+`PGX_FILS`, et
 `PGX_IMG_BCFTOOLS`, `PGX_IMG_PHARMCAT`, `PGX_IMG_OPTITYPE` pour les conteneurs.
 
 ## 8. Traitement d'un lot
@@ -341,6 +343,20 @@ Le manifeste porte trois colonnes séparées par des tabulations : identifiant,
 chemin de l'alignement, chemin du fichier de variants. Un échantillon déjà
 complet est sauté. Le lot produit `tableau_de_bord.tsv` : une ligne par
 échantillon, l'état et la durée de chaque étage.
+
+## 8 bis. Un génome trop peu couvert est refusé
+
+Le contrôle qualité mesure la couverture médiane des positions du périmètre
+clinique sur l'alignement. Sous `--couverture-min`, le module **s'arrête au
+sortir de l'étage 2b** : code de sortie 2, aucun compte rendu, et le motif
+inscrit dans le journal, la table d'états et la trace.
+
+Ce n'est pas un avertissement parce qu'un avertissement ne protège de rien :
+sous le seuil, un allèle variant peut être lu comme référence, et l'interpréteur
+rend alors un diplotype faux sans réserve — jusqu'à doubler une dose de
+tacrolimus. Le domaine a été mesuré sur 36 exécutions ; voir `doc/VALIDATION.md`
+§ 3.4. Pour traiter sciemment un génome hors domaine, `--couverture-min 0`, et
+la couverture mesurée reste inscrite sur le compte rendu.
 
 ## 9. Choisir les seuils
 

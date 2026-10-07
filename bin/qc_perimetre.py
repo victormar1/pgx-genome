@@ -74,6 +74,36 @@ def lire_profondeur(chemin):
     return prof
 
 
+def mediane(valeurs):
+    """La couverture mediane des positions du panel porte le domaine de validite
+    du module : sous le seuil mesure, un allele variant peut etre lu comme
+    reference, et l interpreteur l affirme alors sans aucune reserve."""
+    v = sorted(valeurs)
+    if not v:
+        return None
+    m = len(v) // 2
+    if len(v) % 2:
+        return v[m]
+    moy = (v[m - 1] + v[m]) / 2.0
+    return int(moy) if moy == int(moy) else moy
+
+
+def couverture_retenue(meta):
+    """Le perimetre clinique porte la decision quand il est connu : c'est sur lui
+    que le domaine de validite a ete mesure, et non sur les genes rendus sans
+    verite."""
+    c = meta.get("couverture_mediane_clinique")
+    return meta.get("couverture_mediane") if c is None else c
+
+
+def hors_domaine(meta, minimum):
+    """Sous le seuil, un allele variant peut etre lu comme reference : le module
+    sort de son domaine et le genome doit etre refuse. Une couverture inconnue
+    n'est pas un refus, c'est un echec de l'etage, deja signale par ailleurs."""
+    c = couverture_retenue(meta)
+    return c is not None and c < minimum
+
+
 def ouvrir(chemin):
     return gzip.open(chemin, "rt", encoding="utf-8") if chemin.endswith(".gz") \
         else open(chemin, encoding="utf-8")
@@ -170,6 +200,8 @@ def main():
     p.add_argument("--sortie", required=True)
     p.add_argument("--gq", type=int, default=20)
     p.add_argument("--profondeur-min", type=int, default=10, dest="prof_min")
+    p.add_argument("--couverture-min", type=int, default=0, dest="couv_min",
+                   help="couverture mediane en deca de laquelle le genome sort du domaine")
     p.add_argument("--echantillon", default="")
     p.add_argument("--ignorer-filtre", action="store_true", dest="ignorer_filtre",
                    help="accepte les sites que l appelant a rejetes")
@@ -209,6 +241,7 @@ def main():
         return 1
 
     lignes_qc, complement_qc = [], []
+    couv_toutes, couv_clinique = [], []
     par_gene = collections.defaultdict(collections.Counter)
     a_masquer = set()
     sans_gq = 0
@@ -303,6 +336,12 @@ def main():
         # Une position complementaire ratee ne doit pas faire passer le gene en
         # « partiel » : elle est suivie a part, dans complement_rnpgx.
         if not info.get("complement"):
+            # La couverture est celle de l alignement, et non celle du VCF : elle
+            # existe pour une position sur laquelle l appelant n a rien ecrit,
+            # qui est justement le cas ou le module se trompe.
+            couv_toutes.append(lu or 0)
+            if clinique & set(info["genes"]):
+                couv_clinique.append(lu or 0)
             for g in info["genes"]:
                 par_gene[g]["attendu"] += 1
                 par_gene[g]["retenue" if retenue else "perdue"] += 1
@@ -339,6 +378,8 @@ def main():
         "positions_sans_GQ": sans_gq,
         "positions_a_plusieurs_enregistrements": sum(1 for x in lignes_qc if x["enregistrements"] > 1),
         "profondeur_lue_depuis_alignement": True,
+        "couverture_mediane": mediane(couv_toutes),
+        "couverture_mediane_clinique": mediane(couv_clinique),
         "perimetre_clinique": sorted(clinique) if clinique else [],
         "perimetre_clinique_hors_interpreteur": sorted(clinique - set(perimetre)) if clinique else [],
         "genes": perimetre,
@@ -350,6 +391,9 @@ def main():
             "classe_2": sum(1 for x in complement_qc if x["classe"] == 2),
         } if complement_qc else None,
     }
+    meta["couverture_mediane_retenue"] = couverture_retenue(meta)
+    meta["couverture_mediane_min"] = a.couv_min
+    meta["couverture_hors_domaine"] = hors_domaine(meta, a.couv_min)
     with open(os.path.join(a.sortie, "perimetre.json"), "w", encoding="utf-8") as fh:
         json.dump(meta, fh, ensure_ascii=False, indent=1)
 

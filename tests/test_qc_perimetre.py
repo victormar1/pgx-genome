@@ -8,7 +8,10 @@ viennent d'un audit position par position qui avait releve cent quarante et un
 ecarts, dont de faux CYP4F2*17 dans une region ou trois genes se ressemblent.
 """
 import gzip
+import io
+import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -234,6 +237,126 @@ class Seuils(unittest.TestCase):
         self.assertAlmostEqual(q.EQUILIBRE_MIN, 0.25)
         self.assertEqual(q.SANS_EQUILIBRE, {"CYP2D6"})
 
+
+class Mediane(unittest.TestCase):
+    def test_nombre_impair_de_valeurs(self):
+        self.assertEqual(q.mediane([30, 10, 20]), 20)
+
+    def test_nombre_pair_de_valeurs(self):
+        # La moyenne des deux valeurs centrales, et un entier quand elle en est
+        # un : une couverture de 24,0 fois se lit mal sur un compte rendu.
+        self.assertEqual(q.mediane([10, 20, 30, 40]), 25)
+        self.assertNotIsInstance(q.mediane([10, 20, 30, 40]), float)
+        self.assertEqual(q.mediane([10, 11]), 10.5)
+
+    def test_sans_valeur(self):
+        # Rendre zero ferait refuser le genome pour une mesure qui n'existe pas.
+        self.assertIsNone(q.mediane([]))
+
+    def test_une_seule_valeur(self):
+        self.assertEqual(q.mediane([17]), 17)
+
+
+class HorsDomaine(unittest.TestCase):
+    """Le verdict qui refuse un genome. Sous le seuil mesure, un allele variant
+    peut etre lu comme reference et l'interpreteur l'affirme sans reserve."""
+
+    def test_sous_le_seuil(self):
+        self.assertTrue(q.hors_domaine({"couverture_mediane_clinique": 11}, 17))
+
+    def test_au_seuil_exactement(self):
+        # Le domaine inclut sa borne : elle a ete mesuree, et elle passe.
+        self.assertFalse(q.hors_domaine({"couverture_mediane_clinique": 17}, 17))
+
+    def test_au_dessus_du_seuil(self):
+        self.assertFalse(q.hors_domaine({"couverture_mediane_clinique": 34}, 17))
+
+    def test_seuil_nul_leve_la_porte(self):
+        self.assertFalse(q.hors_domaine({"couverture_mediane_clinique": 2}, 0))
+
+    def test_couverture_inconnue_n_est_pas_un_refus(self):
+        # L'etage a echoue : c'est un echec d'etage, pas un genome hors domaine.
+        self.assertFalse(q.hors_domaine({}, 17))
+        self.assertFalse(q.hors_domaine({"couverture_mediane_clinique": None,
+                                         "couverture_mediane": None}, 17))
+
+    def test_le_perimetre_clinique_decide_quand_il_existe(self):
+        # Les genes rendus sans verite ne doivent pas porter la decision : ici
+        # la mediane globale passerait, la clinique non.
+        meta = {"couverture_mediane": 40, "couverture_mediane_clinique": 11}
+        self.assertTrue(q.hors_domaine(meta, 17))
+        self.assertEqual(q.couverture_retenue(meta), 11)
+
+    def test_sans_perimetre_clinique_la_mediane_globale_decide(self):
+        meta = {"couverture_mediane": 11, "couverture_mediane_clinique": None}
+        self.assertTrue(q.hors_domaine(meta, 17))
+        self.assertEqual(q.couverture_retenue(meta), 11)
+
+
+class CouvertureMesuree(unittest.TestCase):
+    """La mediane sort de l'etage complet : ce que mesurent les tests ci-dessus
+    ne vaut que si l'etage leur donne les bonnes positions."""
+
+    POSITIONS = [("chr10", 100, "CYP2C19"), ("chr10", 200, "CYP2C19"),
+                 ("chr7", 300, "POR"), ("chr7", 400, "POR")]
+
+    def execute(self, profondeurs, couv_min=17):
+        d = tempfile.mkdtemp()
+        pos = os.path.join(d, "positions.vcf")
+        with open(pos, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
+            for i, (c, p, g) in enumerate(self.POSITIONS):
+                fh.write("%s\t%d\trs%d\tC\tT\t.\tPASS\tPX=%s\n" % (c, p, i, g))
+        vcf = os.path.join(d, "ech.vcf")
+        with open(vcf, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("##fileformat=VCFv4.2\n"
+                     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tECH\n")
+        prof = os.path.join(d, "profondeur.txt")
+        with open(prof, "w", encoding="utf-8", newline="\n") as fh:
+            for (c, p, _), v in zip(self.POSITIONS, profondeurs):
+                if v is not None:
+                    fh.write("%s\t%d\t%d\n" % (c, p, v))
+        clin = os.path.join(d, "clinique.json")
+        with open(clin, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump({"genes": {"CYP2C19": {}}}, fh)
+        argv = sys.argv
+        sys.argv = ["qc_perimetre.py", "--vcf", vcf, "--profondeur", prof,
+                    "--positions", pos, "--sortie", d, "--echantillon", "ECH",
+                    "--perimetre-clinique", clin,
+                    "--couverture-min", str(couv_min)]
+        try:
+            self.assertEqual(q.main(), 0)
+            with io.open(os.path.join(d, "perimetre.json"), encoding="utf-8") as fh:
+                return json.load(fh)
+        finally:
+            sys.argv = argv
+            shutil.rmtree(d, ignore_errors=True)
+
+    def test_la_mediane_clinique_ignore_les_autres_genes(self):
+        m = self.execute([30, 40, 4, 6])
+        self.assertEqual(m["couverture_mediane_clinique"], 35)
+        self.assertEqual(m["couverture_mediane"], 18)
+        # c'est la valeur clinique qui est retenue, et c'est elle que le compte
+        # rendu affichera
+        self.assertEqual(m["couverture_mediane_retenue"], 35)
+        self.assertFalse(m["couverture_hors_domaine"])
+
+    def test_le_perimetre_clinique_fait_refuser_seul(self):
+        # La mediane globale passerait le seuil ; celle du perimetre non.
+        m = self.execute([10, 12, 90, 90])
+        self.assertEqual(m["couverture_mediane_clinique"], 11)
+        self.assertTrue(m["couverture_hors_domaine"])
+
+    def test_une_position_absente_compte_pour_zero(self):
+        # samtools depth -a rend toute position du BED : une absence est une
+        # position hors de l'alignement, et la passer sous silence ferait
+        # paraitre bien couvert un alignement tronque.
+        m = self.execute([None, 40, 90, 90])
+        self.assertEqual(m["couverture_mediane_clinique"], 20)
+
+    def test_le_seuil_est_trace(self):
+        m = self.execute([30, 40, 30, 40], couv_min=17)
+        self.assertEqual(m["couverture_mediane_min"], 17)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

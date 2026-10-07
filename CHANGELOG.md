@@ -8,6 +8,19 @@ incrémente au moins le rang mineur et déclenche la revalidation décrite dans
 La version du module figure dans `provenance.json` et au pied du compte rendu.
 Elle ne vaut aucune déclaration de conformité.
 
+## 0.2.0
+
+**Domaine de validité opposable.** Un génome dont la couverture médiane sur les
+positions du périmètre clinique est inférieure à 18 × est refusé : arrêt au
+sortir du contrôle qualité, code de sortie 2, aucun compte rendu. Le seuil est
+placé par la titration — 36 exécutions, 9 génomes : toute exécution sans faux
+appel mesure 18 × ou plus, toute exécution qui en porte neuf mesure 13 × ou
+moins. `--couverture-min 0` lève la porte. La couverture mesurée et le seuil
+appliqué figurent dans la trace et au pied du compte rendu.
+
+**Vérification.** 178 cas de test ; la porte auditée par mutation, 11 défauts
+réintroduits, aucun survivant.
+
 ## 0.1.0
 
 Premier état validé sur banc.
