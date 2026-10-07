@@ -83,65 +83,73 @@ l'alignement ne porte pas le variant (`outils/cas_construit.py`).
 
 L'alignement est sous-échantillonné, les variants rappelés depuis l'alignement
 réduit — sans quoi seule la mesure de profondeur changerait, pas les génotypes —
-puis le module repasse en entier. Les niveaux sont des fractions ; la profondeur
-indiquée est celle que le module mesure lui-même sur ses positions.
+puis le module repasse en entier. **9 génomes, 36 exécutions.** Les niveaux sont
+des fractions ; la profondeur indiquée est celle que le module mesure lui-même.
 
-3 génomes, 12 exécutions.
-
-| Couverture | Profondeur médiane | Gènes complets | partiels | absents | Diplotypes changés |
-|---|---|---|---|---|---|
-| pleine | 35 × | 9,0 | 0,0 | 0,0 | **0 / 36** |
-| 67 % | 24 × | 8,7 | 0,3 | 0,0 | **0 / 36** |
-| 50 % | 18 × | 5,3 | 3,3 | 0,3 | **1 / 36** |
-| 33 % | 11 × | 0,7 | 8,0 | 0,3 | 7 / 36 |
-
-**À 18 ×, le seul changement est une ambiguïté déclarée** — SLCO1B1 passe de
-`*1/*15` à deux diplotypes possibles — et une ambiguïté ne déclenche aucune
-recommandation. Aucune réponse ne devient fausse.
-
-**À 11 ×, deux faux diplotypes apparaissent, et c'est la limite basse réelle du
-produit :**
-
-| Génome | Gène | Pleine couverture | À 11 × | Nature |
+| Couverture | Profondeur médiane | Gènes complets | partiels | absents |
 |---|---|---|---|---|
-| HG00101 | CYP2C19 | `*1/*1` | `*1/*1 ; *1/*38 ; *38/*38` | ambiguïté |
-| HG00100 | CYP2D6 | `*4/*41` | `Unknown/Unknown` | abstention |
-| **HG00101** | **CYP3A5** | **`*3/*3`** | **`*1/*1`** | **faux** |
-| **HG00111** | **CYP3A4** | **`*1/*22`** | **`*1/*1`** | **faux** |
+| pleine | 34 × | 9,0 | 0,0 | 0,0 |
+| 67 % | 24 × | 8,4 | 0,6 | 0,0 |
+| 50 % | 17 × | 5,2 | 3,7 | 0,1 |
+| 33 % | 11 × | 1,0 | 7,6 | 0,4 |
 
-Les deux faux appels sont des pertes d'allèle : un homozygote variant lu comme
-homozygote de référence. Sur CYP3A5, `*3/*3` contre `*1/*1` sépare un
-non-expresseur d'un expresseur, ce qui change la dose initiale de tacrolimus.
+Un changement de diplotype n'a pas la même portée selon sa nature. Une
+abstention et une ambiguïté sont rendues comme telles et ne déclenchent aucune
+recommandation ; un appel unique et différent, lui, affirme.
 
-**La garantie de conception tient dans sa lettre** : les deux gènes étaient
-marqués « partiel », jamais « complet ». CYP3A5 n'avait retenu que 3 positions
-sur 7. Aucun faux diplotype n'a été rendu sur un gène déclaré complet, à aucun
-niveau. Aucun étage n'échoue à aucun niveau.
+**Dans le périmètre clinique — les treize gènes que le compte rendu restitue :**
 
-**Mais une réserve n'est pas un refus**, et c'est ce que cette mesure a appris :
-la mention « partiel » couvrait indifféremment un gène ayant perdu 4 positions
-sur 7 et un gène en ayant perdu 3 sur 46. Le compte rendu annonce désormais la
-proportion — « 4 sur 7 positions non lues » — parce que c'est elle qui dit si un
-diplotype est opposable.
+| Couverture | Faux | Abstentions | Ambiguïtés |
+|---|---|---|---|
+| 67 % | **1** | 0 | 0 |
+| 50 % | **1** | 1 | 1 |
+| 33 % | **9** | 5 | 5 |
 
-Le typage complémentaire se comporte de même, et c'est la démonstration la plus
-directe de sa règle de recevabilité :
+**Le seul faux appel à 24 × et à 17 × est le même génome et le même gène** :
+HLA-B rendu `*45:04/*57:01` au lieu de `*45:01/*57:01`. C'est un second champ,
+et **l'allèle à risque `*57:01` est préservé** — la faiblesse déjà déclarée en
+4.4, devenue visible quand la couverture baisse, et sans conséquence de
+prescription.
 
-| Couverture | BCHE | MT-RNR1 | MTHFR | POR |
-|---|---|---|---|---|
-| pleine, 67 % | rendu | rendu | rendu | rendu |
-| 50 % | rendu | rendu | rendu | **non conclusif** |
-| 33 % | rendu | rendu | **non conclusif** | **non conclusif** |
+**À 11 ×, neuf faux appels apparaissent**, dont huit de la même forme : un
+allèle variant lu comme référence.
 
-**Aucun génotype du typage ne change en restant rendu.** Quand la couverture ne
-suffit plus, le gène sort non conclusif au lieu d'affirmer autre chose. L'ordre
-de décrochage suit le nombre de positions définissantes à réunir : POR en
-compte 46, MTHFR 8, BCHE 2, et MT-RNR1 siège sur l'ADN mitochondrial, dont la
-couverture est très supérieure.
+| Génome | Gène | Pleine couverture | À 11 × |
+|---|---|---|---|
+| HG00101, HG00142 | CYP3A5 | `*3/*3` | `*1/*1` |
+| HG00131 | CYP3A5 | `*1/*3` | `*1/*1` |
+| HG00111 | CYP3A4 | `*1/*22` | `*1/*1` |
+| HG00122 | CYP3A4 | `*1/*10` | `*1/*1` |
+| HG00122 | SLCO1B1 | `*1/*20` | `*1/*1` |
+| HG00131 | SLCO1B1 | `*1/*14` | `*1/*1` |
+| HG00118 | CYP2D6 | `*1/*41` | `*34/*119` |
 
-**Conséquence : le domaine de validité s'arrête à 18 ×.** Au-dessous, des
-pertes d'allèle produisent de faux diplotypes, signalés mais rendus. Mesure
-établie sur 3 génomes ; à étendre.
+Sur CYP3A5, `*3/*3` contre `*1/*1` sépare un non-expresseur d'un expresseur, ce
+qui change la dose initiale de tacrolimus.
+
+**Conséquence : le domaine de validité s'arrête à 17 ×.** Jusque-là, aucun
+allèle à conséquence clinique n'est perdu. Au-dessous, des pertes d'allèle
+produisent de faux appels.
+
+Hors périmètre, l'interpréteur rend dix autres gènes, mesurés mais non
+rapportés : ils accusent un faux appel à 17 × et treize à 11 ×. Ces changements
+n'atteignent pas le compte rendu, et c'est une raison de plus de ne pas les
+rapporter.
+
+**Ce que ces faux appels enseignent sur le mécanisme.** Les positions fautives
+avaient bien été écartées par le contrôle qualité, qui écrit `./.` pour dire
+qu'il ne leur fait pas confiance. Mais le préprocesseur de l'interpréteur
+**supprime l'enregistrement**, et l'interpréteur suppose alors la référence.
+Réinjecter le `./.` après le prétraitement ne change rien : l'interpréteur
+l'ignore. Et `--absent-to-ref` ne peut pas être retiré — sans lui, 15 gènes sur
+23 sortent indéterminés, parce que l'interpréteur a besoin de bien plus de
+positions que les 1 226 mesurées par le module.
+
+**Il n'existe donc aucun canal, par cette interface, pour signaler à
+l'interpréteur qu'une position précise n'est pas fiable.** Le module ne peut
+agir que dans son propre rendu : il déclare le gène « partiel » et affiche
+désormais la proportion de positions perdues. Un gène dont une part notable des
+positions manque ne doit pas fonder une décision de posologie.
 
 ### 3.5 Profil de ressources
 
