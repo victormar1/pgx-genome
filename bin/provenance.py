@@ -91,6 +91,9 @@ def main():
     p.add_argument("--ressources", required=True)
     p.add_argument("--gq", type=int, required=True)
     p.add_argument("--profondeur", type=int, required=True)
+    p.add_argument("--couverture-min", type=int, default=0, dest="couv_min")
+    p.add_argument("--couverture", default="",
+                   help="couverture mediane mesuree sur le perimetre")
     p.add_argument("--images", default="")
     p.add_argument("--cyrius", default="")
     p.add_argument("--pypgx", default="")
@@ -149,7 +152,9 @@ def main():
         "cyrius": {"chemin": a.cyrius, "version": version_git(a.cyrius)} if a.cyrius else {},
         "pypgx": version_pypgx(a.pypgx),
         "seuils": {"GQ": a.gq, "profondeur": a.profondeur,
-                   "equilibre_allelique_min": a.equilibre, "filtre_appelant": a.filtre},
+                   "equilibre_allelique_min": a.equilibre, "filtre_appelant": a.filtre,
+                   "couverture_mediane_min": a.couv_min},
+        "couverture_mediane_perimetre": a.couverture,
         "perimetre_clinique": a.perimetre_clinique,
         "etages": etats,
         "ordre_des_etages": ordre,

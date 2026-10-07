@@ -23,6 +23,7 @@ d'un fichier de variants **produits en amont par la plateforme**.
 |---|---|---|
 | Assemblage | GRCh38, la référence ayant servi à l'alignement | contrôlé à l'étage 0 |
 | Profondeur | ≥ 10× par position diagnostique | seuil par défaut |
+| Couverture | médiane ≥ 18 × sur les positions du périmètre clinique | 36 exécutions ; **sous le seuil le génome est refusé**, voir 3.4 |
 | Qualité de génotype | GQ ≥ 20 | seuil par défaut, **voir la limite 4.3** |
 | Équilibre allélique | ≥ 0,25 pour un hétérozygote, hors CYP2D6 | mesuré sur 105 génomes |
 | Parallélisme en lot | 2 génomes | OptiType lance `razers3` sur seize threads |
@@ -152,9 +153,30 @@ aucune recommandation. Le seul appel différent, SLCO1B1 `*1/*1` au lieu de
 `*1/*37`, porte **le même phénotype, fonction normale, et les sept mêmes
 recommandations de statines**.
 
-**Conséquence : le domaine de validité s'arrête à 17 ×.** Jusque-là, aucun
-allèle à conséquence clinique n'est perdu. Au-dessous, des pertes d'allèle
-produisent de faux appels.
+**Conséquence : le domaine de validité s'arrête au niveau 50 %**, qui mesure
+18 × sur les positions du périmètre clinique et 17 × sur le panel entier.
+Jusque-là, aucun allèle à conséquence clinique n'est perdu.
+
+**Le module refuse un génome hors de ce domaine.** Le contrôle qualité mesure la
+couverture médiane des positions du périmètre sur l'alignement ; sous le seuil,
+le génome est refusé — code de sortie 2, aucun document produit. Le refus plutôt
+que l'avertissement : rien, dans le compte rendu, ne distinguerait un appel
+fondé sur une position lue d'un appel fondé sur une position supposée.
+
+Le seuil est placé par la mesure, sur les mêmes 36 exécutions :
+
+| Niveau | Couverture médiane du périmètre | Faux appels | Porte |
+|---|---|---|---|
+| pleine | 35 à 40 × | 0 | accepté |
+| 67 % | 24 à 28 × | 1, sans conséquence de prescription | accepté |
+| 50 % | 18 à 21 × | 1, le même | accepté |
+| 33 % | 11 à 13 × | **9** | **refusé, 9 sur 9** |
+
+Tout seuil de 14 à 18 × sépare identiquement les deux groupes. **18 × est
+retenu** : c'est le point le plus bas réellement mesuré, et le seuil
+n'extrapole donc pas sous lui. `--couverture-min 0` lève la porte ; la
+couverture mesurée et le seuil appliqué figurent dans la trace et sur le compte
+rendu.
 
 Hors périmètre, l'interpréteur rend dix autres gènes, mesurés mais non
 rapportés : ils accusent un faux appel à 17 × et treize à 11 ×. Ces changements

@@ -17,11 +17,14 @@
 #   --fasta CHEMIN     reference d'alignement, requise pour un CRAM
 #   --gq N             seuil de qualite de genotype           (defaut 20)
 #   --profondeur N     seuil de profondeur par position       (defaut 10)
+#   --couverture-min N couverture mediane minimale du perimetre (defaut 18,
+#                      0 pour accepter un genome hors du domaine valide)
 #   --fils N           fils pour samtools et Cyrius           (defaut 4)
 #   --reprise          reutilise les intermediaires si les entrees sont identiques
 #   --forcer           ecrit dans un dossier non vide sans reprise
 #
-# Variables : PGX_FASTA PGX_CYRIUS PGX_GQ PGX_PROFONDEUR PGX_FILS
+# Variables : PGX_FASTA PGX_CYRIUS PGX_GQ PGX_PROFONDEUR PGX_COUVERTURE_MIN
+#             PGX_FILS
 #             PGX_IMG_BCFTOOLS PGX_IMG_PHARMCAT PGX_IMG_OPTITYPE PGX_PYPGX
 
 set -uo pipefail
@@ -33,6 +36,11 @@ CRAM=""; VCF=""; SORTIE=""; ECH=""; REPRISE=0; FORCER=0; IDENTITE=""
 FASTA="${PGX_FASTA:-}"
 GQ="${PGX_GQ:-20}"
 PROF="${PGX_PROFONDEUR:-10}"
+# Couverture mediane sous laquelle le genome sort du domaine de validite.
+# Dix-huit est le point le plus bas reellement mesure sur le perimetre clinique :
+# le seuil n'extrapole pas sous lui. Les neuf executions refusees par la mesure
+# plafonnent a treize, la marge est donc de cinq fois.
+COUV_MIN="${PGX_COUVERTURE_MIN:-18}"
 IGNORER_FILTRE="${PGX_IGNORER_FILTRE:+--ignorer-filtre}"
 FILS="${PGX_FILS:-4}"
 # Complement RNPGx (classes 1 et 2 hors definitions PharmCAT) : present, il est
@@ -60,12 +68,13 @@ while [ $# -gt 0 ]; do
     --fasta) FASTA="$2"; shift 2;;
     --gq) GQ="$2"; shift 2;;
     --profondeur) PROF="$2"; shift 2;;
+    --couverture-min) COUV_MIN="$2"; shift 2;;
     --fils) FILS="$2"; shift 2;;
     --identite) IDENTITE="$2"; shift 2;;
     --reprise) REPRISE=1; shift;;
     --forcer) FORCER=1; shift;;
     --ignorer-filtre) IGNORER_FILTRE="--ignorer-filtre"; shift;;
-    -h|--help) sed -n '2,26p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0;;
+    -h|--help) sed -n '2,29p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0;;
     --version) cat "$RACINE/VERSION" 2>/dev/null || echo inconnue; exit 0;;
     *) echo "option inconnue : $1" >&2; exit 2;;
   esac
@@ -76,6 +85,10 @@ done
 [ -s "$CRAM" ] || { echo "alignement introuvable : $CRAM" >&2; exit 2; }
 [ -s "$VCF" ]  || { echo "fichier de variants introuvable : $VCF" >&2; exit 2; }
 [ -n "$ECH" ] || ECH="$(basename "$CRAM" | sed 's/\.\(cram\|bam\)$//')"
+# Un seuil non numerique serait lu zero par awk : la porte tomberait sans bruit.
+case "$COUV_MIN" in
+  ''|*[!0-9]*) echo "couverture minimale invalide : $COUV_MIN" >&2; exit 2;;
+esac
 
 mkdir -p "$SORTIE"/{travail,sortie}
 JOURNAL="$SORTIE/journal.txt"
@@ -222,7 +235,7 @@ empreinte() {
 # millisecondes.
 EMPREINTE_RES=$(find "$RES" -type f -print0 2>/dev/null | sort -z \
   | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -c1-16)
-SIGNATURE="$(empreinte "$CRAM")|$(empreinte "$VCF")|$(empreinte "$FASTA")|gq=$GQ|prof=$PROF|filtre=${IGNORER_FILTRE:-respecte}|res=$EMPREINTE_RES"
+SIGNATURE="$(empreinte "$CRAM")|$(empreinte "$VCF")|$(empreinte "$FASTA")|gq=$GQ|prof=$PROF|couv=$COUV_MIN|filtre=${IGNORER_FILTRE:-respecte}|res=$EMPREINTE_RES"
 SIG_FICHIER="$T/signature.txt"
 if [ -s "$SIG_FICHIER" ]; then
   if [ "$(cat "$SIG_FICHIER")" = "$SIGNATURE" ] && [ "$REPRISE" = 1 ]; then
@@ -385,16 +398,50 @@ if [ "$PROFOK" = 0 ]; then
 elif python3 "$RACINE/bin/qc_perimetre.py" --vcf "$FIL" --profondeur "$DEPTH" \
        --positions "$RES/pharmcat_positions.vcf" --sortie "$T" \
        ${COMPLEMENT:+--positions-complement "$COMPLEMENT"} \
-       --gq "$GQ" --profondeur-min "$PROF" --echantillon "$ECH" \
+       --gq "$GQ" --profondeur-min "$PROF" --couverture-min "$COUV_MIN" \
+       --echantillon "$ECH" \
        --perimetre-clinique "$RES/perimetre_rnpgx.json" $IGNORER_FILTRE >>"$JOURNAL" 2>&1 \
      && conteneur "$D_SORTIE" "$IMG_BCF" bgzip -f "$T/qualifie.vcf" >>"$JOURNAL" 2>&1 \
      && BCF index -f -t "$QUAL" >>"$JOURNAL" 2>&1 && [ -s "$QUAL" ]; then
   ret=$(python3 -c "import json;d=json.load(open(r'$T/perimetre.json',encoding='utf-8'));print(d['positions_retenues'],d['positions_visees'],sum(1 for v in d['genes'].values() if v['statut']=='complet'),len(d['genes']),d.get('positions_sans_GQ',0))")
   dire "2b. controle qualite : $(echo $ret | awk '{print $1" positions retenues sur "$2", "$3" genes complets sur "$4", "$5" sans qualite"}')"
   etat qc OK $(( $(date +%s)-t0 )) "$ret"
+  # Le verdict sur le domaine est rendu par l'etage lui-meme, ou il se teste.
+  VERDICT=$(python3 -c "import json,sys;sys.path.insert(0,r'$RACINE/bin');import qc_perimetre as q;d=json.load(open(r'$T/perimetre.json',encoding='utf-8'));c=q.couverture_retenue(d);print('' if c is None else c, 1 if d.get('couverture_hors_domaine') else 0)" 2>>"$JOURNAL")
+  COUV="${VERDICT% *}"
+  dire "    couverture mediane du perimetre : ${COUV:-inconnue}x"
+  if [ "${VERDICT##* }" = 1 ]; then
+    HORS_DOMAINE="couverture mediane ${COUV}x, domaine valide a partir de ${COUV_MIN}x"
+  fi
 else
   dire "2b. controle qualite : ECHEC"
   etat qc ECHEC $(( $(date +%s)-t0 )) "qc_perimetre.py, bgzip ou index"
+fi
+
+# Sous le seuil, un allele variant est lu comme reference et l interpreteur
+# rend un diplotype faux, sans reserve : le phenotype change, et la conduite a
+# tenir avec lui. Le genome est donc refuse et non rendu avec un avertissement,
+# parce que rien dans le document ne distinguerait un appel sur une position lue
+# d'un appel sur une position supposee. --couverture-min 0 leve la porte.
+if [ -n "${HORS_DOMAINE:-}" ]; then
+  # On garde la mesure, qui est le motif du refus, et on purge ce qui pourrait
+  # etre pris pour un resultat.
+  rm -rf "$SORTIE/sortie"; mkdir -p "$SORTIE/sortie"
+  for e in cyp2d6 hla appels pharmcat rendu; do
+    etat "$e" ECHEC 0 "couverture hors domaine"
+  done
+  [ -n "$CAT_PYPGX" ] && etat pypgx ECHEC 0 "couverture hors domaine" \
+    || etat pypgx IGNORE 0 "PGX_PYPGX non defini"
+  dire "arret : $HORS_DOMAINE"
+  python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
+    --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
+    --gq "$GQ" --profondeur "$PROF" --couverture-min "$COUV_MIN" \
+    --couverture "$COUV" \
+    --images "$IMG_BCF,$IMG_PHARMCAT,$IMG_OPTITYPE" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
+    --filtre "$([ -n "$IGNORER_FILTRE" ] && echo ignore || echo respecte)" \
+    --perimetre-clinique "$RES/perimetre_rnpgx.json" >>"$JOURNAL" 2>&1
+  dire "termine, reussite complete : False"
+  exit 2
 fi
 
 # --------------------------------------------------------------- 3. CYP2D6
@@ -599,6 +646,7 @@ if [ -s "$RAP" ] && [ -s "$T/perimetre.json" ]; then
   # processus et dans les journaux de l'ordonnanceur.
   if python3 "$RACINE/bin/compte_rendu.py" --rapport "$RAP" --perimetre "$T/perimetre.json" \
        --sortie "$SORTIE/sortie/CR_$ECH.pdf" --echantillon "$ECH" \
+       --couverture-min "$COUV_MIN" \
        ${IDENTITE:+--identite "$IDENTITE"} >>"$JOURNAL" 2>&1 \
      && [ -s "$SORTIE/sortie/CR_$ECH.pdf" ]; then
     dire "7. compte rendu : $SORTIE/sortie/CR_$ECH.pdf"
@@ -614,7 +662,8 @@ fi
 # ------------------------------------------------------------- provenance
 python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
   --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
-  --gq "$GQ" --profondeur "$PROF" \
+  --gq "$GQ" --profondeur "$PROF" --couverture-min "$COUV_MIN" \
+  --couverture "${COUV:-}" \
   --images "$IMG_BCF,$IMG_PHARMCAT,$IMG_OPTITYPE" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
   --filtre "$([ -n "$IGNORER_FILTRE" ] && echo ignore || echo respecte)" \
   --perimetre-clinique "$RES/perimetre_rnpgx.json" >>"$JOURNAL" 2>&1

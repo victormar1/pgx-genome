@@ -27,6 +27,8 @@ import cr_logique as L   # la logique, testable, sans mise en page
 _p = argparse.ArgumentParser(description="Compte rendu pharmacogenetique, francais.")
 _p.add_argument("--rapport", required=True, help="le JSON produit par PharmCAT")
 _p.add_argument("--perimetre", required=True, help="perimetre.json produit par le controle qualite")
+_p.add_argument("--couverture-min", type=int, default=0, dest="couv_min",
+                help="couverture mediane en deca de laquelle le module sort de son domaine")
 _p.add_argument("--sortie", required=True, help="chemin du PDF a ecrire")
 _p.add_argument("--echantillon", default="")
 # L'identite se lit dans un fichier, et non en argument : un argument est
@@ -400,7 +402,8 @@ h.append(Paragraph(
     "<b>Méthode.</b> Séquençage du génome entier, lectures courtes appariées, alignement sur GRCh38. CYP2D6 par Cyrius "
     "sur alignement complet ; HLA de classe I par OptiType ; autres gènes et interprétation par PharmCAT. "
     f"Module pgx-genome {e_(VERSION_MODULE or '?')}. "
-    f"Traductions des recommandations CPIC : version {e_(TR.get('version', '?'))}"
+    + L.couverture(META, _a.couv_min)
+    + f"Traductions des recommandations CPIC : version {e_(TR.get('version', '?'))}"
     + (" (proposition, à valider)." if TR.get("statut") != "validée" else " (validée).")
     + (f" Texte d'origine conservé pour : {', '.join(NON_TRADUITS)}." if NON_TRADUITS else ""), st_petit))
 if proto:

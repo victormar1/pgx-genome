@@ -64,6 +64,20 @@ def norm(t):
 
 
 # ------------------------------------------------------------------ perimetre
+def couverture(meta, minimum=0):
+    """La couverture mediane du perimetre est la condition d emploi du module :
+    sous le seuil valide, un allele variant peut etre lu comme reference. La
+    valeur affichee est celle sur laquelle l etage de controle a statue, et non
+    une seconde copie de la regle de choix."""
+    c = meta.get("couverture_mediane_retenue")
+    if c is None:
+        return ""
+    t = "Couverture m\u00e9diane du p\u00e9rim\u00e8tre : %s \u00d7" % c
+    if minimum:
+        t += " (domaine valid\u00e9 \u00e0 partir de %d \u00d7)" % minimum
+    return t + ". "
+
+
 def perimetre(rapport, meta):
     """Croise ce que le controle qualite a mesure et ce que l'interpreteur a rendu.
 
