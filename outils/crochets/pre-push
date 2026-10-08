@@ -11,8 +11,15 @@ cd "$R"
 
 # Sous WSL, python3 porte pypgx et permet de verifier la regeneration des
 # ressources ; sous Git bash, python suffit pour le reste.
+#
+# Un interpreteur present n'est pas un interpreteur utilisable : sous Windows,
+# command -v trouve un lanceur du magasin d'applications qui existe et refuse
+# de s'executer. La porte tombait alors sur un refus de permission, sans avoir
+# verifie quoi que ce soit. On l'essaie donc avant de le retenir.
 PY=python
-command -v python3 >/dev/null 2>&1 && PY=python3
+if command -v python3 >/dev/null 2>&1 && python3 -c "" >/dev/null 2>&1; then
+  PY=python3
+fi
 
 echo "--- tests du module ---"
 "$PY" -m unittest discover -s tests -q
