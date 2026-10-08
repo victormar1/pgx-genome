@@ -336,7 +336,10 @@ identique produisent le même résultat.
 
 ## Ce que le module ne fait pas
 
-- **POR** n'a pas de table dans l'interpréteur : il sort toujours « non analysé ».
+- **POR, BCHE et MTHFR** n'ont pas de table dans l'interpréteur. Leur
+  diplotype est rendu par le typage complémentaire, avec le nombre de positions
+  définissantes lues, mais **aucun phénotype ni recommandation** ne leur est
+  attaché : c'est l'interprétation qui manque, pas le génotype.
 - **Les remaniements de structure** ne sont analysés que pour CYP2D6.
 - **Seuls les allèles répertoriés** au catalogue de référence sont recherchés ;
   un variant délétère non répertorié donne un métaboliseur normal.
@@ -346,10 +349,10 @@ identique produisent le même résultat.
 ## Structure du dépôt
 
 ```
-bin/            les huit scripts du pipeline
+bin/            les neuf scripts du pipeline
 ressources/     les ressources figées, lues au runtime (dont les traductions CPIC)
 outils/         les générateurs de ressources, les contrôles, les crochets
-tests/          139 cas, audités par mutation
+tests/          219 cas, audités par mutation
 doc/            le mode d'emploi complet et le schéma du flux de fichiers
 env/            requirements Python et empreintes des conteneurs
 exemples/       un manifeste type
