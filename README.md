@@ -131,7 +131,9 @@ bcftools et comparés à l'appeleur de la plateforme sur **243 génomes et 103 6
 positions** : 99,924 % de concordance, et **aucun écart sur un gène rendu depuis
 le fichier de variants** — les écarts sont confinés aux régions paralogues, déjà
 traitées à part. Le seuil de qualité prend la même décision partout sauf sur
-0,7 % des positions, et aucune de celles-là n'atteint le compte rendu.
+0,7 % des positions, et aucune de celles-là n'atteint le compte rendu. Vérifié
+jusqu'au rendu sur 29 génomes repassés en entier : **aucun écart de phénotype ni
+de recommandation**.
 
 **Contre-vérification indépendante (PyPGx).** Les gènes à allèles étoile que PyPGx
 sait typer ont été appelés en parallèle par PyPGx sur les **244 génomes**, sur les
