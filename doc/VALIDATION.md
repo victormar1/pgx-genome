@@ -267,11 +267,30 @@ concentrent 151 bascules, aucune ne porte un variant : `rs71581941` est une
 position où l'appeleur de la plateforme n'a aucune confiance et où l'autre lit
 une référence, ce que l'interpréteur suppose de toute façon.
 
-Vérification sur le rendu, et non sur la seule position : les 9 génomes
-passés en entier des deux côtés donnent **72 / 72 couples
-gène × génome identiques** en diplotype, en phénotype et en recommandations,
-sur les huit gènes que l'appeleur peut atteindre. Quatre d'entre eux portent une
-bascule sur `rs71581941` : le diplotype SLCO1B1 est inchangé dans les quatre.
+**Vérification sur le rendu, et non sur la seule position.** 29 génomes passés
+en entier des deux côtés, 232 couples gène × génome sur les huit gènes que
+l'appeleur peut atteindre.
+
+| Niveau | Identique | Différent |
+|---|---|---|
+| diplotype | 226 | **6** |
+| phénotype | 232 | **0** |
+| recommandations | 232 | **0** |
+
+Les six écarts sont tous sur SLCO1B1 et tous de la même forme : le fichier de la
+plateforme donne une **ambiguïté** (`*1/*15;*1/*45`) là où celui de bcftools
+tranche pour **un membre de cette même ambiguïté** (`*1/*15`). Vérifié les six
+fois : aucun appel ne sort de l'ensemble proposé par l'autre côté. C'est
+`rs71581941` — sans confiance chez l'appeleur de la plateforme, donc masquée, et
+le module refuse alors de choisir ; lue avec confiance par l'autre, elle
+discrimine.
+
+Le sens de l'écart mérite d'être noté : sur le fichier de la plateforme, le
+module est **plus prudent, pas moins juste**. Le phénotype et les
+recommandations sont identiques dans les six cas.
+
+Un échantillon de 9 génomes donnait 72 couples sur 72 identiques et ne montrait
+aucun de ces six écarts : c'est la raison de l'avoir étendu.
 
 **Ce que la comparaison ne couvre pas.** 2 190 positions, environ 9 par génome, portent une référence différente d'un fichier à l'autre — des indels ancrés sur une autre base — et sont hors comparaison : c'est là que deux appeleurs divergent le plus. 350 positions portent plusieurs enregistrements, et c'est l'enregistrement appelé qui est retenu, comme à l'étage de contrôle.
 

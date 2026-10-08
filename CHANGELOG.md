@@ -25,6 +25,10 @@ variants. La transférabilité du seuil GQ, jusqu'ici mesurée sur 374 positions
 l'est désormais sur toutes : le GQ se déduit des PL, et la déduction est
 vérifiée contre le GQ écrit avant d'être utilisée. 0,735 % des positions
 changent de décision selon l'appeleur ; aucune n'atteint le compte rendu.
+Vérifié jusqu'au rendu sur 29 génomes repassés en entier des deux côtés : 232
+couples gène × génome, 6 écarts de diplotype, tous une ambiguïté d'un côté
+tranchée en l'un de ses propres membres de l'autre, et **aucun écart de
+phénotype ni de recommandation**.
 
 **Vérification.** 178 cas de test ; la porte auditée par mutation, 11 défauts
 réintroduits, aucun survivant.
