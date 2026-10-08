@@ -25,7 +25,13 @@ recommandation. Un alignement réduit à 1 % de ses lectures est refusé.
 `outils/comparer_rapports.py` rend cette comparaison exécutable, avec un code de
 sortie qui en fait une porte.
 
-**Vérification.** 207 cas de test ; l'indicateur de mélange audité par
+**Relecture des traductions outillée.** `outils/fiche_traductions.py` produit
+la fiche de relecture des 66 traductions, classée par le nombre de comptes
+rendus qui les emploient, avec une colonne de visa. Sur le banc, 51 sont rendues
+et **aucun texte rendu n'est laissé sans traduction** ; les 15 entrées
+inemployées sont listées à part, et leurs causes attendues nommées.
+
+**Vérification.** 219 cas de test ; l'indicateur de mélange audité par
 mutation, 8 défauts réintroduits, aucun survivant.
 
 ## 0.2.0
