@@ -19,7 +19,13 @@ l'allèle mineur est trop peu soutenu — et l'échantillon est refusé au-delà
 porte arrête un mélange de 30 % et **ne détecte pas celui de 20 %** : un
 contrôle de contamination en amont reste nécessaire, et la limite est déclarée.
 
-**Vérification.** 194 cas de test ; l'indicateur de mélange audité par
+**Non-régression établie.** 5 génomes repassés sur les mêmes entrées : 60
+couples gène × échantillon, **aucun écart** de diplotype, de phénotype ni de
+recommandation. Un alignement réduit à 1 % de ses lectures est refusé.
+`outils/comparer_rapports.py` rend cette comparaison exécutable, avec un code de
+sortie qui en fait une porte.
+
+**Vérification.** 207 cas de test ; l'indicateur de mélange audité par
 mutation, 8 défauts réintroduits, aucun survivant.
 
 ## 0.2.0

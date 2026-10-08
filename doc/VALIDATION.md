@@ -364,6 +364,30 @@ Réserve : un seul couple hôte–contaminant, non apparentés. Un contaminant
 apparenté partage davantage de génotypes et produirait un indicateur plus bas à
 fraction égale.
 
+### 3.9 Non-régression après les garde-fous ajoutés
+
+Trois changements sont entrés depuis la mesure du lot : la porte de couverture,
+la porte de mélange, et la couverture inscrite au compte rendu. Aucun ne devrait
+modifier un diplotype — ils refusent ou ils tracent. « Ne devrait pas » n'est
+pas une mesure.
+
+5 génomes du lot repassés sur **les mêmes entrées**, avec le module tel qu'il
+est, et comparés aux rapports conservés :
+
+| Niveau | Identique | Différent |
+|---|---|---|
+| diplotype et phénotype | 60 | **0** |
+| recommandations du document | 5 | **0** |
+
+La comparaison est faite par `outils/comparer_rapports.py`, qui rend un code de
+sortie non nul au premier écart et peut donc servir de porte. Il distingue
+l'écart qui n'en est pas un : un appel unique pris dans l'ambiguïté d'avant, à
+phénotype identique, est compté mais nommé comme tel.
+
+**Témoin négatif.** Un alignement réduit à 1 % de ses lectures est refusé par la
+porte de couverture, sans compte rendu : un échantillon presque vide ne ressort
+pas avec une réserve, il ressort refusé.
+
 ## 4. Limites connues, à déclarer
 
 **4.1 MT-RNR1 n'a aucun porteur sur le banc.** Ses trois positions du panel sont
@@ -439,7 +463,8 @@ l'identique, tables cliniques comprises.
 
 | Outil | Rôle |
 |---|---|
-| `tests/` | 139 cas, audités par mutation |
+| `tests/` | 207 cas, audités par mutation |
 | `outils/verifier_depot.py` | intégrité des figures, cohérence du périmètre, reproductibilité des ressources générées |
 | `outils/cas_construit.py` | exercice d'un allèle absent de la cohorte |
+| `outils/comparer_rapports.py` | compare deux exécutions — diplotype, phénotype, recommandations — et rend un code de sortie non nul au premier écart |
 | `provenance.json` | empreintes des entrées, des images, des ressources, et seuils employés |
