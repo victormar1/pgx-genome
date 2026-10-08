@@ -212,18 +212,68 @@ mesurées avec une marge.
 
 ### 3.6 Indépendance à l'appeleur de variants
 
-20 génomes, mêmes alignements, mêmes positions, appel par l'appeleur de la
-plateforme (GATK) et par bcftools.
+**243 génomes**, mêmes alignements, mêmes positions, appel par l'appeleur de
+la plateforme (GATK) et par bcftools. Les génotypes sont comparés en bases et
+non en indices d'allèles : les deux fichiers n'ont pas la même liste d'ALT, et
+comparer les indices fabriquerait des désaccords qui n'en sont pas.
 
 | Mesure | Résultat |
 |---|---|
-| Concordance des génotypes | **8 711 / 8 720 = 99,90 %** |
-| Localisation des 9 écarts | 8 dans CYP2D6, 1 dans CYP4F2 |
+| Concordance des génotypes | **103 604 / 103 683 = 99,924 %** |
+| Localisation des 79 écarts | CYP2D6 (59) ; CYP4F2 (18) ; NAT2 (1) ; CYP2B6 (1) |
+| Écarts sur un gène rendu depuis le fichier de variants | **0** |
 
-Les deux régions concernées sont les seules régions paralogues du périmètre, et
-toutes deux sont déjà traitées à part : CYP2D6 est appelé par un outil dédié sur
-l'alignement complet, CYP4F2 est hors périmètre clinique. **Aucun gène rendu
-depuis le fichier de variants n'est touché.**
+Les régions concernées sont les régions paralogues du périmètre, déjà
+traitées à part : CYP2D6 est appelé par un outil dédié sur l'alignement
+complet, les autres sont hors périmètre clinique. Les écarts ne sont pas
+dispersés : `rs3915951` (CYP2D6) chez 26 génomes ; `rs1058172` (CYP2D6) chez 16 génomes ; `rs4020346` (CYP4F2) chez 15 génomes.
+
+**Le seuil GQ ≥ 20 prend-il la même décision ?** La mesure ne portait
+jusqu'ici que sur les positions où bcftools écrit un GQ, soit une quinzaine par
+génome. Or le GQ est l'écart entre la deuxième meilleure vraisemblance et la
+meilleure, et `mpileup` produit des PL sur **toutes** les positions. La
+déduction est vérifiée avant d'être utilisée :
+
+| Côté | Positions | GQ déduit égal au GQ écrit | Même décision au seuil |
+|---|---|---|---|
+| plateforme, ses propres PL | 106 358 | **99,99 %** | — |
+| bcftools, PL de `mpileup` contre GQ de l'appel | 4 269 | 71,98 % | **99,91 %** |
+
+Le GQ déduit n'est pas numériquement identique au GQ écrit par bcftools —
+l'appeleur y ajoute son a priori — mais il prend la même décision au seuil. La
+mesure passe ainsi de 374 à **103 683 positions**.
+
+| Plateforme | bcftools | n | part |
+|---|---|---|---|
+| retenue | retenue | 102 872 | 99,218 % |
+| écartée | retenue | 719 | 0,693 % |
+| écartée | écartée | 49 | 0,047 % |
+| retenue | écartée | 43 | 0,041 % |
+
+**762 positions sur 103 683 changent de décision, soit 0,735 %.** Elles se
+concentrent sur CYP2B6 (477) ; SLCO1B1 (151) ; CYP2D6 (86).
+
+Une bascule ne change le rendu que si l'un des deux appeleurs lit un **variant**
+à cette position : une position écartée est supprimée par le prétraitement et
+l'interpréteur suppose alors la référence, donc une référence retenue d'un
+côté et écartée de l'autre donne le même résultat. Le critère porte sur les
+deux génotypes : dans un sens le module verrait un allèle qu'il ne voyait pas,
+dans l'autre il en perdrait un.
+
+**42 bascules sur 762 portent un variant, et toutes sur
+CYP2D6 et CYP4F2 — appelés hors du fichier de variants ou hors
+périmètre. Aucune n'atteint donc le compte rendu.** Sur SLCO1B1, où se
+concentrent 151 bascules, aucune ne porte un variant : `rs71581941` est une
+position où l'appeleur de la plateforme n'a aucune confiance et où l'autre lit
+une référence, ce que l'interpréteur suppose de toute façon.
+
+Vérification sur le rendu, et non sur la seule position : les 9 génomes
+passés en entier des deux côtés donnent **72 / 72 couples
+gène × génome identiques** en diplotype, en phénotype et en recommandations,
+sur les huit gènes que l'appeleur peut atteindre. Quatre d'entre eux portent une
+bascule sur `rs71581941` : le diplotype SLCO1B1 est inchangé dans les quatre.
+
+**Ce que la comparaison ne couvre pas.** 2 190 positions, environ 9 par génome, portent une référence différente d'un fichier à l'autre — des indels ancrés sur une autre base — et sont hors comparaison : c'est là que deux appeleurs divergent le plus. 350 positions portent plusieurs enregistrements, et c'est l'enregistrement appelé qui est retenu, comme à l'étage de contrôle.
 
 ### 3.7 Vérification du code
 
@@ -255,13 +305,19 @@ nécessaire.**
 **4.2 POR et ABCG2 sont rendus sans vérité.** Aucun matériau de référence
 disponible sur ce banc.
 
-**4.3 Le seuil GQ ≥ 20 suppose une échelle comparable à celle de GATK.** Le GQ
-n'a pas la même définition d'un appeleur à l'autre : médiane 99 et plafond 99
-pour GATK, médiane 127 et plafond 127 pour bcftools. Sur les positions
-comparables, aucune décision ne change — mais la mesure ne porte que sur 374
-positions, les sites variants, bcftools n'émettant pas de GQ sur un site
-homozygote de référence. **Le seuil doit être revérifié sur l'appeleur de la
-plateforme d'accueil**, en particulier DRAGEN ou DeepVariant, non mesurés.
+**4.3 Le seuil GQ ≥ 20 est mesuré sur deux appeleurs, pas sur tous.** Le GQ n'a
+pas la même échelle d'un appeleur à l'autre : plafond 99 pour GATK, 127 pour
+bcftools. Sur 103 683 positions et 243 génomes, aucun écart de décision
+n'atteint le compte rendu (§ 3.6). **La réserve porte désormais sur les
+familles non mesurées** — DRAGEN et DeepVariant — et sur les positions dont la
+référence s'écrit autrement, hors comparaison.
+
+Trois positions méritent une vérification sur l'appeleur de la plateforme
+d'accueil, parce que leur décision change déjà entre les deux appeleurs
+mesurés : `rs186335453` et `rs36060847` (CYP2B6, hors périmètre clinique) et
+`rs71581941` (SLCO1B1, 62 % des génomes). Aucune ne porte de variant sur ce
+banc, et c'est pourquoi aucune n'y a de conséquence ; sur un autre appeleur,
+cela se vérifie plutôt que de se supposer.
 
 **4.4 Le second champ des allèles HLA vacille sur A\*02 et B\*27.** Documenté,
 sans conséquence de prescription, le premier champ restant résolu.

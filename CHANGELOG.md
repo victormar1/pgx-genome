@@ -18,6 +18,14 @@ appel mesure 18 × ou plus, toute exécution qui en porte neuf mesure 13 × ou
 moins. `--couverture-min 0` lève la porte. La couverture mesurée et le seuil
 appliqué figurent dans la trace et au pied du compte rendu.
 
+**Indépendance à l'appeleur de variants, mesurée sur la base entière.** 243
+génomes, 103 683 positions comparées en bases et non en indices d'allèles :
+99,924 % de concordance, et aucun écart sur un gène rendu depuis le fichier de
+variants. La transférabilité du seuil GQ, jusqu'ici mesurée sur 374 positions,
+l'est désormais sur toutes : le GQ se déduit des PL, et la déduction est
+vérifiée contre le GQ écrit avant d'être utilisée. 0,735 % des positions
+changent de décision selon l'appeleur ; aucune n'atteint le compte rendu.
+
 **Vérification.** 178 cas de test ; la porte auditée par mutation, 11 défauts
 réintroduits, aucun survivant.
 
