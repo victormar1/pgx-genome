@@ -24,6 +24,7 @@ d'un fichier de variants **produits en amont par la plateforme**.
 | Assemblage | GRCh38, la référence ayant servi à l'alignement | contrôlé à l'étage 0 |
 | Profondeur | ≥ 10× par position diagnostique | seuil par défaut |
 | Couverture | médiane ≥ 18 × sur les positions du périmètre clinique | 36 exécutions ; **sous le seuil le génome est refusé**, voir 3.4 |
+| Pureté de l'échantillon | part d'hétérozygotes déséquilibrés ≤ 35 % | 229 exécutions ; **au-delà l'échantillon est refusé**, voir 3.8 — un mélange de 20 % n'est pas détecté |
 | Qualité de génotype | GQ ≥ 20 | seuil par défaut, **voir la limite 4.3** |
 | Équilibre allélique | ≥ 0,25 pour un hétérozygote, hors CYP2D6 | mesuré sur 105 génomes |
 | Parallélisme en lot | 2 génomes | OptiType lance `razers3` sur seize threads |
@@ -311,6 +312,58 @@ l'image qui l'avait produit — une montée de version du typeur suivie d'une
 reprise aurait rendu l'ancien résultat sans rien signaler. Les deux sont
 corrigés.
 
+### 3.8 Specificite a un melange d'echantillons
+
+Deux genomes du banc, choisis parce qu'ils diffèrent sur **les huit gènes**
+rendus depuis le fichier de variants. Les lectures du contaminant sont injectees
+dans celles de l'hôte à fraction croissante, sous une seule identité — une
+contamination réelle précède le séquençage. Témoin : le mélange à 0 %, même
+chaîne.
+
+| Contaminant | Faux hétérozygotes | Diplotype changé | Document rendu |
+|---|---|---|---|
+| 0 à 10 % | 0 à 1 | 0 | **identique** |
+| 20 % | 5 | 1 | ABCG2 `Unknown/Unknown`, **le module s'abstient** ; la rosuvastatine apparaît |
+| 30 % | 10 | 1 | ABCG2 `G/T` au lieu de `T/T`, **faux appel unique** ; phénotype différent |
+
+**En deçà de 10 %, aucune conséquence.** À 20 %, le garde-fou d'équilibre
+allélique se déclenche et le gène sort indéterminé — mais une recommandation
+apparaît au document, qui ne s'y trouve pas pour l'échantillon pur. À 30 %, le
+garde-fou est défait : la fraction de l'allèle mineur ressemble à celle d'un
+hétérozygote vrai, et le module rend un appel unique faux.
+
+**Un garde-fou par position ne peut donc pas suffire**, et un indicateur
+d'ensemble est ajouté : la part des hétérozygotes appelés dont l'allèle mineur
+est soutenu par moins de 30 % des lectures.
+
+| Mesure | Part déséquilibrée |
+|---|---|
+| 229 exécutions du lot, échantillons purs | médiane 7,7 %, 99ᵉ centile 22,5 %, **maximum 31,9 %** |
+| mélange à 10 % | 12,5 % |
+| mélange à 20 % | 25,0 % |
+| mélange à 30 % | **41,5 %** |
+
+Le seuil est posé à **35 %** : il laisse passer les 229 échantillons purs avec
+de la marge et arrête le mélange à 30 %. Le témoin, appelé par bcftools quand le
+lot l'est par GATK, mesure 7,7 % — exactement la médiane du lot : l'appeleur ne
+déplace pas l'indicateur, et les deux mesures se comparent.
+
+**Ce que la porte ne voit pas, et qui doit être dit.** Le mélange à 20 % mesure
+25,0 %, dans l'étendue des échantillons purs. Ce n'est pas un réglage à affiner :
+sur la quarantaine de positions hétérozygotes que l'étage lit, les quatre
+statistiques essayées — part déséquilibrée, fraction médiane, premier quartile,
+fraction moyenne — placent toutes le mélange à 20 % à l'intérieur de la
+distribution des 229 échantillons purs. L'information n'y est pas.
+
+**La détection d'un mélange reste donc à faire en amont**, sur le génome entier,
+par l'outil de la plateforme. La porte du module arrête un mélange grossier ;
+elle ne remplace pas ce contrôle, et le déclarer autrement donnerait une fausse
+assurance.
+
+Réserve : un seul couple hôte–contaminant, non apparentés. Un contaminant
+apparenté partage davantage de génotypes et produirait un indicateur plus bas à
+fraction égale.
+
 ## 4. Limites connues, à déclarer
 
 **4.1 MT-RNR1 n'a aucun porteur sur le banc.** Ses trois positions du panel sont
@@ -343,6 +396,11 @@ sans conséquence de prescription, le premier champ restant résolu.
 
 **4.5 Les traductions des recommandations CPIC n'ont pas de validation
 pharmacologique.**
+
+**4.7 Un mélange d'échantillons de 20 % n'est pas détecté par le module.** Il
+modifie le document rendu (§ 3.8). Sur les positions que le module lit,
+l'information n'existe pas : **un contrôle de contamination sur le génome entier
+reste nécessaire en amont.**
 
 **4.6 Aucun contrôle de qualité externe.** Une participation à un programme
 (EMQN, GenQA) reste à organiser.

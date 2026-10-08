@@ -8,6 +8,20 @@ incrémente au moins le rang mineur et déclenche la revalidation décrite dans
 La version du module figure dans `provenance.json` et au pied du compte rendu.
 Elle ne vaut aucune déclaration de conformité.
 
+## 0.3.0
+
+**Spécificité à un mélange d'échantillons, mesurée.** Un contaminant injecté de
+2 à 30 % dans les lectures d'un hôte : sans conséquence jusqu'à 10 %, le
+document change à partir de 20 %, et à 30 % un faux appel unique change un
+phénotype. Un indicateur d'ensemble est ajouté — part des hétérozygotes dont
+l'allèle mineur est trop peu soutenu — et l'échantillon est refusé au-delà de
+35 %, seuil posé sur 229 échantillons purs dont le plus haut est à 31,9 %. La
+porte arrête un mélange de 30 % et **ne détecte pas celui de 20 %** : un
+contrôle de contamination en amont reste nécessaire, et la limite est déclarée.
+
+**Vérification.** 194 cas de test ; l'indicateur de mélange audité par
+mutation, 8 défauts réintroduits, aucun survivant.
+
 ## 0.2.0
 
 **Domaine de validité opposable.** Un génome dont la couverture médiane sur les

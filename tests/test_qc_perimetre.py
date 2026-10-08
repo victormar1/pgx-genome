@@ -300,7 +300,7 @@ class CouvertureMesuree(unittest.TestCase):
     POSITIONS = [("chr10", 100, "CYP2C19"), ("chr10", 200, "CYP2C19"),
                  ("chr7", 300, "POR"), ("chr7", 400, "POR")]
 
-    def execute(self, profondeurs, couv_min=17):
+    def execute(self, profondeurs, couv_min=17, melange_max=0.0, variants=()):
         d = tempfile.mkdtemp()
         pos = os.path.join(d, "positions.vcf")
         with open(pos, "w", encoding="utf-8", newline="\n") as fh:
@@ -311,6 +311,9 @@ class CouvertureMesuree(unittest.TestCase):
         with open(vcf, "w", encoding="utf-8", newline="\n") as fh:
             fh.write("##fileformat=VCFv4.2\n"
                      "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tECH\n")
+            for i, (gt, ad) in enumerate(variants):
+                fh.write("chr1\t%d\trs%d\tC\tT\t.\tPASS\t.\tGT:GQ:AD\t%s:99:%s\n"
+                         % (900000 + i, i, gt, ad))
         prof = os.path.join(d, "profondeur.txt")
         with open(prof, "w", encoding="utf-8", newline="\n") as fh:
             for (c, p, _), v in zip(self.POSITIONS, profondeurs):
@@ -323,7 +326,8 @@ class CouvertureMesuree(unittest.TestCase):
         sys.argv = ["qc_perimetre.py", "--vcf", vcf, "--profondeur", prof,
                     "--positions", pos, "--sortie", d, "--echantillon", "ECH",
                     "--perimetre-clinique", clin,
-                    "--couverture-min", str(couv_min)]
+                    "--couverture-min", str(couv_min),
+                    "--melange-max", str(melange_max)]
         try:
             self.assertEqual(q.main(), 0)
             with io.open(os.path.join(d, "perimetre.json"), encoding="utf-8") as fh:
@@ -354,9 +358,106 @@ class CouvertureMesuree(unittest.TestCase):
         m = self.execute([None, 40, 90, 90])
         self.assertEqual(m["couverture_mediane_clinique"], 20)
 
+    def test_le_verdict_de_melange_est_inscrit(self):
+        # Trente heterozygotes dont vingt-cinq desequilibres : la part depasse
+        # tout ce qu'un echantillon pur porte, et l'etage doit le dire.
+        v = [("0/1", "20,4")] * 25 + [("0/1", "20,20")] * 5
+        m = self.execute([30, 40, 30, 40], melange_max=35.0, variants=v)
+        self.assertEqual(m["melange_heterozygotes"], 30)
+        self.assertEqual(m["melange_desequilibrees"], 25)
+        self.assertAlmostEqual(m["melange_part"], 83.3, places=1)
+        self.assertTrue(m["melange_suspect"])
+
+    def test_un_echantillon_equilibre_n_est_pas_suspect(self):
+        v = [("0/1", "20,20")] * 30
+        m = self.execute([30, 40, 30, 40], melange_max=35.0, variants=v)
+        self.assertEqual(m["melange_desequilibrees"], 0)
+        self.assertFalse(m["melange_suspect"])
+
     def test_le_seuil_est_trace(self):
         m = self.execute([30, 40, 30, 40], couv_min=17)
         self.assertEqual(m["couverture_mediane_min"], 17)
+
+class IndicateurMelange(unittest.TestCase):
+    """Un melange de deux individus fabrique de faux heterozygotes a faible
+    part. L'indicateur compte ceux-la, et rien d'autre."""
+
+    def lignes(self, *champs):
+        return {("chr1", i): [c] for i, c in enumerate(champs)}
+
+    def test_heterozygote_equilibre_compte_sans_etre_suspect(self):
+        het, desq = q.indicateur_melange(
+            self.lignes(champs("0/1", ad="20,20"), champs("0/1", ad="18,22")))
+        self.assertEqual((het, desq), (2, 0))
+
+    def test_heterozygote_desequilibre(self):
+        # 4 sur 24, soit un sixieme : la forme d'un faux heterozygote.
+        het, desq = q.indicateur_melange(self.lignes(champs("0/1", ad="20,4")))
+        self.assertEqual((het, desq), (1, 1))
+
+    def test_homozygote_hors_du_compte(self):
+        # La part minimale ne veut rien dire pour un homozygote : l'y compter
+        # diluerait l'indicateur par ce que porte le genome, pas le melange.
+        het, desq = q.indicateur_melange(
+            self.lignes(champs("0/0", ad="30,0"), champs("1/1", ad="0,30")))
+        self.assertEqual((het, desq), (0, 0))
+
+    def test_profondeur_insuffisante_hors_du_compte(self):
+        # Sur quatre lectures, une part ne mesure rien.
+        het, desq = q.indicateur_melange(self.lignes(champs("0/1", ad="3,1")))
+        self.assertEqual((het, desq), (0, 0))
+
+    def test_genotype_incomplet_hors_du_compte(self):
+        # part_minimale exige deux alleles appeles : « ./. » et « 0/. » sont
+        # ecartes par elle, et non par un filtre supplementaire.
+        for gt in ("./.", "0/.", "./1", "."):
+            het, desq = q.indicateur_melange(self.lignes(champs(gt, ad="20,4")))
+            self.assertEqual((het, desq), (0, 0), gt)
+
+    def test_lectures_illisibles_hors_du_compte(self):
+        het, desq = q.indicateur_melange(self.lignes(champs("0/1")))
+        self.assertEqual((het, desq), (0, 0))
+
+    def test_la_borne_est_incluse_dans_l_equilibre(self):
+        # Exactement trois dixiemes : la position n'est pas desequilibree.
+        het, desq = q.indicateur_melange(self.lignes(champs("0/1", ad="21,9")))
+        self.assertEqual((het, desq), (1, 0))
+
+
+class SuspectMelange(unittest.TestCase):
+    def test_au_dela_du_maximum(self):
+        self.assertTrue(q.suspect_melange(
+            {"melange_part": 41.5, "melange_heterozygotes": 53}, 35))
+
+    def test_au_maximum_exactement(self):
+        # Le seuil est une borne de ce qui passe : 35 n'est pas un refus.
+        self.assertFalse(q.suspect_melange(
+            {"melange_part": 35.0, "melange_heterozygotes": 53}, 35))
+
+    def test_en_dessous(self):
+        self.assertFalse(q.suspect_melange(
+            {"melange_part": 25.0, "melange_heterozygotes": 44}, 35))
+
+    def test_trop_peu_d_heterozygotes(self):
+        # Deux positions sur trois font soixante-six pour cent, et ne disent
+        # rien : une proportion ne s'etablit pas sur trois mesures.
+        self.assertFalse(q.suspect_melange(
+            {"melange_part": 66.7, "melange_heterozygotes": 3}, 35))
+
+    def test_part_non_mesuree(self):
+        self.assertFalse(q.suspect_melange({}, 35))
+        self.assertFalse(q.suspect_melange(
+            {"melange_part": None, "melange_heterozygotes": 50}, 35))
+
+    def test_seuil_nul_leve_la_porte(self):
+        self.assertFalse(q.suspect_melange(
+            {"melange_part": 90.0, "melange_heterozygotes": 50}, 0))
+
+    def test_les_constantes_sont_figees(self):
+        # Les changer change un refus : la modification doit etre explicite.
+        self.assertAlmostEqual(q.MELANGE_PART, 0.30)
+        self.assertEqual(q.MELANGE_LECTURES, 10)
+        self.assertEqual(q.MELANGE_HETEROZYGOTES_MIN, 20)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

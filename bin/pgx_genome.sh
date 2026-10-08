@@ -19,12 +19,14 @@
 #   --profondeur N     seuil de profondeur par position       (defaut 10)
 #   --couverture-min N couverture mediane minimale du perimetre (defaut 18,
 #                      0 pour accepter un genome hors du domaine valide)
+#   --melange-max N    part d'heterozygotes desequilibres au-dela de laquelle
+#                      l'echantillon est tenu pour melange     (defaut 35, 0 leve)
 #   --fils N           fils pour samtools et Cyrius           (defaut 4)
 #   --reprise          reutilise les intermediaires si les entrees sont identiques
 #   --forcer           ecrit dans un dossier non vide sans reprise
 #
 # Variables : PGX_FASTA PGX_CYRIUS PGX_GQ PGX_PROFONDEUR PGX_COUVERTURE_MIN
-#             PGX_FILS
+#             PGX_MELANGE_MAX PGX_FILS
 #             PGX_IMG_BCFTOOLS PGX_IMG_PHARMCAT PGX_IMG_OPTITYPE PGX_PYPGX
 
 set -uo pipefail
@@ -41,6 +43,12 @@ PROF="${PGX_PROFONDEUR:-10}"
 # le seuil n'extrapole pas sous lui. Les neuf executions refusees par la mesure
 # plafonnent a treize, la marge est donc de cinq fois.
 COUV_MIN="${PGX_COUVERTURE_MIN:-18}"
+# Part d'heterozygotes desequilibres au-dela de laquelle l'echantillon n'en est
+# pas un seul. Trente-cinq laisse passer les deux cent vingt-neuf echantillons
+# purs mesures, dont le plus haut est a 31,9, et arrete un melange a trente pour
+# cent, mesure a 41,5. Il ne voit pas un melange a vingt pour cent : voir
+# doc/VALIDATION.md.
+MELANGE_MAX="${PGX_MELANGE_MAX:-35}"
 IGNORER_FILTRE="${PGX_IGNORER_FILTRE:+--ignorer-filtre}"
 FILS="${PGX_FILS:-4}"
 # Complement RNPGx (classes 1 et 2 hors definitions PharmCAT) : present, il est
@@ -69,12 +77,13 @@ while [ $# -gt 0 ]; do
     --gq) GQ="$2"; shift 2;;
     --profondeur) PROF="$2"; shift 2;;
     --couverture-min) COUV_MIN="$2"; shift 2;;
+    --melange-max) MELANGE_MAX="$2"; shift 2;;
     --fils) FILS="$2"; shift 2;;
     --identite) IDENTITE="$2"; shift 2;;
     --reprise) REPRISE=1; shift;;
     --forcer) FORCER=1; shift;;
     --ignorer-filtre) IGNORER_FILTRE="--ignorer-filtre"; shift;;
-    -h|--help) sed -n '2,29p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0;;
+    -h|--help) sed -n '2,31p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0;;
     --version) cat "$RACINE/VERSION" 2>/dev/null || echo inconnue; exit 0;;
     *) echo "option inconnue : $1" >&2; exit 2;;
   esac
@@ -88,6 +97,9 @@ done
 # Un seuil non numerique serait lu zero par awk : la porte tomberait sans bruit.
 case "$COUV_MIN" in
   ''|*[!0-9]*) echo "couverture minimale invalide : $COUV_MIN" >&2; exit 2;;
+esac
+case "$MELANGE_MAX" in
+  ''|*[!0-9.]*) echo "part de melange invalide : $MELANGE_MAX" >&2; exit 2;;
 esac
 
 mkdir -p "$SORTIE"/{travail,sortie}
@@ -235,7 +247,7 @@ empreinte() {
 # millisecondes.
 EMPREINTE_RES=$(find "$RES" -type f -print0 2>/dev/null | sort -z \
   | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -c1-16)
-SIGNATURE="$(empreinte "$CRAM")|$(empreinte "$VCF")|$(empreinte "$FASTA")|gq=$GQ|prof=$PROF|couv=$COUV_MIN|filtre=${IGNORER_FILTRE:-respecte}|res=$EMPREINTE_RES"
+SIGNATURE="$(empreinte "$CRAM")|$(empreinte "$VCF")|$(empreinte "$FASTA")|gq=$GQ|prof=$PROF|couv=$COUV_MIN|mel=$MELANGE_MAX|filtre=${IGNORER_FILTRE:-respecte}|res=$EMPREINTE_RES"
 SIG_FICHIER="$T/signature.txt"
 if [ -s "$SIG_FICHIER" ]; then
   if [ "$(cat "$SIG_FICHIER")" = "$SIGNATURE" ] && [ "$REPRISE" = 1 ]; then
@@ -399,6 +411,7 @@ elif python3 "$RACINE/bin/qc_perimetre.py" --vcf "$FIL" --profondeur "$DEPTH" \
        --positions "$RES/pharmcat_positions.vcf" --sortie "$T" \
        ${COMPLEMENT:+--positions-complement "$COMPLEMENT"} \
        --gq "$GQ" --profondeur-min "$PROF" --couverture-min "$COUV_MIN" \
+       --melange-max "$MELANGE_MAX" \
        --echantillon "$ECH" \
        --perimetre-clinique "$RES/perimetre_rnpgx.json" $IGNORER_FILTRE >>"$JOURNAL" 2>&1 \
      && conteneur "$D_SORTIE" "$IMG_BCF" bgzip -f "$T/qualifie.vcf" >>"$JOURNAL" 2>&1 \
@@ -407,36 +420,47 @@ elif python3 "$RACINE/bin/qc_perimetre.py" --vcf "$FIL" --profondeur "$DEPTH" \
   dire "2b. controle qualite : $(echo $ret | awk '{print $1" positions retenues sur "$2", "$3" genes complets sur "$4", "$5" sans qualite"}')"
   etat qc OK $(( $(date +%s)-t0 )) "$ret"
   # Le verdict sur le domaine est rendu par l'etage lui-meme, ou il se teste.
-  VERDICT=$(python3 -c "import json,sys;sys.path.insert(0,r'$RACINE/bin');import qc_perimetre as q;d=json.load(open(r'$T/perimetre.json',encoding='utf-8'));c=q.couverture_retenue(d);print('' if c is None else c, 1 if d.get('couverture_hors_domaine') else 0)" 2>>"$JOURNAL")
-  COUV="${VERDICT% *}"
+  # Quatre champs, jamais vides : un champ absent decalerait les suivants.
+  VERDICT=$(python3 -c "import json,sys;sys.path.insert(0,r'$RACINE/bin');import qc_perimetre as q;d=json.load(open(r'$T/perimetre.json',encoding='utf-8'));c=q.couverture_retenue(d);m=d.get('melange_part');print('-' if c is None else c, 1 if d.get('couverture_hors_domaine') else 0, '-' if m is None else m, 1 if d.get('melange_suspect') else 0)" 2>>"$JOURNAL")
+  set -- $VERDICT
+  COUV="${1:--}"; MEL_PART="${3:--}"
+  [ "$COUV" = "-" ] && COUV=""
+  [ "$MEL_PART" = "-" ] && MEL_PART=""
   dire "    couverture mediane du perimetre : ${COUV:-inconnue}x"
-  if [ "${VERDICT##* }" = 1 ]; then
-    HORS_DOMAINE="couverture mediane ${COUV}x, domaine valide a partir de ${COUV_MIN}x"
-  fi
+  dire "    heterozygotes desequilibres : ${MEL_PART:-part non etablie}%"
+  [ "${2:-0}" = 1 ] && HORS_DOMAINE="couverture mediane ${COUV}x, domaine valide a partir de ${COUV_MIN}x"
+  [ "${4:-0}" = 1 ] && MELANGE="part d'heterozygotes desequilibres ${MEL_PART}%, au-dela de ${MELANGE_MAX}% : echantillon tenu pour melange"
+  true
 else
   dire "2b. controle qualite : ECHEC"
   etat qc ECHEC $(( $(date +%s)-t0 )) "qc_perimetre.py, bgzip ou index"
 fi
 
-# Sous le seuil, un allele variant est lu comme reference et l interpreteur
-# rend un diplotype faux, sans reserve : le phenotype change, et la conduite a
-# tenir avec lui. Le genome est donc refuse et non rendu avec un avertissement,
-# parce que rien dans le document ne distinguerait un appel sur une position lue
-# d'un appel sur une position supposee. --couverture-min 0 leve la porte.
-if [ -n "${HORS_DOMAINE:-}" ]; then
+# Deux motifs d'arret apres le controle qualite, et la meme raison de ne pas se
+# contenter d'un avertissement : rien dans le compte rendu ne distinguerait un
+# appel fonde sur une position lue d'un appel fonde sur une position supposee,
+# ni un heterozygote vrai d'un faux heterozygote venu d'un second individu.
+#
+# Sous le seuil de couverture, un allele variant est lu comme reference et
+# l'interpreteur rend un diplotype faux sans reserve. Au-dela de la part
+# d'heterozygotes desequilibres, l'echantillon n'en est pas un seul.
+# --couverture-min 0 et --melange-max 0 levent chacun sa porte.
+MOTIF="${HORS_DOMAINE:-}${HORS_DOMAINE:+${MELANGE:+ ; }}${MELANGE:-}"
+if [ -n "$MOTIF" ]; then
   # On garde la mesure, qui est le motif du refus, et on purge ce qui pourrait
   # etre pris pour un resultat.
   rm -rf "$SORTIE/sortie"; mkdir -p "$SORTIE/sortie"
+  m=$([ -n "${HORS_DOMAINE:-}" ] && echo "couverture hors domaine" || echo "echantillon tenu pour melange")
   for e in cyp2d6 hla appels pharmcat rendu; do
-    etat "$e" ECHEC 0 "couverture hors domaine"
+    etat "$e" ECHEC 0 "$m"
   done
-  [ -n "$CAT_PYPGX" ] && etat pypgx ECHEC 0 "couverture hors domaine" \
+  [ -n "$CAT_PYPGX" ] && etat pypgx ECHEC 0 "$m" \
     || etat pypgx IGNORE 0 "PGX_PYPGX non defini"
-  dire "arret : $HORS_DOMAINE"
+  dire "arret : $MOTIF"
   python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
     --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
     --gq "$GQ" --profondeur "$PROF" --couverture-min "$COUV_MIN" \
-    --couverture "$COUV" \
+    --couverture "$COUV" --melange-max "$MELANGE_MAX" --melange "${MEL_PART:-}" \
     --images "$IMG_BCF,$IMG_PHARMCAT,$IMG_OPTITYPE" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
     --filtre "$([ -n "$IGNORER_FILTRE" ] && echo ignore || echo respecte)" \
     --perimetre-clinique "$RES/perimetre_rnpgx.json" >>"$JOURNAL" 2>&1
@@ -663,7 +687,7 @@ fi
 python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
   --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
   --gq "$GQ" --profondeur "$PROF" --couverture-min "$COUV_MIN" \
-  --couverture "${COUV:-}" \
+  --couverture "${COUV:-}" --melange-max "$MELANGE_MAX" --melange "${MEL_PART:-}" \
   --images "$IMG_BCF,$IMG_PHARMCAT,$IMG_OPTITYPE" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
   --filtre "$([ -n "$IGNORER_FILTRE" ] && echo ignore || echo respecte)" \
   --perimetre-clinique "$RES/perimetre_rnpgx.json" >>"$JOURNAL" 2>&1
