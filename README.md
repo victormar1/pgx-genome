@@ -126,6 +126,13 @@ aucun compte rendu — et la couverture mesurée figure sur le document.
 
 <p align="center"><img src="doc/figures/domaine_couverture.svg" alt="Domaine de validité en couverture : aucun faux appel jusqu'à 18 fois, neuf faux appels à 11 fois, porte de refus à 18 fois" width="720"></p>
 
+**Indépendance à l'appeleur de variants.** Les mêmes alignements rappelés par
+bcftools et comparés à l'appeleur de la plateforme sur **243 génomes et 103 683
+positions** : 99,924 % de concordance, et **aucun écart sur un gène rendu depuis
+le fichier de variants** — les écarts sont confinés aux régions paralogues, déjà
+traitées à part. Le seuil de qualité prend la même décision partout sauf sur
+0,7 % des positions, et aucune de celles-là n'atteint le compte rendu.
+
 **Contre-vérification indépendante (PyPGx).** Les gènes à allèles étoile que PyPGx
 sait typer ont été appelés en parallèle par PyPGx sur les **244 génomes**, sur les
 mêmes entrées (avec le nombre de copies pour CYP2D6, calibré sur le gène de contrôle
