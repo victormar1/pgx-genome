@@ -398,8 +398,32 @@ l'est par un cas construit (`outils/cas_construit.py`), qui valide la chaîne
 logicielle et non la détection. **Un matériau de référence porteur reste
 nécessaire.**
 
-**4.2 POR et ABCG2 sont rendus sans vérité.** Aucun matériau de référence
-disponible sur ce banc.
+**4.2 POR et ABCG2 sont rendus sans vérité.** Aucun matériau de référence du
+banc ne les porte : GeT-RM couvre 41 gènes, et ni l'un ni l'autre. Ce qui est
+mesurable à défaut de vérité :
+
+| | ABCG2 `rs2231142` | POR `rs1057868` |
+|---|---|---|
+| Position lue | **243 / 243** | **243 / 243** |
+| Profondeur médiane | 33 × | 53 × |
+| GQ médian | 96 | 127 |
+| Deux appeleurs indépendants | **243 / 243 concordants** | hors du fichier de variants |
+| Hétérozygotes, part de l'allèle mineur | 45, médiane 0,448, minimum 0,312 | — |
+| Génotypes observés | 78 % / 19 % / 3 % | 47 % / 46 % / 7 % |
+
+ABCG2 est appelé depuis le fichier de variants, et les deux appeleurs s'accordent
+sur les 243 génomes ; ses hétérozygotes sont équilibrés, ce qui exclut la perte
+d'un allèle. POR vient du typage complémentaire, dont la concordance position par
+position est établie en 3.3 ; sa position de classe 2 est mesurée, jamais
+interprétée.
+
+**Ce que cela ne prouve pas.** Deux appeleurs qui s'accordent peuvent se tromper
+ensemble, et une lecture équilibrée à bonne profondeur n'établit pas le bon
+allèle. Ces mesures excluent les modes de défaillance connus — perte d'allèle,
+position non lue, qualité insuffisante — elles ne remplacent pas un matériau de
+référence. L'écart à l'équilibre de Hardy-Weinberg n'est pas utilisable ici : la
+cohorte mêle des populations où la fréquence de `rs2231142` varie fortement, et
+la structure de population suffit à l'expliquer.
 
 **4.3 Le seuil GQ ≥ 20 est mesuré sur deux appeleurs, pas sur tous.** Le GQ n'a
 pas la même échelle d'un appeleur à l'autre : plafond 99 pour GATK, 127 pour
