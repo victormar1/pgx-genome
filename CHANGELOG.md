@@ -31,6 +31,13 @@ rendus qui les emploient, avec une colonne de visa. Sur le banc, 51 sont rendues
 et **aucun texte rendu n'est laissé sans traduction** ; les 15 entrées
 inemployées sont listées à part, et leurs causes attendues nommées.
 
+**Ce qui tient lieu de vérité pour ABCG2 et POR.** Faute de matériau de
+référence, les deux positions sans vérité sont caractérisées : lues sur 243
+génomes sur 243, à 33 × et 53 × de profondeur médiane, et pour ABCG2 — seul des
+deux appelé depuis le fichier de variants — **243 génotypes sur 243 concordants
+entre deux appeleurs indépendants**, avec des hétérozygotes équilibrés. Le
+dossier dit aussi ce que ces mesures ne prouvent pas.
+
 **Vérification.** 219 cas de test ; l'indicateur de mélange audité par
 mutation, 8 défauts réintroduits, aucun survivant.
 
