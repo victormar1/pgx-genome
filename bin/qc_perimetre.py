@@ -88,6 +88,57 @@ def mediane(valeurs):
     return int(moy) if moy == int(moy) else moy
 
 
+# Un melange de deux individus fabrique de faux heterozygotes a faible part.
+# Sous cette part, un heterozygote appele est dit desequilibre ; en dessous de
+# cette profondeur, la part n'a pas de sens ; et sous ce nombre
+# d'heterozygotes, une proportion ne s'etablit pas.
+MELANGE_PART = 0.30
+MELANGE_LECTURES = 10
+MELANGE_HETEROZYGOTES_MIN = 20
+
+
+def indicateur_melange(lignes):
+    """Part des heterozygotes appeles dont l'allele mineur est trop peu soutenu.
+
+    La mesure porte sur tout le fichier de variants filtre et non sur les seules
+    positions du panel : une vingtaine d'heterozygotes ne suffit pas a etablir
+    une proportion, et les regions en portent une cinquantaine.
+    """
+    het = desq = 0
+    for groupe in lignes.values():
+        for champs in groupe:
+            gt, _, _ = genotype(champs)
+            ad = lectures_alleliques(champs)
+            if not ad or sum(ad) < MELANGE_LECTURES:
+                continue
+            # part_minimale exige deux alleles appeles distincts : elle
+            # ecarte d'elle-meme un homozygote et un genotype incomplet.
+            part = part_minimale(gt, ad)
+            if part is None:
+                continue
+            het += 1
+            if part < MELANGE_PART:
+                desq += 1
+    return het, desq
+
+
+def suspect_melange(meta, maximum):
+    """Au-dela du maximum, l'echantillon n'en est pas un seul.
+
+    Une proportion etablie sur trop peu d'heterozygotes ne vaut rien : elle ne
+    declenche alors aucun soupcon, et l'absence de mesure est dite comme telle
+    plutot que prise pour un resultat.
+    """
+    p = meta.get("melange_part")
+    n = meta.get("melange_heterozygotes") or 0
+    # Un maximum nul leve la porte, et il faut l'ecrire : contrairement a un
+    # seuil plancher, qu'une comparaison a zero neutralise d'elle-meme, « au-dela
+    # de zero pour cent » serait vrai de presque tout echantillon.
+    if not maximum or p is None or n < MELANGE_HETEROZYGOTES_MIN:
+        return False
+    return p > maximum
+
+
 def couverture_retenue(meta):
     """Le perimetre clinique porte la decision quand il est connu : c'est sur lui
     que le domaine de validite a ete mesure, et non sur les genes rendus sans
@@ -202,6 +253,9 @@ def main():
     p.add_argument("--profondeur-min", type=int, default=10, dest="prof_min")
     p.add_argument("--couverture-min", type=int, default=0, dest="couv_min",
                    help="couverture mediane en deca de laquelle le genome sort du domaine")
+    p.add_argument("--melange-max", type=float, default=0.0, dest="melange_max",
+                   help="part d'heterozygotes desequilibres au-dela de laquelle "
+                        "l'echantillon est tenu pour melange")
     p.add_argument("--echantillon", default="")
     p.add_argument("--ignorer-filtre", action="store_true", dest="ignorer_filtre",
                    help="accepte les sites que l appelant a rejetes")
@@ -391,6 +445,12 @@ def main():
             "classe_2": sum(1 for x in complement_qc if x["classe"] == 2),
         } if complement_qc else None,
     }
+    het, desq = indicateur_melange(lignes)
+    meta["melange_heterozygotes"] = het
+    meta["melange_desequilibrees"] = desq
+    meta["melange_part"] = round(100.0 * desq / het, 1) if het else None
+    meta["melange_part_max"] = a.melange_max
+    meta["melange_suspect"] = suspect_melange(meta, a.melange_max)
     meta["couverture_mediane_retenue"] = couverture_retenue(meta)
     meta["couverture_mediane_min"] = a.couv_min
     meta["couverture_hors_domaine"] = hors_domaine(meta, a.couv_min)

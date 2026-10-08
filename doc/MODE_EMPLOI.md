@@ -325,12 +325,13 @@ pgx_genome.sh \
 | `--gq` | 20 | seuil de qualité de génotype |
 | `--profondeur` | 10 | seuil de profondeur par position |
 | `--couverture-min` | 18 | couverture médiane du périmètre sous laquelle le génome est refusé ; `0` lève la porte |
+| `--melange-max` | 35 | part d'hétérozygotes déséquilibrés au-delà de laquelle l'échantillon est tenu pour mélangé ; `0` lève la porte |
 | `--fils` | 4 | fils pour samtools et l'étage CYP2D6 |
 | `--reprise` | absente | réutilise les intermédiaires si les entrées sont identiques |
 | `--forcer` | absente | écrit dans un dossier non vide sans purger |
 
 Variables équivalentes : `PGX_GQ`, `PGX_PROFONDEUR`, `PGX_COUVERTURE_MIN`,
-`PGX_FILS`, et
+`PGX_MELANGE_MAX`, `PGX_FILS`, et
 `PGX_IMG_BCFTOOLS`, `PGX_IMG_PHARMCAT`, `PGX_IMG_OPTITYPE` pour les conteneurs.
 
 ## 8. Traitement d'un lot
@@ -357,6 +358,18 @@ rend alors un diplotype faux sans réserve — jusqu'à doubler une dose de
 tacrolimus. Le domaine a été mesuré sur 36 exécutions ; voir `doc/VALIDATION.md`
 § 3.4. Pour traiter sciemment un génome hors domaine, `--couverture-min 0`, et
 la couverture mesurée reste inscrite sur le compte rendu.
+
+## 8 ter. Un échantillon mélangé est refusé
+
+Le contrôle qualité mesure la part des hétérozygotes appelés dont l'allèle
+mineur est soutenu par moins de 30 % des lectures. Au-delà de `--melange-max`,
+le module s'arrête comme pour la couverture : code de sortie 2, aucun compte
+rendu, motif dans le journal et la trace.
+
+**Cette porte arrête un mélange grossier et ne détecte pas un mélange de 20 %**,
+qui modifie pourtant le document rendu — l'information n'existe pas sur les
+positions que le module lit. Un contrôle de contamination sur le génome entier
+reste nécessaire en amont ; voir `doc/VALIDATION.md` § 3.8 et la limite 4.7.
 
 ## 9. Choisir les seuils
 

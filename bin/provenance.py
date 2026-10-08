@@ -94,6 +94,9 @@ def main():
     p.add_argument("--couverture-min", type=int, default=0, dest="couv_min")
     p.add_argument("--couverture", default="",
                    help="couverture mediane mesuree sur le perimetre")
+    p.add_argument("--melange-max", type=float, default=0.0, dest="melange_max")
+    p.add_argument("--melange", default="",
+                   help="part d'heterozygotes desequilibres mesuree")
     p.add_argument("--images", default="")
     p.add_argument("--cyrius", default="")
     p.add_argument("--pypgx", default="")
@@ -153,8 +156,10 @@ def main():
         "pypgx": version_pypgx(a.pypgx),
         "seuils": {"GQ": a.gq, "profondeur": a.profondeur,
                    "equilibre_allelique_min": a.equilibre, "filtre_appelant": a.filtre,
-                   "couverture_mediane_min": a.couv_min},
+                   "couverture_mediane_min": a.couv_min,
+                   "melange_part_max": a.melange_max},
         "couverture_mediane_perimetre": a.couverture,
+        "melange_part": a.melange,
         "perimetre_clinique": a.perimetre_clinique,
         "etages": etats,
         "ordre_des_etages": ordre,
