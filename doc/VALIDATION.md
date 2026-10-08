@@ -419,7 +419,13 @@ cela se vérifie plutôt que de se supposer.
 sans conséquence de prescription, le premier champ restant résolu.
 
 **4.5 Les traductions des recommandations CPIC n'ont pas de validation
-pharmacologique.**
+pharmacologique.** La table en compte 66, dont **51 sont effectivement rendues**
+sur le banc ; aucun texte rendu n'est laissé sans traduction.
+`outils/fiche_traductions.py` produit la fiche de relecture — texte d'origine,
+traduction, médicament, gène, nombre de comptes rendus concernés, et une colonne
+de visa — classée par usage, pour que la relecture commence par ce qui sert. Les
+15 entrées qu'aucun compte rendu n'emploie y figurent à part : l'avertissement
+sur les aminosides en tête, faute de porteur de MT-RNR1 (limite 4.1).
 
 **4.7 Un mélange d'échantillons de 20 % n'est pas détecté par le module.** Il
 modifie le document rendu (§ 3.8). Sur les positions que le module lit,
@@ -463,8 +469,9 @@ l'identique, tables cliniques comprises.
 
 | Outil | Rôle |
 |---|---|
-| `tests/` | 207 cas, audités par mutation |
+| `tests/` | 219 cas, audités par mutation |
 | `outils/verifier_depot.py` | intégrité des figures, cohérence du périmètre, reproductibilité des ressources générées |
 | `outils/cas_construit.py` | exercice d'un allèle absent de la cohorte |
+| `outils/fiche_traductions.py` | fiche de relecture des traductions, classée par usage, avec les entrées inemployées à part |
 | `outils/comparer_rapports.py` | compare deux exécutions — diplotype, phénotype, recommandations — et rend un code de sortie non nul au premier écart |
 | `provenance.json` | empreintes des entrées, des images, des ressources, et seuils employés |
