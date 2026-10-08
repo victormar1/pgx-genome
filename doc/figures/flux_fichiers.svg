@@ -95,7 +95,7 @@
 
     <rect x="8" y="192" width="334" height="34" rx="5" fill="#fff" stroke="#17332B"/>
     <text x="175" y="206" text-anchor="middle" font-weight="700"><tspan fill="#1B9E77">2b · </tspan>Contrôle qualité des positions</text>
-    <text x="175" y="219" text-anchor="middle" font-size="8.5" fill="#5F726B">profondeur sur la tranche · GT seul · ./. si hors seuil</text>
+    <text x="175" y="219" text-anchor="middle" font-size="8.5" fill="#5F726B">profondeur · GT seul · ./. hors seuil · <tspan font-weight="700" fill="#B4661F">refus sous 18 × ou si melange</tspan></text>
 
     <rect x="352" y="192" width="162" height="34" rx="5" fill="#fff" stroke="#17332B"/>
     <text x="433" y="206" text-anchor="middle" font-weight="700"><tspan fill="#1B9E77">4 · </tspan>HLA — OptiType</text>
