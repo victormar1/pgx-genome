@@ -100,6 +100,42 @@ INTERDITS = [
 ]
 
 
+def controle_comptes():
+    """Les chiffres que la documentation annonce sur elle-meme.
+
+    Un compte de cas de test ou de scripts vieillit a chaque ajout, et nul ne le
+    relit. Celui des genes est deja verifie ; ces deux-la le sont ici, dans les
+    documents qui les citent.
+    """
+    print("\nComptes annonces par la documentation")
+    cas = 0
+    for nom in sorted(os.listdir(os.path.join(RACINE, "tests"))):
+        if nom.startswith("test_") and nom.endswith(".py"):
+            texte = io.open(os.path.join(RACINE, "tests", nom),
+                            encoding="utf-8").read()
+            cas += len(re.findall(r"^\s+def test_", texte, re.M))
+    scripts = len([x for x in os.listdir(os.path.join(RACINE, "bin"))
+                   if not x.startswith("__")])
+    for nom, valeur, motif in (("cas de test", cas, r"(\d+)\s+cas"),
+                               ("scripts du pipeline", scripts,
+                                r"les\s+(\w+)\s+scripts du pipeline")):
+        mauvais = []
+        for rel in ("README.md", "doc/VALIDATION.md", "CONTRIBUTING.md"):
+            chemin = os.path.join(RACINE, rel)
+            if not os.path.exists(chemin):
+                continue
+            texte = io.open(chemin, encoding="utf-8").read()
+            for m in re.finditer(motif, texte):
+                lu = m.group(1)
+                attendu = NOMBRES.get(valeur, "")
+                if lu.isdigit():
+                    if int(lu) != valeur:
+                        mauvais.append("%s dit %s" % (rel, lu))
+                elif attendu and lu.lower() != attendu:
+                    mauvais.append("%s dit %s" % (rel, lu))
+        dire(not mauvais, nom, "%d ; %s" % (valeur, ", ".join(mauvais) or "coherent"))
+
+
 def controle_motifs():
     print("\nMotifs interdits dans les fichiers suivis")
     trouves = []
@@ -290,6 +326,7 @@ def main():
     regenerer = "--regenerer" in sys.argv
     controle_svg()
     controle_perimetre()
+    controle_comptes()
     controle_motifs()
     controle_compilation()
     controle_coherence()
