@@ -24,6 +24,10 @@
 #   --fils N           fils pour samtools et Cyrius           (defaut 4)
 #   --reprise          reutilise les intermediaires si les entrees sont identiques
 #   --forcer           ecrit dans un dossier non vide sans reprise
+#   --etage LISTE      ne fait tourner que ces etages, separes par des virgules :
+#                      recevabilite filtre tranche qc cyp2d6 hla pypgx appels
+#                      pharmcat rendu provenance. La recevabilite ouvre le
+#                      dossier ; les autres le reprennent la ou il en est.
 #
 # Variables : PGX_FASTA PGX_CYRIUS PGX_GQ PGX_PROFONDEUR PGX_COUVERTURE_MIN
 #             PGX_MELANGE_MAX PGX_FILS
@@ -35,6 +39,7 @@ RACINE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RES="$RACINE/ressources"
 
 CRAM=""; VCF=""; SORTIE=""; ECH=""; REPRISE=0; FORCER=0; IDENTITE=""
+ETAGES=""; RECEVABLE=0
 FASTA="${PGX_FASTA:-}"
 GQ="${PGX_GQ:-20}"
 PROF="${PGX_PROFONDEUR:-10}"
@@ -83,11 +88,29 @@ while [ $# -gt 0 ]; do
     --reprise) REPRISE=1; shift;;
     --forcer) FORCER=1; shift;;
     --ignorer-filtre) IGNORER_FILTRE="--ignorer-filtre"; shift;;
-    -h|--help) sed -n '2,31p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0;;
+    --etage) ETAGES="${ETAGES:+$ETAGES,}$2"; shift 2;;
+    -h|--help) sed -n '2,35p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0;;
     --version) cat "$RACINE/VERSION" 2>/dev/null || echo inconnue; exit 0;;
     *) echo "option inconnue : $1" >&2; exit 2;;
   esac
 done
+
+# Un etage mal nomme ne doit pas devenir un etage saute en silence : la liste
+# se verifie avant tout le reste, et un nom inconnu est un refus.
+CONNUS="recevabilite filtre tranche qc cyp2d6 hla pypgx appels pharmcat rendu provenance"
+DECOUPE=0
+if [ -n "$ETAGES" ]; then
+  DECOUPE=1
+  for e in ${ETAGES//,/ }; do
+    case " $CONNUS " in
+      *" $e "*) ;;
+      *) echo "etage inconnu : $e" >&2
+         echo "attendus : $CONNUS" >&2
+         exit 2;;
+    esac
+  done
+fi
+a_faire() { [ "$DECOUPE" = 0 ] || [[ ",$ETAGES," == *",$1,"* ]]; }
 
 [ -n "$CRAM" ] && [ -n "$VCF" ] && [ -n "$SORTIE" ] || {
   echo "usage : pgx_genome.sh --cram X.cram --vcf X.vcf.gz --sortie DOSSIER" >&2; exit 2; }
@@ -110,23 +133,80 @@ ETATS="$SORTIE/travail/etats.tsv"
 # Deux executions sur le meme dossier se detruisent mutuellement : elles purgent
 # le dossier de travail l'une sous l'autre et melangent leurs lignes d'etat. Le
 # verrou est pris par mkdir, qui est atomique.
-VERROU="$SORTIE/.verrou"
-if ! mkdir "$VERROU" 2>/dev/null; then
-  autre=$(cat "$VERROU/pid" 2>/dev/null)
-  if [ -n "$autre" ] && kill -0 "$autre" 2>/dev/null; then
-    echo "une autre execution travaille deja dans $SORTIE (processus $autre)" >&2
-    exit 3
+#
+# Une execution complete tient le verrou du dossier ; un etage lance seul tient
+# le sien. Deux instances d'un meme etage s'excluent, des etages differents
+# peuvent tourner ensemble, et rien ne tourne pendant que la recevabilite ou une
+# execution complete purge le dossier de travail.
+VERROUS=()
+vivant() {   # $1 dossier de verrou : tenu par un autre processus vivant ?
+  local autre
+  [ -d "$1" ] || return 1
+  autre=$(cat "$1/pid" 2>/dev/null)
+  [ -n "$autre" ] && [ "$autre" != "$$" ] && kill -0 "$autre" 2>/dev/null
+}
+prendre() {  # $1 dossier de verrou
+  if ! mkdir "$1" 2>/dev/null; then
+    vivant "$1" && return 1
+    # le detenteur precedent est mort : on reprend le verrou
+    rm -rf "$1" && mkdir "$1" 2>/dev/null || return 1
   fi
-  # le detenteur precedent est mort : on reprend le verrou
-  rm -rf "$VERROU" && mkdir "$VERROU" 2>/dev/null || { echo "verrou illisible" >&2; exit 3; }
-fi
-echo "$$" > "$VERROU/pid"
-date -Iseconds > "$VERROU/depuis"
-nettoyer() { rm -rf "$VERROU"; }
+  echo "$$" > "$1/pid"
+  date -Iseconds > "$1/depuis"
+  VERROUS+=("$1")
+}
+nettoyer() { local v; for v in "${VERROUS[@]}"; do rm -rf "$v"; done; }
 trap nettoyer EXIT INT TERM
+refus_verrou() {  # $1 message
+  echo "$1" >&2
+  exit 3
+}
+if [ "$DECOUPE" = 0 ]; then
+  prendre "$SORTIE/.verrou" || refus_verrou \
+    "une autre execution travaille deja dans $SORTIE (processus $(cat "$SORTIE/.verrou/pid" 2>/dev/null))"
+  for v in "$SORTIE"/.verrou.*; do
+    vivant "$v" && refus_verrou "l'etage ${v##*.verrou.} travaille deja dans $SORTIE"
+  done
+else
+  vivant "$SORTIE/.verrou" && refus_verrou \
+    "une execution complete travaille deja dans $SORTIE (processus $(cat "$SORTIE/.verrou/pid" 2>/dev/null))"
+  for e in ${ETAGES//,/ }; do
+    prendre "$SORTIE/.verrou.$e" || refus_verrou "l'etage $e travaille deja dans $SORTIE"
+  done
+  # Verrous pris d'abord, autres verifies ensuite : deux processus qui se
+  # croisent se voient l'un l'autre et refusent tous deux, sans rien abimer.
+  if a_faire recevabilite; then
+    for v in "$SORTIE"/.verrou.*; do
+      vivant "$v" && refus_verrou \
+        "l'etage ${v##*.verrou.} travaille dans $SORTIE : la recevabilite purgerait son travail"
+    done
+  else
+    vivant "$SORTIE/.verrou.recevabilite" && refus_verrou \
+      "la recevabilite est en cours dans $SORTIE"
+  fi
+fi
 
-dire() { printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*" | tee -a "$JOURNAL"; }
-etat() { printf '%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" >> "$ETATS"; }
+# Des etages lances en parallele ecrivent dans la meme table d'etats. Un ajout
+# n'est pas atomique sur un systeme de fichiers en reseau : deux lignes peuvent
+# s'y entrelacer, et la trace lirait un etat qui n'existe pas. L'ajout passe
+# donc par un verrou mkdir, atomique partout.
+inscrire() {  # $1 fichier  $2 ligne
+  local v="$1.ecriture" i=0 tenu=0
+  while [ $i -lt 200 ]; do
+    mkdir "$v" 2>/dev/null && { tenu=1; break; }
+    i=$((i+1)); sleep 0.05
+  done
+  printf '%s\n' "$2" >> "$1"
+  [ "$tenu" = 1 ] && rmdir "$v" 2>/dev/null
+  return 0
+}
+dire() {
+  local l
+  l=$(printf '[%s] %s' "$(date +%H:%M:%S)" "$*")
+  printf '%s\n' "$l"
+  inscrire "$JOURNAL" "$l"
+}
+etat() { inscrire "$ETATS" "$(printf '%s\t%s\t%s\t%s' "$1" "$2" "$3" "$4")"; }
 
 D_CRAM="$(cd "$(dirname "$CRAM")" && pwd)"
 D_VCF="$(cd "$(dirname "$VCF")" && pwd)"
@@ -184,6 +264,21 @@ fi
 
 T="$SORTIE/travail"
 
+# Les chemins que les etages se transmettent sont fixes, et poses ici : un etage
+# lance seul doit les connaitre sans que l'etage qui les produit ait tourne dans
+# le meme processus.
+FIL="$T/filtre.vcf.gz"
+TRANCHE="$T/tranche.bam"
+BEDT="$T/tranche.bed"
+DEPTH="$T/profondeur.txt"
+QUAL="$T/qualifie.vcf.gz"
+D6="$T/cyp2d6.tsv"
+PGV="$T/pypgx_entree.vcf.gz"
+PO="$T/appels_externes.tsv"
+PRE="$T/$(basename "$QUAL" .gz).preprocessed.vcf.bgz"
+RAP="$SORTIE/sortie/$ECH.report.json"
+ARRET="$T/arret.txt"
+
 # Un alignement sur un autre assemblage rend des resultats aux mauvaises
 # coordonnees sans lever d'erreur : les regions visees n'y existent pas, la
 # tranche revient vide, et tout ce qui suit conclut a l'absence de couverture.
@@ -220,6 +315,22 @@ ecarts_assemblage() {
       }
     }' "$entete" ${fai:+"$fai"} "$RES/pharmcat_positions.bed" 2>/dev/null
 }
+# Le verdict de l'etage de controle se relit dans perimetre.json : un etage
+# lance seul n'a pas en memoire ce que l'etage 2b a mesure. Quatre champs,
+# jamais vides : un champ absent decalerait les suivants.
+lire_verdict() {
+  local v
+  HORS_DOMAINE=""; MELANGE=""; COUV=""; MEL_PART=""
+  [ -s "$T/perimetre.json" ] || return 0
+  v=$(python3 -c "import json,sys;sys.path.insert(0,r'$RACINE/bin');import qc_perimetre as q;d=json.load(open(r'$T/perimetre.json',encoding='utf-8'));c=q.couverture_retenue(d);m=d.get('melange_part');print('-' if c is None else c, 1 if d.get('couverture_hors_domaine') else 0, '-' if m is None else m, 1 if d.get('melange_suspect') else 0)" 2>>"$JOURNAL")
+  set -- $v
+  COUV="${1:--}"; MEL_PART="${3:--}"
+  [ "$COUV" = "-" ] && COUV=""
+  [ "$MEL_PART" = "-" ] && MEL_PART=""
+  [ "${2:-0}" = 1 ] && HORS_DOMAINE="couverture mediane ${COUV}x, domaine valide a partir de ${COUV_MIN}x"
+  [ "${4:-0}" = 1 ] && MELANGE="part d'heterozygotes desequilibres ${MEL_PART}%, au-dela de ${MELANGE_MAX}% : echantillon tenu pour melange"
+  return 0
+}
 REGION_TEST=$(awk 'NR==1{printf "%s:%d-%d", $1, $2+1, $3}' "$RES/pharmcat_positions.bed")
 
 # --------------------------------------------------------------- 0. recevabilite
@@ -249,23 +360,52 @@ EMPREINTE_RES=$(find "$RES" -type f -print0 2>/dev/null | sort -z \
   | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -c1-16)
 SIGNATURE="$(empreinte "$CRAM")|$(empreinte "$VCF")|$(empreinte "$FASTA")|gq=$GQ|prof=$PROF|couv=$COUV_MIN|mel=$MELANGE_MAX|filtre=${IGNORER_FILTRE:-respecte}|res=$EMPREINTE_RES"
 SIG_FICHIER="$T/signature.txt"
-if [ -s "$SIG_FICHIER" ]; then
-  if [ "$(cat "$SIG_FICHIER")" = "$SIGNATURE" ] && [ "$REPRISE" = 1 ]; then
-    : # meme entree, reprise demandee : on garde les intermediaires
-  else
+# La recevabilite ouvre le dossier : elle seule le purge et remet la trace a
+# zero. Un etage lance seul le reprend la ou il en est, a condition qu'il porte
+# la recevabilite de ces memes entrees : sinon il travaillerait sur les
+# intermediaires d'un autre echantillon sans que rien ne le signale.
+if a_faire recevabilite; then
+  if [ -s "$SIG_FICHIER" ]; then
+    if [ "$(cat "$SIG_FICHIER")" = "$SIGNATURE" ] && [ "$REPRISE" = 1 ]; then
+      : # meme entree, reprise demandee : on garde les intermediaires
+    else
+      rm -rf "$T"; mkdir -p "$T"
+    fi
+  elif [ -n "$(ls -A "$T" 2>/dev/null)" ] && [ "$FORCER" = 0 ]; then
     rm -rf "$T"; mkdir -p "$T"
   fi
-elif [ -n "$(ls -A "$T" 2>/dev/null)" ] && [ "$FORCER" = 0 ]; then
-  rm -rf "$T"; mkdir -p "$T"
+  rm -f "$ARRET"
+  printf '%s' "$SIGNATURE" > "$SIG_FICHIER"
+  : > "$JOURNAL"
+  printf 'etage\tetat\tsecondes\tdetail\n' > "$ETATS"
+
+  dire "echantillon $ECH"
+  dire "alignement  $CRAM"
+  dire "variants    $VCF"
+else
+  if [ ! -s "$SIG_FICHIER" ] || [ "$(cat "$SIG_FICHIER")" != "$SIGNATURE" ]; then
+    echo "le dossier $SORTIE ne porte pas la recevabilite de ces entrees :" >&2
+    echo "lancer d'abord --etage recevabilite avec les memes entrees et options" >&2
+    exit 2
+  fi
+  # Un refus, a l'entree ou apres le controle qualite, vaut pour tous les
+  # etages qui suivent : aucun ne doit produire de resultat pour un genome refuse.
+  if [ -s "$ARRET" ]; then
+    dire "etage(s) $ETAGES : arret, $(cat "$ARRET")"
+    exit 2
+  fi
+  if ! grep -q "^recevabilite	OK" "$ETATS" 2>/dev/null; then
+    echo "la recevabilite n'a pas abouti dans $SORTIE" >&2
+    exit 2
+  fi
+  RECEVABLE=1
+  dire "etage(s) $ETAGES"
 fi
-printf '%s' "$SIGNATURE" > "$SIG_FICHIER"
-: > "$JOURNAL"
-printf 'etage\tetat\tsecondes\tdetail\n' > "$ETATS"
+# Les lignes d'etat ecrites par cette execution, et elles seules, decident de
+# son code de retour quand elle ne fait tourner qu'une partie des etages.
+DEBUT_ETATS=$(wc -l < "$ETATS")
 
-dire "echantillon $ECH"
-dire "alignement  $CRAM"
-dire "variants    $VCF"
-
+if a_faire recevabilite; then
 t0=$(date +%s)
 NOMS_VCF=$(BCF query -l "$D_VCF/$(basename "$VCF")" 2>>"$JOURNAL")
 NB_VCF=$(printf '%s\n' "$NOMS_VCF" | grep -c . || true)
@@ -308,6 +448,7 @@ if [ "$RECEVABLE" != 1 ]; then
   find "$T" -mindepth 1 -maxdepth 1        ! -name "$(basename "$ETATS")" ! -name "$(basename "$SIG_FICHIER")"        -exec rm -rf {} + 2>/dev/null
   rm -rf "$SORTIE/sortie"; mkdir -p "$SORTIE/sortie"
   printf '%s' "$SIGNATURE" > "$SIG_FICHIER"
+  printf '%s' "entrees non recevables" > "$ARRET"
   for e in filtre tranche qc cyp2d6 hla appels pharmcat rendu; do
     etat "$e" ECHEC 0 "entrees non recevables"
   done
@@ -321,13 +462,14 @@ if [ "$RECEVABLE" != 1 ]; then
   dire "termine, reussite complete : False"
   exit 2
 fi
+fi
 
 # ------------------------------------------------------------------ 1. filtre
 # Les regions visees reunissent les definitions PharmCAT et le complement RNPGx
 # (classes 1 et 2 absentes de PharmCAT). Le complement est optionnel : absent, le
 # module se comporte exactement comme avant.
+if a_faire filtre; then
 t0=$(date +%s)
-FIL="$T/filtre.vcf.gz"
 BEDR="$T/regions.bed"
 cat "$RES/pharmcat_positions.bed" > "$BEDR"
 [ -s "$RES/rnpgx_complement.bed" ] && cat "$RES/rnpgx_complement.bed" >> "$BEDR"
@@ -341,14 +483,14 @@ if [ "$RECEVABLE" = 1 ] \
 else
   dire "1. filtre : ECHEC"; etat filtre ECHEC $(( $(date +%s)-t0 )) "bcftools view ou index"
 fi
+fi
 
 # --------------------------------------------------------- 2a. tranche unique
 # Une seule traversee de l'alignement sert au controle qualite et au typage HLA.
 # Le BED de tranche est construit ici : les contigs HLA alternatifs dependent de
 # la reference de la plateforme et ne peuvent pas etre figes dans les ressources.
+if a_faire tranche; then
 t0=$(date +%s)
-TRANCHE="$T/tranche.bam"
-BEDT="$T/tranche.bed"
 if [ ! -s "$TRANCHE" ] && [ "$RECEVABLE" = 1 ]; then
   cat "$RES/pharmcat_positions.bed" > "$BEDT"
   [ -s "$RES/rnpgx_complement.bed" ] && cat "$RES/rnpgx_complement.bed" >> "$BEDT"
@@ -386,11 +528,11 @@ if [ -s "$TRANCHE" ] && [ -s "$TRANCHE.bai" ]; then
 else
   dire "2a. tranche : ECHEC"; etat tranche ECHEC $(( $(date +%s)-t0 )) "samtools view, sort ou index"
 fi
+fi
 
 # ------------------------------------------------------- 2b. controle qualite
+if a_faire qc; then
 t0=$(date +%s)
-DEPTH="$T/profondeur.txt"
-QUAL="$T/qualifie.vcf.gz"
 PROFOK=0
 BEDP="$T/positions_mesurees.bed"
 cat "$RES/positions_exactes.bed" > "$BEDP"
@@ -420,16 +562,9 @@ elif python3 "$RACINE/bin/qc_perimetre.py" --vcf "$FIL" --profondeur "$DEPTH" \
   dire "2b. controle qualite : $(echo $ret | awk '{print $1" positions retenues sur "$2", "$3" genes complets sur "$4", "$5" sans qualite"}')"
   etat qc OK $(( $(date +%s)-t0 )) "$ret"
   # Le verdict sur le domaine est rendu par l'etage lui-meme, ou il se teste.
-  # Quatre champs, jamais vides : un champ absent decalerait les suivants.
-  VERDICT=$(python3 -c "import json,sys;sys.path.insert(0,r'$RACINE/bin');import qc_perimetre as q;d=json.load(open(r'$T/perimetre.json',encoding='utf-8'));c=q.couverture_retenue(d);m=d.get('melange_part');print('-' if c is None else c, 1 if d.get('couverture_hors_domaine') else 0, '-' if m is None else m, 1 if d.get('melange_suspect') else 0)" 2>>"$JOURNAL")
-  set -- $VERDICT
-  COUV="${1:--}"; MEL_PART="${3:--}"
-  [ "$COUV" = "-" ] && COUV=""
-  [ "$MEL_PART" = "-" ] && MEL_PART=""
+  lire_verdict
   dire "    couverture mediane du perimetre : ${COUV:-inconnue}x"
   dire "    heterozygotes desequilibres : ${MEL_PART:-part non etablie}%"
-  [ "${2:-0}" = 1 ] && HORS_DOMAINE="couverture mediane ${COUV}x, domaine valide a partir de ${COUV_MIN}x"
-  [ "${4:-0}" = 1 ] && MELANGE="part d'heterozygotes desequilibres ${MEL_PART}%, au-dela de ${MELANGE_MAX}% : echantillon tenu pour melange"
   true
 else
   dire "2b. controle qualite : ECHEC"
@@ -450,6 +585,7 @@ if [ -n "$MOTIF" ]; then
   # On garde la mesure, qui est le motif du refus, et on purge ce qui pourrait
   # etre pris pour un resultat.
   rm -rf "$SORTIE/sortie"; mkdir -p "$SORTIE/sortie"
+  printf '%s' "$MOTIF" > "$ARRET"
   m=$([ -n "${HORS_DOMAINE:-}" ] && echo "couverture hors domaine" || echo "echantillon tenu pour melange")
   for e in cyp2d6 hla appels pharmcat rendu; do
     etat "$e" ECHEC 0 "$m"
@@ -467,10 +603,11 @@ if [ -n "$MOTIF" ]; then
   dire "termine, reussite complete : False"
   exit 2
 fi
+fi
 
 # --------------------------------------------------------------- 3. CYP2D6
+if a_faire cyp2d6; then
 t0=$(date +%s)
-D6="$T/cyp2d6.tsv"
 if [ -z "$CYRIUS" ]; then
   dire "3. CYP2D6 : ECHEC, chemin Cyrius non fourni (PGX_CYRIUS)"
   etat cyp2d6 ECHEC 0 "PGX_CYRIUS non defini"
@@ -510,8 +647,10 @@ elif [ "$RECEVABLE" = 1 ]; then
 else
   dire "3. CYP2D6 : non lance, entrees non recevables"; etat cyp2d6 ECHEC 0 "entrees non recevables"
 fi
+fi
 
 # ------------------------------------------------------------------ 4. HLA
+if a_faire hla; then
 t0=$(date +%s)
 FQ1="$T/mhc_1.fq"; FQ2="$T/mhc_2.fq"
 # Le typage HLA coute a lui seul la moitie du temps d'un genome. Quand la
@@ -568,6 +707,7 @@ else
     dire "4. HLA : ECHEC (code $rc)"; etat hla ECHEC $(( $(date +%s)-t0 )) "OptiType code $rc"
   fi
 fi
+fi
 
 # --------------------------------------- 4b. typage complementaire (PyPGx)
 # Quatre genes du core panel RNPGx que l'interpreteur ne sait pas appeler. Le
@@ -576,8 +716,8 @@ fi
 # au VCF qualifie. Les contigs du fichier de variants sont releves ici : un
 # contig que l'appelant de la plateforme a ignore rendrait un « reference »
 # indistinguable d'une absence de lecture.
+if a_faire pypgx; then
 t0=$(date +%s)
-PGV="$T/pypgx_entree.vcf.gz"
 if [ -z "$CAT_PYPGX" ]; then
   dire "4b. typage complementaire : ignore (PGX_PYPGX non defini)"
   etat pypgx IGNORE 0 "PGX_PYPGX non defini"
@@ -609,10 +749,11 @@ else
   dire "4b. typage complementaire : ECHEC a l'extraction"
   etat pypgx ECHEC $(( $(date +%s)-t0 )) "bcftools view ou index"
 fi
+fi
 
 # ------------------------------------------------------- 5. appels externes
+if a_faire appels; then
 t0=$(date +%s)
-PO="$T/appels_externes.tsv"
 if python3 "$RACINE/bin/appels_externes.py" --travail "$T" --sortie "$PO" >>"$JOURNAL" 2>&1; then
   nlig=$(grep -c . "$PO" 2>/dev/null || echo 0)
   # coherence : un etage marque OK doit avoir depose sa ligne
@@ -632,13 +773,13 @@ if python3 "$RACINE/bin/appels_externes.py" --travail "$T" --sortie "$PO" >>"$JO
 else
   dire "5. appels externes : ECHEC"; etat appels ECHEC $(( $(date +%s)-t0 )) "appels_externes.py"
 fi
+fi
 
 # ------------------------------------------------------------ 6. PharmCAT
 # Aucun repli : sans le VCF qualifie, l'etage echoue. Se rabattre sur le VCF
 # filtre remettrait en service les genotypes ecartes sur leur qualite.
+if a_faire pharmcat; then
 t0=$(date +%s)
-PRE="$T/$(basename "$QUAL" .gz).preprocessed.vcf.bgz"
-RAP="$SORTIE/sortie/$ECH.report.json"
 rm -f "$PRE" "$RAP"
 if [ ! -s "$QUAL" ]; then
   dire "6. interpretation : ECHEC, VCF qualifie absent"
@@ -661,8 +802,10 @@ else
   dire "6. interpretation : ECHEC au pretraitement"
   etat pharmcat ECHEC $(( $(date +%s)-t0 )) "pretraitement, $PRE absent"
 fi
+fi
 
 # --------------------------------------------------------------- 7. rendu
+if a_faire rendu; then
 t0=$(date +%s)
 if [ -s "$RAP" ] && [ -s "$T/perimetre.json" ]; then
   # L'identite, si elle a ete fournie, passe par un chemin de fichier et non
@@ -682,8 +825,13 @@ else
   dire "7. compte rendu : ECHEC, rapport ou perimetre absent"
   etat rendu ECHEC 0 "rapport ou perimetre absent"
 fi
+fi
 
 # ------------------------------------------------------------- provenance
+if a_faire provenance; then
+# Lancee seule, la trace ne connait pas la couverture mesuree par l'etage 2b :
+# elle la relit.
+[ "$DECOUPE" = 1 ] && [ -z "${COUV:-}" ] && lire_verdict
 python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
   --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
   --gq "$GQ" --profondeur "$PROF" --couverture-min "$COUV_MIN" \
@@ -695,3 +843,18 @@ python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
 REUSSI=$(python3 -c "import json;print(json.load(open(r'$SORTIE/sortie/provenance.json',encoding='utf-8'))['reussite_complete'])" 2>/dev/null || echo False)
 dire "termine, reussite complete : $REUSSI"
 [ "$REUSSI" = "True" ] && exit 0 || exit 1
+fi
+
+# Sans la trace, le code de retour ne dit que les etages de cette execution :
+# un ordonnanceur doit savoir si celui qu'il a lance a abouti, pas si le
+# genome entier l'a fait. Un etage sans resultat ou ignore n'est pas un echec.
+# Ses propres etages seulement : un etage lance en parallele ecrit dans la meme
+# table, et son echec n'est pas celui de cette execution.
+ECHECS=$(tail -n +"$((DEBUT_ETATS + 1))" "$ETATS" 2>/dev/null \
+  | awk -F'\t' -v e=",$ETAGES," 'index(e, "," $1 ",") && $2 == "ECHEC" {print $1}' \
+  | sort -u | tr '\n' ' ')
+if [ -n "$ECHECS" ]; then
+  dire "etage(s) en echec : $ECHECS"
+  exit 1
+fi
+exit 0

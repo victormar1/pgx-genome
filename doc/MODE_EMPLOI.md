@@ -89,7 +89,7 @@ Ce qu'un ordonnanceur doit savoir pour décider, sans lire le journal.
 |---|---|---|
 | `0` | les neuf étages requis ont abouti | le compte rendu est exploitable |
 | `1` | au moins un étage en échec ; les sorties produites existent | à instruire, gène par gène, par `provenance.json` |
-| `2` | entrée refusée, option inconnue, ou moteur de conteneurs absent — **aucun étage n'a démarré** | corriger l'appel ou la machine ; relancer à l'identique ne sert à rien |
+| `2` | génome refusé — à l'entrée, ou après le contrôle qualité pour couverture insuffisante ou mélange —, option inconnue, ou moteur de conteneurs absent ; **aucun compte rendu** | le motif est dans le journal et la trace ; relancer à l'identique ne sert à rien |
 | `3` | une autre exécution travaille dans le même dossier de sortie | réessayer plus tard, ou choisir un autre dossier |
 
 Le verrou qui produit le code `3` est pris par `mkdir`, qui est atomique. Si son
@@ -99,6 +99,40 @@ bloque pas le dossier.
 `provenance.json` porte l'état de chaque étage, les empreintes des entrées, les
 versions des outils et la version du module. C'est le fichier à surveiller, et
 `reussite_complete` le champ qui résume.
+
+## 2 ter. Un étage à la fois
+
+`--etage` fait tourner les seuls étages nommés, séparés par des virgules. C'est
+**le même code** que l'exécution complète : ce qui a été validé d'un seul tenant
+est ce qui tourne étage par étage. Un ordonnanceur peut ainsi réserver seize
+cœurs au seul typage HLA, et relancer un étage sans rejouer les autres.
+
+| Ordre | Étages | |
+|---|---|---|
+| 1 | `recevabilite` | ouvre le dossier : seule à le purger et à remettre la trace à zéro |
+| 2 | `filtre`, `tranche` | |
+| 3 | `qc` | peut refuser le génome |
+| 4 | `cyp2d6`, `hla`, `pypgx` | **indépendants, à lancer ensemble** |
+| 5 | `appels`, `pharmcat`, `rendu`, `provenance` | |
+
+Chaque étage retrouve ses prérequis dans le dossier de travail, et non dans la
+mémoire d'un processus qu'il ne partage plus :
+
+- un étage refuse (code 2) un dossier qui ne porte pas la recevabilité **de ces
+  mêmes entrées et options** — sinon il travaillerait sur les intermédiaires d'un
+  autre échantillon ;
+- un refus, à l'entrée ou après le contrôle qualité, s'inscrit dans
+  `travail/arret.txt`, et tout étage lancé ensuite refuse à son tour ;
+- deux instances d'un même étage s'excluent (code 3), des étages différents
+  tournent ensemble, et rien ne tourne pendant que la recevabilité purge.
+
+Le code de retour d'un étage lancé seul ne dit que **ses** étages : `0` abouti,
+sans résultat ou ignoré ; `1` en échec, l'échec est inscrit et la chaîne peut
+continuer ; `2` refusé ; `3` déjà en cours. `provenance` rend le code de
+l'exécution complète. Un étage relancé après un échec compte par sa dernière
+exécution, et la trace note le nombre de tentatives.
+
+`exemples/pgx_genome.nf` en donne une recette Nextflow, un processus par étage.
 
 ## 3. Les étages
 
@@ -327,6 +361,7 @@ pgx_genome.sh \
 | `--couverture-min` | 18 | couverture médiane du périmètre sous laquelle le génome est refusé ; `0` lève la porte |
 | `--melange-max` | 35 | part d'hétérozygotes déséquilibrés au-delà de laquelle l'échantillon est tenu pour mélangé ; `0` lève la porte |
 | `--fils` | 4 | fils pour samtools et l'étage CYP2D6 |
+| `--etage` | tous | ne fait tourner que les étages nommés, voir § 2 ter |
 | `--reprise` | absente | réutilise les intermédiaires si les entrées sont identiques |
 | `--forcer` | absente | écrit dans un dossier non vide sans purger |
 
