@@ -106,7 +106,10 @@ def main():
     p.add_argument("--perimetre-clinique", default="", dest="perimetre_clinique")
     a = p.parse_args()
 
-    etats, ordre = {}, []
+    # Un etage lance seul peut etre relance apres un echec : la table d'etats
+    # porte alors plusieurs lignes pour lui. La derniere fait foi, l'ordre reste
+    # celui de la premiere execution, et le nombre de tentatives est trace.
+    etats, ordre, tentatives = {}, [], {}
     pe = os.path.join(a.sortie, "travail", "etats.tsv")
     if os.path.exists(pe):
         for i, l in enumerate(open(pe, encoding="utf-8")):
@@ -115,7 +118,12 @@ def main():
             c = l.rstrip("\n").split("\t")
             if len(c) >= 4:
                 etats[c[0]] = {"etat": c[1], "secondes": int(c[2] or 0), "detail": c[3]}
-                ordre.append(c[0])
+                tentatives[c[0]] = tentatives.get(c[0], 0) + 1
+                if c[0] not in ordre:
+                    ordre.append(c[0])
+    for e, n in tentatives.items():
+        if n > 1:
+            etats[e]["tentatives"] = n
 
     ATTENDUS = ["recevabilite", "filtre", "tranche", "qc", "cyp2d6", "hla",
                 "appels", "pharmcat", "rendu"]

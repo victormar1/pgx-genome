@@ -133,6 +133,27 @@ class ReussiteComplete(unittest.TestCase):
             d = self.trace(etats)
             self.assertFalse(d["reussite_complete"], absent)
 
+    def test_un_etage_relance_apres_echec_compte_par_sa_derniere_execution(self):
+        # Lance seul, un etage peut etre relance : la table porte alors deux
+        # lignes pour lui. La derniere fait foi, et la relance est tracee.
+        etats = [(e, "OK") for e in REQUIS]
+        etats.insert(5, ("hla", "ECHEC"))
+        d = self.trace(etats)
+        self.assertTrue(d["reussite_complete"])
+        self.assertEqual(d["etages"]["hla"]["etat"], "OK")
+        self.assertEqual(d["etages"]["hla"]["tentatives"], 2)
+
+    def test_un_etage_relance_qui_echoue_fait_tomber_le_genome(self):
+        etats = [(e, "OK") for e in REQUIS] + [("hla", "ECHEC")]
+        d = self.trace(etats)
+        self.assertFalse(d["reussite_complete"])
+
+    def test_l_ordre_ne_repete_pas_un_etage_relance(self):
+        etats = [(e, "OK") for e in REQUIS] + [("hla", "OK")]
+        d = self.trace(etats)
+        self.assertEqual(d["ordre_des_etages"].count("hla"), 1)
+        self.assertNotIn("tentatives", d["etages"]["cyp2d6"])
+
     def test_sans_resultat_n_est_pas_un_echec(self):
         # Cyrius qui ne tranche pas entre deux diplotypes n'est pas une faute
         # du module : le genome reste exploitable, le gene est signale.

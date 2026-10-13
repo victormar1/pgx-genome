@@ -388,6 +388,27 @@ phénotype identique, est compté mais nommé comme tel.
 porte de couverture, sans compte rendu : un échantillon presque vide ne ressort
 pas avec une réserve, il ressort refusé.
 
+### 3.10 Exécution étage par étage
+
+`--etage` fait tourner chaque étage seul, pour qu'un ordonnanceur alloue ses
+ressources étage par étage et relance un étage sans rejouer les autres. C'est le
+même code que l'exécution complète ; il est éprouvé sur génomes réels.
+
+| Épreuve | Résultat |
+|---|---|
+| Exécution complète, contre le lot | **0 écart** sur 12 couples gène × génome |
+| Étage par étage, CYP2D6, HLA et typage complémentaire en parallèle | **0 écart**, réussite complète |
+| Recette Nextflow, deux génomes | **0 écart** sur 24 couples |
+| Refus : dossier sans recevabilité, entrées changées, génome refusé en amont, étage déjà en cours | **7 codes sur 7** attendus |
+| Recette Nextflow, alignement tronqué | refusé, sorti de la chaîne, porté au bilan |
+| Table d'états écrite par trois étages simultanés | aucune ligne entrelacée |
+| Audit par mutation | 11 défauts réintroduits, aucun survivant |
+
+Le gain de temps est modeste : les trois étages indépendants sont bornés par le
+typage HLA, qui ralentit de 13 % quand il partage la machine ; le trio passe de
+269 à 212 secondes. Le bénéfice tient à l'allocation — seize cœurs pour le seul
+HLA — et à la relance ciblée.
+
 ## 4. Limites connues, à déclarer
 
 **4.1 MT-RNR1 n'a aucun porteur sur le banc.** Ses trois positions du panel sont
@@ -493,7 +514,7 @@ l'identique, tables cliniques comprises.
 
 | Outil | Rôle |
 |---|---|
-| `tests/` | 219 cas, audités par mutation |
+| `tests/` | 233 cas, audités par mutation |
 | `outils/verifier_depot.py` | intégrité des figures, cohérence du périmètre, reproductibilité des ressources générées |
 | `outils/cas_construit.py` | exercice d'un allèle absent de la cohorte |
 | `outils/fiche_traductions.py` | fiche de relecture des traductions, classée par usage, avec les entrées inemployées à part |

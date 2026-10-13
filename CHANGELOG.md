@@ -8,6 +8,27 @@ incrémente au moins le rang mineur et déclenche la revalidation décrite dans
 La version du module figure dans `provenance.json` et au pied du compte rendu.
 Elle ne vaut aucune déclaration de conformité.
 
+## 0.4.0
+
+**Un processus par étage.** `--etage` fait tourner les seuls étages nommés.
+L'orchestration reste dans le script : ce qui a été validé d'un seul tenant est
+ce qui tourne étage par étage. Chaque étage retrouve ses prérequis dans le
+dossier de travail — la recevabilité de ces mêmes entrées, un refus antérieur,
+le verdict du contrôle qualité — et refuse s'ils manquent. Deux instances d'un
+même étage s'excluent, des étages différents tournent ensemble. La recette
+Nextflow passe à un processus par étage et a été exécutée.
+
+Sans `--etage`, rien ne change, et c'est mesuré : rendus identiques au lot. Le
+gain de temps est d'une minute par génome ; le bénéfice tient à l'allocation par
+étage et à la relance ciblée.
+
+**Contrat d'exécution corrigé.** Le code 2 était décrit comme « aucun étage n'a
+démarré », ce qui est faux depuis les refus après contrôle qualité.
+
+**Vérification.** 233 cas de test ; le découpage audité par mutation, 11 défauts
+réintroduits, aucun survivant. Le contrôle du dépôt vérifie désormais la
+syntaxe des scripts shell, qu'aucun test n'exécute.
+
 ## 0.3.0
 
 **Spécificité à un mélange d'échantillons, mesurée.** Un contaminant injecté de
