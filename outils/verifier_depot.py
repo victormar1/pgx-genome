@@ -223,6 +223,30 @@ def controle_compilation():
     for m in mauvais[1:5]:
         print("        %s" % m)
 
+    # L'orchestration est en bash, et aucun test ne l'execute : un « fi »
+    # orphelin rendrait le module inexecutable sans qu'un seul cas rougisse. Le
+    # script passe par l'entree standard, et non par son chemin : sous Windows,
+    # « bash » peut designer celui de WSL, qui ne lit pas un chemin Windows.
+    scripts = [rel for rel in suivis()
+               if rel.endswith(".sh") or rel.startswith("outils/crochets/")]
+    try:
+        subprocess.run(["bash", "-c", "true"], capture_output=True, check=True)
+    except (OSError, subprocess.CalledProcessError):
+        print("  [passe] bash absent : syntaxe shell non verifiee")
+        return
+    mauvais = []
+    for rel in scripts:
+        with io.open(os.path.join(RACINE, rel), "rb") as fh:
+            contenu = fh.read()
+        r = subprocess.run(["bash", "-n"], input=contenu, capture_output=True)
+        if r.returncode:
+            mauvais.append("%s : %s" % (rel, r.stderr.decode("utf-8", "replace")
+                                         .strip().splitlines()[-1:]))
+    dire(not mauvais, "tous les scripts shell sont valides",
+         "%d scripts" % len(scripts) if not mauvais else mauvais[0])
+    for m in mauvais[1:5]:
+        print("        %s" % m)
+
 
 # ------------------------------------- 6. coherence entre les ressources
 def intervalles(chemin):
