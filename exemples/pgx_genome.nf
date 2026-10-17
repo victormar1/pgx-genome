@@ -5,9 +5,13 @@
  * Un processus par etage. Le module garde son orchestration : chaque processus
  * appelle le meme script avec --etage, si bien que ce qui a ete valide d'un
  * seul tenant est ce qui tourne ici, etage par etage. Ce que l'ordonnanceur
- * gagne : reserver seize coeurs au seul typage HLA, faire tourner ensemble
+ * gagne : reserver a chaque etage ce qu'il consomme, faire tourner ensemble
  * CYP2D6, le HLA et le typage complementaire, et relancer un etage sans rejouer
  * les autres.
+ *
+ * Les coeurs declares sont mesures, etage par etage, sur genomes reels : un
+ * genome occupe en moyenne 1,3 coeur. Le module recoit la reservation comme
+ * nombre de fils : samtools, Cyrius et OptiType n'en lancent pas davantage.
  *
  * Le module orchestre lui-meme ses conteneurs. Ces processus ne doivent donc PAS
  * etre executes dans un conteneur : ils tournent sur un noeud ou le moteur de
@@ -28,11 +32,11 @@
  *      etage suivant ne tourne pour lui
  *   3  un autre processus tient deja cet etage pour ce genome
  *
- * Executee sous Nextflow 25.04, executeur local, sur deux genomes et un
- * alignement tronque : rendus identiques a l'execution complete, refus du
- * tronque sans arret des autres, et le second HLA mis en attente faute de seize
- * coeurs libres. Sous un ordonnanceur de grappe, elle reste a eprouver sur le
- * site.
+ * Executee sous Nextflow 25.04, executeur local, vingt-quatre coeurs. Sur deux
+ * genomes et un alignement tronque : rendus identiques a l'execution complete,
+ * refus du tronque sans arret des autres. Sur des lots de dix genomes : rendus
+ * identiques au lot, 51 genomes par heure a froid, contre 39 au lanceur de lot
+ * a six. Sous un ordonnanceur de grappe, elle reste a eprouver sur le site.
  *
  * Usage :
  *   nextflow run exemples/pgx_genome.nf \
@@ -53,10 +57,11 @@ params.identites = null                       // dossier de fichiers d'identite
 
 // L'appel commun. Le code 1 est un echec inscrit : la chaine continue, comme en
 // execution complete. Les codes 2 et 3 remontent a l'ordonnanceur.
-def etage(String noms, String e, al, va, String extra = '') {
+def etage(String noms, String e, al, va, fils, String extra = '') {
     """
     export PGX_MOTEUR='${params.moteur}'
     export PGX_FASTA='${params.fasta}'
+    export PGX_FILS='${fils}'
     ${params.cyrius ? "export PGX_CYRIUS='${params.cyrius}'" : ''}
     ${params.pypgx  ? "export PGX_PYPGX='${params.pypgx}'"   : ''}
 
@@ -76,16 +81,21 @@ def strategie(code) {
     code == 2 ? 'ignore' : (code == 3 ? 'retry' : 'terminate')
 }
 
+// Coeurs occupes, mesures etage par etage : moyenne, puis pointe d'une seconde.
+// La reservation couvre la moyenne ; une pointe breve deborde sans dommage.
+
+// Recevabilite, filtre et tranche : 1,2 en moyenne, 3,4 en pointe au tri.
 process OUVRIR {
     tag "${e}"
-    cpus 4
+    cpus 2
     errorStrategy { strategie(task.exitStatus) }
     maxRetries 3
     input:  tuple val(e), val(al), val(va)
     output: tuple val(e), val(al), val(va)
-    script: etage('recevabilite,filtre,tranche', e, al, va)
+    script: etage('recevabilite,filtre,tranche', e, al, va, task.cpus)
 }
 
+// Un seul fil : 1,0 en moyenne.
 process CONTROLER {
     tag "${e}"
     cpus 1
@@ -93,11 +103,11 @@ process CONTROLER {
     maxRetries 3
     input:  tuple val(e), val(al), val(va)
     output: tuple val(e), val(al), val(va)
-    script: etage('qc', e, al, va)
+    script: etage('qc', e, al, va, task.cpus)
 }
 
-// Les trois etages independants. Le HLA seul reclame seize coeurs : OptiType
-// lance razers3 sur seize fils.
+// Les trois etages independants.
+// CYP2D6 : 1,9 en moyenne, 3,8 en pointe, sur quatre fils.
 process CYP2D6 {
     tag "${e}"
     cpus 4
@@ -105,29 +115,34 @@ process CYP2D6 {
     maxRetries 3
     input:  tuple val(e), val(al), val(va)
     output: tuple val(e), val('cyp2d6')
-    script: etage('cyp2d6', e, al, va)
+    script: etage('cyp2d6', e, al, va, task.cpus)
 }
 
+// HLA : 1,1 en moyenne, 4,4 en pointe au placement des lectures, sur quatre
+// fils. Le typage est identique a quatre et a seize fils, dans le meme temps.
 process HLA {
     tag "${e}"
-    cpus 16
+    cpus 4
     errorStrategy { strategie(task.exitStatus) }
     maxRetries 3
     input:  tuple val(e), val(al), val(va)
     output: tuple val(e), val('hla')
-    script: etage('hla', e, al, va)
+    script: etage('hla', e, al, va, task.cpus)
 }
 
+// Typage complementaire : 3,7 en moyenne, 10,9 en pointe ; il ne prend pas de
+// nombre de fils.
 process COMPLEMENT {
     tag "${e}"
-    cpus 2
+    cpus 4
     errorStrategy { strategie(task.exitStatus) }
     maxRetries 3
     input:  tuple val(e), val(al), val(va)
     output: tuple val(e), val('pypgx')
-    script: etage('pypgx', e, al, va)
+    script: etage('pypgx', e, al, va, task.cpus)
 }
 
+// Appels, interpretation, compte rendu et trace : 2,0 en moyenne.
 process INTERPRETER {
     tag "${e}"
     cpus 2
@@ -137,7 +152,7 @@ process INTERPRETER {
     output: val(e)
     script:
     def ident = params.identites ? "--identite ${params.identites}/${e}.json" : ''
-    etage('appels,pharmcat,rendu,provenance', e, al, va, ident)
+    etage('appels,pharmcat,rendu,provenance', e, al, va, task.cpus, ident)
 }
 
 process BILAN {
