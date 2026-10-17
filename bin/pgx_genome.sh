@@ -21,7 +21,7 @@
 #                      0 pour accepter un genome hors du domaine valide)
 #   --melange-max N    part d'heterozygotes desequilibres au-dela de laquelle
 #                      l'echantillon est tenu pour melange     (defaut 35, 0 leve)
-#   --fils N           fils pour samtools et Cyrius           (defaut 4)
+#   --fils N           fils pour samtools, Cyrius et OptiType (defaut 4)
 #   --reprise          reutilise les intermediaires si les entrees sont identiques
 #   --forcer           ecrit dans un dossier non vide sans reprise
 #   --etage LISTE      ne fait tourner que ces etages, separes par des virgules :
@@ -692,8 +692,23 @@ elif [ "$NPAIRES" -lt 200 ]; then
   dire "4. HLA : ECHEC, seulement $NPAIRES paires extraites du complexe majeur"
   etat hla ECHEC $(( $(date +%s)-t0 )) "$NPAIRES paires"
 else
+  # La configuration de l'image fixe seize fils au placement des lectures. Le
+  # typage ne les occupe pas : a quatre, il rend le meme resultat dans le meme
+  # temps, et seize fils par genome effondrent un lot. La configuration de
+  # l'image est reprise au seul nombre de fils pres.
+  CONF_OT=()
+  conteneur "$T" "$IMG_OPTITYPE" sh -c \
+    'cat "$(dirname "$(readlink -f "$(command -v OptiTypePipeline.py)")")/config.ini"' \
+    2>>"$JOURNAL" | awk -v n="$FILS" '
+      /^\[/ { s = $0 }
+      s == "[mapping]" && /^threads=/ { $0 = "threads=" n; f = 1 }
+      { print }
+      END { exit !f }' > "$T/optitype.ini" \
+    && CONF_OT=(-c "$T/optitype.ini") \
+    || dire "4. HLA : configuration d'OptiType illisible, nombre de fils de l'image"
   conteneur "$T" "$IMG_OPTITYPE" \
-    OptiTypePipeline.py -i "$T/mhc_1.fq" "$T/mhc_2.fq" --dna -v -o "$T/hla" >>"$JOURNAL" 2>&1
+    OptiTypePipeline.py -i "$T/mhc_1.fq" "$T/mhc_2.fq" --dna -v \
+    ${CONF_OT[@]+"${CONF_OT[@]}"} -o "$T/hla" >>"$JOURNAL" 2>&1
   rc=$?
   HLA=$(find "$T/hla" -name "*_result.tsv" 2>/dev/null | sort | tail -1)
   if [ $rc -eq 0 ] && [ -n "$HLA" ] && [ "$(wc -l < "$HLA")" -ge 2 ]; then

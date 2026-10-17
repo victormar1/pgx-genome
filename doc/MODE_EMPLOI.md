@@ -360,7 +360,7 @@ pgx_genome.sh \
 | `--profondeur` | 10 | seuil de profondeur par position |
 | `--couverture-min` | 18 | couverture médiane du périmètre sous laquelle le génome est refusé ; `0` lève la porte |
 | `--melange-max` | 35 | part d'hétérozygotes déséquilibrés au-delà de laquelle l'échantillon est tenu pour mélangé ; `0` lève la porte |
-| `--fils` | 4 | fils pour samtools et l'étage CYP2D6 |
+| `--fils` | 4 | fils pour samtools, l'étage CYP2D6 et l'étage HLA |
 | `--etage` | tous | ne fait tourner que les étages nommés, voir § 2 ter |
 | `--reprise` | absente | réutilise les intermédiaires si les entrées sont identiques |
 | `--forcer` | absente | écrit dans un dossier non vide sans purger |
