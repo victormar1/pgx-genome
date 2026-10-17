@@ -104,8 +104,8 @@ versions des outils et la version du module. C'est le fichier à surveiller, et
 
 `--etage` fait tourner les seuls étages nommés, séparés par des virgules. C'est
 **le même code** que l'exécution complète : ce qui a été validé d'un seul tenant
-est ce qui tourne étage par étage. Un ordonnanceur peut ainsi réserver seize
-cœurs au seul typage HLA, et relancer un étage sans rejouer les autres.
+est ce qui tourne étage par étage. Un ordonnanceur peut ainsi réserver à chaque
+étage ce qu'il consomme (§ 10), et relancer un étage sans rejouer les autres.
 
 | Ordre | Étages | |
 |---|---|---|
@@ -430,28 +430,40 @@ falaise, celui de profondeur en est proche.
 ## 10. Coût mesuré
 
 Mesuré sur ce banc : vingt-quatre cœurs, soixante-deux gigaoctets de mémoire,
-données sur disque local, cinq échantillons en parallèle.
+disque dur monté sous WSL2. Étage par étage, sur trois génomes déjà lus, la
+machine ne faisant rien d'autre :
 
-| Étage | Médiane |
-|---|---|
-| 0 · recevabilité | 43 s |
-| 1 · filtre | 151 s |
-| 2a · tranche | 246 s |
-| 2b · contrôle qualité | 164 s |
-| 3 · CYP2D6 | 697 s |
-| 4 · HLA | 265 s |
-| 5 · appels externes | 1 s |
-| 6 · interprétation | 118 s |
-| 7 · compte rendu | 1 s |
+| Étage | Durée | Cœurs, moyenne | Cœurs, pointe |
+|---|---|---|---|
+| 0 · recevabilité | 1 s | 1,4 | 2,7 |
+| 1 · filtre | 3 s | 1,8 | 2,3 |
+| 2a · tranche | 15 s | 1,1 | 3,4 |
+| 2b · contrôle qualité | 65 s | 1,0 | 2,0 |
+| 3 · CYP2D6 | 17 s | 1,9 | 3,8 |
+| 4 · HLA | 145 s | 1,1 | 4,4 |
+| 4b · typage complémentaire | 14 s | 3,7 | 10,9 |
+| 6 · interprétation | 5 s | 2,0 | 3,8 |
+| appels, compte rendu, trace | 4 s | 1,5 | 4,1 |
 
-Vingt-neuf minutes par génome, dont près de la moitié pour le seul étage
-CYP2D6 : l'outil lit trois mille régions de normalisation dispersées dans tout
-le génome. Le banc était limité par le disque, jamais par le processeur, qui
-restait à quatre-vingt-huit pour cent d'inactivité. Sur un stockage plus rapide,
-la marge est donc importante.
+Un génome coûte 351 secondes de processeur pour 270 secondes de durée : **1,3
+cœur en moyenne**. À froid, la tranche et CYP2D6 s'allongent : ce sont les deux
+étages qui lisent l'alignement, CYP2D6 en trois mille régions dispersées.
 
-Les durées et les volumes par étage sont dans `tableau_de_bord.tsv` du lot, et
-résumés dans la fiche de performance.
+Le module étant presque séquentiel, le débit d'une machine tient au nombre de
+génomes menés de front. Sur des lots de dix génomes :
+
+| Mode | À froid | Génomes déjà lus |
+|---|---|---|
+| Recette Nextflow, exécuteur local | **51 génomes/h** | 56 |
+| `--parallele 6` | 39 | 52 |
+| `--parallele 4` | — | 39 |
+| `--parallele 2` | — | 24 |
+
+Au-delà de six génomes en lot, rien n'est mesuré. Sur ce banc, la recette
+n'occupe à froid que six cœurs sur vingt-quatre : c'est le disque qui borne.
+Voir `doc/VALIDATION.md` § 3.11.
+
+Les durées par étage de chaque génome sont dans `tableau_de_bord.tsv` du lot.
 
 ## 11. Ce que le module a rendu sur cent cinq génomes publics
 

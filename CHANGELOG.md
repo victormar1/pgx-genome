@@ -8,6 +8,21 @@ incrémente au moins le rang mineur et déclenche la revalidation décrite dans
 La version du module figure dans `provenance.json` et au pied du compte rendu.
 Elle ne vaut aucune déclaration de conformité.
 
+## 0.4.1
+
+**OptiType sur `--fils` fils.** La configuration de son image en fixait seize,
+que le typage n'occupe pas : à quatre, il rend le même typage dans le même
+temps. Seize fils par génome effondraient un lot à six ; il rend désormais 38,8
+génomes par heure à froid.
+
+**Recette Nextflow déclarée sur mesure.** Elle réservait seize cœurs au HLA, qui
+en occupe un ; l'exécuteur faisait passer les typages un par un. Chaque étage
+déclare désormais sa consommation mesurée, transmise au module comme nombre de
+fils : 51,4 génomes par heure à froid au lieu de 16,8.
+
+Aucun résultat rendu ne change : 0 écart sur 720 couples gène × génome, trente
+génomes distincts. Débit et consommation par étage : `doc/VALIDATION.md` § 3.11.
+
 ## 0.4.0
 
 **Un processus par étage.** `--etage` fait tourner les seuls étages nommés.

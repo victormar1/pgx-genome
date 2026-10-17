@@ -27,7 +27,7 @@ d'un fichier de variants **produits en amont par la plateforme**.
 | Pureté de l'échantillon | part d'hétérozygotes déséquilibrés ≤ 35 % | 229 exécutions ; **au-delà l'échantillon est refusé**, voir 3.8 — un mélange de 20 % n'est pas détecté |
 | Qualité de génotype | GQ ≥ 20 | seuil par défaut, **voir la limite 4.3** |
 | Équilibre allélique | ≥ 0,25 pour un hétérozygote, hors CYP2D6 | mesuré sur 105 génomes |
-| Parallélisme en lot | 2 génomes | OptiType lance `razers3` sur seize threads |
+| Parallélisme en lot | jusqu'à 6 génomes | mesuré de 2 à 6, voir 3.11 ; au-delà, rien n'est mesuré |
 | Dossier de sortie | disque local | 1 361 Mo/s contre 99 sur un disque monté |
 | Moteur de conteneurs | `docker`, `apptainer` ou `singularity` | vérifié avant tout étage ; un moteur absent est refusé, non diagnostiqué comme une donnée fautive |
 | Identité du patient | fichier, par `--identite` | un argument de ligne de commande est lisible dans la table des processus |
@@ -399,15 +399,48 @@ même code que l'exécution complète ; il est éprouvé sur génomes réels.
 | Exécution complète, contre le lot | **0 écart** sur 12 couples gène × génome |
 | Étage par étage, CYP2D6, HLA et typage complémentaire en parallèle | **0 écart**, réussite complète |
 | Recette Nextflow, deux génomes | **0 écart** sur 24 couples |
+| Recette Nextflow, lots de dix génomes, à froid et déjà lus | **0 écart** sur 240 couples |
 | Refus : dossier sans recevabilité, entrées changées, génome refusé en amont, étage déjà en cours | **7 codes sur 7** attendus |
 | Recette Nextflow, alignement tronqué | refusé, sorti de la chaîne, porté au bilan |
 | Table d'états écrite par trois étages simultanés | aucune ligne entrelacée |
 | Audit par mutation | 11 défauts réintroduits, aucun survivant |
 
-Le gain de temps est modeste : les trois étages indépendants sont bornés par le
-typage HLA, qui ralentit de 13 % quand il partage la machine ; le trio passe de
-269 à 212 secondes. Le bénéfice tient à l'allocation — seize cœurs pour le seul
-HLA — et à la relance ciblée.
+Sur un génome seul, le gain de temps est modeste : les trois étages
+indépendants sont bornés par le typage HLA, et le trio passe de 269 à 212
+secondes. Sur un lot, la recette mène plus de génomes de front que le lanceur
+de lot ; voir 3.11.
+
+### 3.11 Débit d'une machine
+
+Mesuré sur ce banc — vingt-quatre cœurs, disque dur monté sous WSL2 — sur des
+lots de dix génomes. À froid : des génomes qu'aucun essai n'avait lus. Déjà
+lus : les mêmes dix génomes pour tous les modes, ce qui retire le cache disque
+de la comparaison.
+
+| Mode | À froid | Déjà lus |
+|---|---|---|
+| Recette Nextflow, exécuteur local | **51,4 génomes/h** | 55,6 |
+| Lot à 6 | 38,8 | 51,5 |
+| Lot à 4, réglage par défaut | — | 39,0 |
+| Lot à 2 | — | 23,7 |
+
+Chaque passage rend les mêmes diplotypes, phénotypes et recommandations que le
+lot de référence : **0 écart sur 720 couples** gène × génome.
+
+Un génome coûte 351 secondes de processeur pour 270 secondes de durée, soit 1,3
+cœur en moyenne ; le typage HLA en occupe 1,1 pendant 145 secondes. Le débit
+tient donc au nombre de génomes menés de front, et ce banc est borné par son
+disque : à froid, la recette n'occupe que 5,8 cœurs sur 24.
+
+Deux corrections viennent de cette mesure :
+
+| Avant | Mesuré | Correction |
+|---|---|---|
+| OptiType sur seize fils, fixés par la configuration de son image | à quatre fils, même typage sur 10 génomes sur 10, même durée à 2 s près, 18 % de processeur en moins | le module lui passe `--fils` ; le lot à six, qui tombait à un génome en 45 minutes, rend 38,8 génomes/h à froid |
+| La recette réservait seize cœurs au HLA | il en occupe 1,1 ; l'exécuteur faisait passer les typages un par un, à 16,8 génomes/h | chaque étage déclare sa consommation mesurée, transmise au module comme nombre de fils |
+
+Le passage d'OptiType à quatre fils a été éprouvé sur trente génomes distincts,
+sans un écart de rendu.
 
 ## 4. Limites connues, à déclarer
 
