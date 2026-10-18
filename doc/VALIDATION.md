@@ -410,7 +410,7 @@ indépendants sont bornés par le typage HLA, et le trio passe de 269 à 212
 secondes. Sur un lot, la recette mène plus de génomes de front que le lanceur
 de lot ; voir 3.11.
 
-### 3.11 Débit d'une machine
+### 3.11 Débit et mémoire
 
 Mesuré sur ce banc — vingt-quatre cœurs, disque dur monté sous WSL2 — sur des
 lots de dix génomes. À froid : des génomes qu'aucun essai n'avait lus. Déjà
@@ -441,6 +441,24 @@ Deux corrections viennent de cette mesure :
 
 Le passage d'OptiType à quatre fils a été éprouvé sur trente génomes distincts,
 sans un écart de rendu.
+
+**Mémoire.** Mesurée étage par étage sur trois génomes, dont le pire cas des 242
+du lot de validation : le plus de lectures HLA (234 Mo contre 154 en médiane)
+et la plus forte couverture (57 × contre 35 ×). La recette déclare la pointe
+avec une marge de moitié au moins, ou la borne que l'outil se fixe lui-même :
+
+| Processus | Pointe | Déclaré | Fondement |
+|---|---|---|---|
+| ouverture | 0,9 Go | 2 Go | samtools trie sur 768 Mo par fil au plus |
+| contrôle qualité | 0,1 Go | 1 Go | |
+| CYP2D6 | 0,65 Go | 1 Go | |
+| HLA | 1,9 Go | 3 Go | typage identique sous 3 Go, sur les deux génomes les plus gourmands |
+| typage complémentaire | 0,7 Go | 3 Go | PyPGx lance Beagle avec un tas de 2 Go |
+| interprétation | 1,6 Go | 2 Go | PharmCAT rend le même avis sous 1 Go, et échoue sous 512 Mo |
+
+Ainsi déclarée, la recette rend sur ces trois génomes les mêmes 36 couples que
+le lot de validation. Sous Docker, les conteneurs échappent à la mémoire
+réservée à la tâche ; sous Apptainer, ils y restent tenus.
 
 ## 4. Limites connues, à déclarer
 

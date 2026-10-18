@@ -430,24 +430,28 @@ falaise, celui de profondeur en est proche.
 ## 10. Coût mesuré
 
 Mesuré sur ce banc : vingt-quatre cœurs, soixante-deux gigaoctets de mémoire,
-disque dur monté sous WSL2. Étage par étage, sur trois génomes déjà lus, la
-machine ne faisant rien d'autre :
+disque dur monté sous WSL2. Étage par étage, la machine ne faisant rien
+d'autre : les cœurs sur trois génomes déjà lus, la mémoire sur trois autres,
+dont le pire cas du lot de validation — le plus de lectures HLA et la plus
+forte couverture.
 
-| Étage | Durée | Cœurs, moyenne | Cœurs, pointe |
-|---|---|---|---|
-| 0 · recevabilité | 1 s | 1,4 | 2,7 |
-| 1 · filtre | 3 s | 1,8 | 2,3 |
-| 2a · tranche | 15 s | 1,1 | 3,4 |
-| 2b · contrôle qualité | 65 s | 1,0 | 2,0 |
-| 3 · CYP2D6 | 17 s | 1,9 | 3,8 |
-| 4 · HLA | 145 s | 1,1 | 4,4 |
-| 4b · typage complémentaire | 14 s | 3,7 | 10,9 |
-| 6 · interprétation | 5 s | 2,0 | 3,8 |
-| appels, compte rendu, trace | 4 s | 1,5 | 4,1 |
+| Étage | Durée | Cœurs, moyenne | Cœurs, pointe | Mémoire, pointe |
+|---|---|---|---|---|
+| 0 · recevabilité | 1 s | 1,4 | 2,7 | 160 Mo |
+| 1 · filtre | 3 s | 1,8 | 2,3 | 80 Mo |
+| 2a · tranche | 15 s | 1,1 | 3,4 | 940 Mo |
+| 2b · contrôle qualité | 65 s | 1,0 | 2,0 | 120 Mo |
+| 3 · CYP2D6 | 17 s | 1,9 | 3,8 | 650 Mo |
+| 4 · HLA | 145 s | 1,1 | 4,4 | 1,9 Go |
+| 4b · typage complémentaire | 14 s | 3,7 | 10,9 | 670 Mo |
+| 6 · interprétation | 5 s | 2,0 | 3,8 | 1,6 Go |
+| appels, compte rendu, trace | 4 s | 1,5 | 4,1 | 120 Mo |
 
 Un génome coûte 351 secondes de processeur pour 270 secondes de durée : **1,3
 cœur en moyenne**. À froid, la tranche et CYP2D6 s'allongent : ce sont les deux
 étages qui lisent l'alignement, CYP2D6 en trois mille régions dispersées.
+L'interprétation tourne sur Java, qui prend 1,6 Go parce qu'il le peut : sous
+une limite de 1 Go, elle rend le même avis.
 
 Le module étant presque séquentiel, le débit d'une machine tient au nombre de
 génomes menés de front. Sur des lots de dix génomes :
