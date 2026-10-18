@@ -9,13 +9,16 @@
  * CYP2D6, le HLA et le typage complementaire, et relancer un etage sans rejouer
  * les autres.
  *
- * Les coeurs declares sont mesures, etage par etage, sur genomes reels : un
- * genome occupe en moyenne 1,3 coeur. Le module recoit la reservation comme
- * nombre de fils : samtools, Cyrius et OptiType n'en lancent pas davantage.
+ * Les coeurs et la memoire declares sont mesures, etage par etage, sur genomes
+ * reels : un genome occupe en moyenne 1,3 coeur, un etage 1,9 Go au plus. Le
+ * module recoit la reservation de coeurs comme nombre de fils : samtools,
+ * Cyrius et OptiType n'en lancent pas davantage.
  *
  * Le module orchestre lui-meme ses conteneurs. Ces processus ne doivent donc PAS
  * etre executes dans un conteneur : ils tournent sur un noeud ou le moteur de
- * conteneurs est disponible, et ce sont eux qui lancent les images.
+ * conteneurs est disponible, et ce sont eux qui lancent les images. Sous
+ * Docker, les conteneurs sont lances par le demon et echappent a la memoire
+ * reservee a la tache ; sous Apptainer, ils y restent tenus.
  *
  * Les etages se transmettent leur travail par un dossier par genome, sous
  * --sortie, et non par le repertoire de travail de Nextflow : ce dossier doit
@@ -83,11 +86,16 @@ def strategie(code) {
 
 // Coeurs occupes, mesures etage par etage : moyenne, puis pointe d'une seconde.
 // La reservation couvre la moyenne ; une pointe breve deborde sans dommage.
+// Memoire : pointe mesuree sur le pire cas du lot de validation, le genome qui a
+// le plus de lectures HLA et la plus forte couverture, avec une marge de moitie
+// au moins ; ou la borne que l'outil se fixe lui-meme, quand il en a une.
 
-// Recevabilite, filtre et tranche : 1,2 en moyenne, 3,4 en pointe au tri.
+// Recevabilite, filtre et tranche : 1,2 coeur en moyenne, 3,4 en pointe au tri.
+// Memoire : 0,9 Go en pointe ; le tri de samtools se borne a 768 Mo par fil.
 process OUVRIR {
     tag "${e}"
     cpus 2
+    memory '2 GB'
     errorStrategy { strategie(task.exitStatus) }
     maxRetries 3
     input:  tuple val(e), val(al), val(va)
@@ -95,10 +103,11 @@ process OUVRIR {
     script: etage('recevabilite,filtre,tranche', e, al, va, task.cpus)
 }
 
-// Un seul fil : 1,0 en moyenne.
+// Un seul fil : 1,0 coeur en moyenne. Memoire : 0,1 Go en pointe.
 process CONTROLER {
     tag "${e}"
     cpus 1
+    memory '1 GB'
     errorStrategy { strategie(task.exitStatus) }
     maxRetries 3
     input:  tuple val(e), val(al), val(va)
@@ -107,10 +116,12 @@ process CONTROLER {
 }
 
 // Les trois etages independants.
-// CYP2D6 : 1,9 en moyenne, 3,8 en pointe, sur quatre fils.
+// CYP2D6 : 1,9 coeur en moyenne, 3,8 en pointe, sur quatre fils. Memoire :
+// 0,65 Go en pointe.
 process CYP2D6 {
     tag "${e}"
     cpus 4
+    memory '1 GB'
     errorStrategy { strategie(task.exitStatus) }
     maxRetries 3
     input:  tuple val(e), val(al), val(va)
@@ -118,11 +129,13 @@ process CYP2D6 {
     script: etage('cyp2d6', e, al, va, task.cpus)
 }
 
-// HLA : 1,1 en moyenne, 4,4 en pointe au placement des lectures, sur quatre
-// fils. Le typage est identique a quatre et a seize fils, dans le meme temps.
+// HLA : 1,1 coeur en moyenne, 4,4 en pointe au placement des lectures, sur
+// quatre fils. Le typage est identique a quatre et a seize fils, dans le meme
+// temps. Memoire : 1,9 Go en pointe ; typage identique sous une limite de 3 Go.
 process HLA {
     tag "${e}"
     cpus 4
+    memory '3 GB'
     errorStrategy { strategie(task.exitStatus) }
     maxRetries 3
     input:  tuple val(e), val(al), val(va)
@@ -130,11 +143,13 @@ process HLA {
     script: etage('hla', e, al, va, task.cpus)
 }
 
-// Typage complementaire : 3,7 en moyenne, 10,9 en pointe ; il ne prend pas de
-// nombre de fils.
+// Typage complementaire : 3,7 coeurs en moyenne, 10,9 en pointe ; il ne prend
+// pas de nombre de fils. Memoire : 0,7 Go en pointe, mais PyPGx lance Beagle
+// avec un tas de 2 Go.
 process COMPLEMENT {
     tag "${e}"
     cpus 4
+    memory '3 GB'
     errorStrategy { strategie(task.exitStatus) }
     maxRetries 3
     input:  tuple val(e), val(al), val(va)
@@ -142,10 +157,14 @@ process COMPLEMENT {
     script: etage('pypgx', e, al, va, task.cpus)
 }
 
-// Appels, interpretation, compte rendu et trace : 2,0 en moyenne.
+// Appels, interpretation, compte rendu et trace : 2,0 coeurs en moyenne.
+// Memoire : 1,6 Go en pointe sans limite, que la machine Java prend parce
+// qu'elle le peut ; PharmCAT rend le meme avis sous une limite de 1 Go, et
+// echoue sous 512 Mo.
 process INTERPRETER {
     tag "${e}"
     cpus 2
+    memory '2 GB'
     errorStrategy { strategie(task.exitStatus) }
     maxRetries 3
     input:  tuple val(e), val(al), val(va)
