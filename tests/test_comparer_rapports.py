@@ -6,12 +6,14 @@ s'il manque un ecart, la revalidation conclura a tort que rien n'a bouge. Les
 cas qui comptent sont donc ceux ou il doit voir une difference, et celui ou il
 doit la qualifier plutot que la compter comme un desaccord.
 """
+import io
 import json
 import os
 import shutil
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(RACINE, "outils"))
@@ -57,13 +59,13 @@ class Dossiers(unittest.TestCase):
                     [("clopidogrel", "autre antiagregant")])
         self.ecris("avant", "E1", r)
         self.ecris("apres", "E1", r)
-        communs, genes, ecarts, cond = self.compare()
+        communs, genes, ecarts, cond, _ = self.compare()
         self.assertEqual((len(communs), genes, ecarts, cond), (1, 1, [], []))
 
     def test_un_diplotype_change(self):
         self.ecris("avant", "E1", rapport({"CYP2C19": ("*1/*1", "Normal")}))
         self.ecris("apres", "E1", rapport({"CYP2C19": ("*1/*2", "Intermediate")}))
-        _, _, ecarts, _ = self.compare()
+        _, _, ecarts, _, _ = self.compare()
         self.assertEqual(len(ecarts), 1)
         self.assertFalse(ecarts[0]["ambiguite_tranchee"])
 
@@ -72,14 +74,14 @@ class Dossiers(unittest.TestCase):
         # deux cotes disent la meme chose. L'ecart est compte, mais nomme.
         self.ecris("avant", "E1", rapport({"CYP2C19": ("*1/*2;*1/*3", "Intermediate")}))
         self.ecris("apres", "E1", rapport({"CYP2C19": ("*1/*2", "Intermediate")}))
-        _, _, ecarts, _ = self.compare()
+        _, _, ecarts, _, _ = self.compare()
         self.assertEqual(len(ecarts), 1)
         self.assertTrue(ecarts[0]["ambiguite_tranchee"])
 
     def test_un_appel_hors_de_l_ambiguite_n_est_pas_qualifie(self):
         self.ecris("avant", "E1", rapport({"CYP2C19": ("*1/*2;*1/*3", "Intermediate")}))
         self.ecris("apres", "E1", rapport({"CYP2C19": ("*1/*17", "Rapid")}))
-        _, _, ecarts, _ = self.compare()
+        _, _, ecarts, _, _ = self.compare()
         self.assertFalse(ecarts[0]["ambiguite_tranchee"])
 
     def test_un_phenotype_qui_change_n_est_jamais_une_ambiguite_tranchee(self):
@@ -87,14 +89,14 @@ class Dossiers(unittest.TestCase):
         # a consequence, et le qualifier de tranche le ferait passer pour benin.
         self.ecris("avant", "E1", rapport({"CYP2C19": ("*1/*2;*1/*3", "Intermediate")}))
         self.ecris("apres", "E1", rapport({"CYP2C19": ("*1/*2", "Poor")}))
-        _, _, ecarts, _ = self.compare()
+        _, _, ecarts, _, _ = self.compare()
         self.assertFalse(ecarts[0]["ambiguite_tranchee"])
 
     def test_une_recommandation_apparait(self):
         self.ecris("avant", "E1", rapport({"CYP2C19": ("*1/*1", "Normal")}))
         self.ecris("apres", "E1", rapport({"CYP2C19": ("*1/*1", "Normal")},
                                           [("rosuvastatine", "dose souhaitee")]))
-        _, _, ecarts, cond = self.compare()
+        _, _, ecarts, cond, _ = self.compare()
         self.assertEqual(ecarts, [])
         self.assertEqual(cond[0]["apparus"], ["rosuvastatine"])
 
@@ -103,21 +105,50 @@ class Dossiers(unittest.TestCase):
                                           [("clopidogrel", "dose standard")]))
         self.ecris("apres", "E1", rapport({"CYP2C19": ("*1/*1", "Normal")},
                                           [("clopidogrel", "autre antiagregant")]))
-        _, _, _, cond = self.compare()
+        _, _, _, cond, _ = self.compare()
         self.assertEqual(cond[0]["texte_change"], ["clopidogrel"])
 
     def test_un_echantillon_absent_d_un_cote_est_ignore(self):
         # Comparer un echantillon a rien produirait un faux ecart.
         self.ecris("avant", "E1", rapport({"CYP2C19": ("*1/*1", "Normal")}))
         self.ecris("apres", "E2", rapport({"CYP2C19": ("*1/*2", "Intermediate")}))
-        communs, genes, ecarts, cond = self.compare()
+        communs, genes, ecarts, cond, _ = self.compare()
         self.assertEqual((communs, genes, ecarts, cond), ([], 0, [], []))
+
+    def test_un_rapport_disparu_est_un_ecart(self):
+        # Le genome a ete repasse et n'a rien rendu : refus, echec ou
+        # interruption. C'est le plus grave des ecarts, pas un absent.
+        self.ecris("avant", "E1", rapport({"CYP2C19": ("*1/*1", "Normal")}))
+        os.makedirs(os.path.join(self.racine, "apres", "E1", "sortie"))
+        communs, genes, ecarts, cond, sans = self.compare()
+        self.assertEqual((communs, genes, sans), ([], 0, ["E1"]))
+
+    def test_un_rapport_disparu_fait_echouer_la_porte(self):
+        self.ecris("avant", "E1", rapport({"CYP2C19": ("*1/*1", "Normal")}))
+        self.ecris("avant", "E2", rapport({"CYP2C19": ("*1/*1", "Normal")}))
+        self.ecris("apres", "E2", rapport({"CYP2C19": ("*1/*1", "Normal")}))
+        os.makedirs(os.path.join(self.racine, "apres", "E1", "sortie"))
+        argv = ["comparer_rapports.py",
+                "--avant", os.path.join(self.racine, "avant"),
+                "--apres", os.path.join(self.racine, "apres"),
+                "--perimetre", self.perimetre(("CYP2C19",))]
+        with mock.patch.object(sys, "argv", argv), \
+                mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            code = c.main()
+        self.assertEqual(code, 1)
+        self.assertIn("E1", out.getvalue())
+
+    def perimetre(self, genes):
+        p = os.path.join(self.racine, "perimetre.json")
+        with open(p, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump({"genes": {g: {} for g in genes}}, fh)
+        return p
 
     def test_un_gene_absent_des_deux_cotes_ne_compte_pas(self):
         r = rapport({"CYP2C19": ("*1/*1", "Normal")})
         self.ecris("avant", "E1", r)
         self.ecris("apres", "E1", r)
-        _, genes, _, _ = self.compare(perimetre=("CYP2C19", "POR"))
+        _, genes, _, _, _ = self.compare(perimetre=("CYP2C19", "POR"))
         self.assertEqual(genes, 1)
 
 
