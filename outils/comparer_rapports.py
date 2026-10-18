@@ -83,10 +83,18 @@ def inclus(avant, apres):
 
 
 def compare(avant, apres, perimetre):
-    genes, ecarts, conduites_ecarts = 0, [], []
-    communs = [e for e in echantillons(apres) if rapport(avant, e)]
-    for e in communs:
-        a, b = rapport(avant, e), rapport(apres, e)
+    genes, ecarts, conduites_ecarts, sans_rapport, communs = 0, [], [], [], []
+    for e in echantillons(apres):
+        a = rapport(avant, e)
+        if not a:
+            continue
+        b = rapport(apres, e)
+        if not b:
+            # Le genome a ete repasse et n'a rien rendu : refus, echec ou
+            # interruption. C'est le plus grave des ecarts, pas un absent.
+            sans_rapport.append(e)
+            continue
+        communs.append(e)
         for g in perimetre:
             da, pa = etat(a, g)
             db, pb = etat(b, g)
@@ -105,7 +113,7 @@ def compare(avant, apres, perimetre):
         if app or dis or chg:
             conduites_ecarts.append({"echantillon": e, "apparus": app,
                                      "disparus": dis, "texte_change": chg})
-    return communs, genes, ecarts, conduites_ecarts
+    return communs, genes, ecarts, conduites_ecarts, sans_rapport
 
 
 def main():
@@ -122,8 +130,8 @@ def main():
         "ressources", "perimetre_rnpgx.json")
     perimetre = sorted(lire(chemin).get("genes", {}))
 
-    communs, genes, ecarts, cond = compare(a.avant, a.apres, perimetre)
-    if not communs:
+    communs, genes, ecarts, cond, sans = compare(a.avant, a.apres, perimetre)
+    if not communs and not sans:
         print("aucun echantillon commun aux deux dossiers", file=sys.stderr)
         return 2
 
@@ -133,6 +141,8 @@ def main():
     print("ecarts de diplotype ou de phenotype : %d, dont %d ambiguites "
           "tranchees sans changement de phenotype" % (len(ecarts), tranchees))
     print("echantillons dont les recommandations changent : %d" % len(cond))
+    print("echantillons repasses sans rapport : %d%s"
+          % (len(sans), " (" + ", ".join(sans) + ")" if sans else ""))
     for x in ecarts:
         print("  %s %s : %s -> %s%s"
               % (x["echantillon"], x["gene"], x["avant"] or "-",
@@ -146,9 +156,10 @@ def main():
     if a.json:
         with open(a.json, "w", encoding="utf-8", newline="\n") as fh:
             json.dump({"echantillons": communs, "couples": genes,
-                       "ecarts": ecarts, "recommandations": cond}, fh,
+                       "ecarts": ecarts, "recommandations": cond,
+                       "sans_rapport": sans}, fh,
                       ensure_ascii=False, indent=1)
-    return 1 if (ecarts or cond) else 0
+    return 1 if (ecarts or cond or sans) else 0
 
 
 if __name__ == "__main__":

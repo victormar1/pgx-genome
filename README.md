@@ -352,7 +352,7 @@ identique produisent le même résultat.
 bin/            les neuf scripts du pipeline
 ressources/     les ressources figées, lues au runtime (dont les traductions CPIC)
 outils/         les générateurs de ressources, les contrôles, les crochets
-tests/          233 cas, audités par mutation
+tests/          235 cas, audités par mutation
 doc/            le mode d'emploi complet et le schéma du flux de fichiers
 env/            requirements Python et empreintes des conteneurs
 exemples/       un manifeste type
