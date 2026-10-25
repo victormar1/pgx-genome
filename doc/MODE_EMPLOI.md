@@ -502,8 +502,7 @@ plus ancien, ne couvre pas. Plusieurs changent le phénotype rendu au clinicien,
 vers une fonction diminuée ou un résultat indéterminé sur les statines. Ce ne
 sont pas des erreurs de lecture, mais ils ne sont pas confirmés par la référence.
 Un couple CYP2D6 reste sans résultat, l'outil dédié n'ayant pas su trancher entre
-deux diplotypes. La fiche de performance liste chacun de ces écarts, avec ce que
-le contrôle qualité a mesuré.
+deux diplotypes.
 
 **Hors périmètre.** L'interpréteur rend dix autres gènes, mesurés mais non
 rapportés, et leurs appels ne sont pas garantis : CYP4F2\*17 en particulier est

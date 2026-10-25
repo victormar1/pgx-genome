@@ -239,7 +239,7 @@ Deux réglages mesurés sur ce banc :
 
 | Réglage | Pourquoi |
 |---|---|
-| Sortie sur disque local | 1 361 Mo/s contre 99 sur un disque Windows monté sous WSL2, et 60× plus lent sur les petits fichiers ; le module écrit 150 Mo par génome |
+| Sortie sur disque local | 1 361 Mo/s contre 99 sur un disque Windows monté sous WSL2, et 60× plus lent sur les petits fichiers ; le module laisse 364 Mo par génome (médiane sur dix, 477 au plus), dont trois quarts de lectures du complexe HLA |
 | `--parallele 6` en lot, ou la recette Nextflow | un génome n'occupe que 1,3 cœur, le débit tient au nombre de génomes menés de front : à froid, 39 génomes/h à six, 51 par la recette |
 
 ## Installation
