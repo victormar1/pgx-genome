@@ -69,11 +69,14 @@ COMPLEMENT=""
 [ -s "$RES/rnpgx_complement.vcf" ] && COMPLEMENT="$RES/rnpgx_complement.vcf"
 # Typage complementaire (MT-RNR1, BCHE, MTHFR, POR) : quatre genes du core panel
 # que l'interpreteur ne sait pas appeler. L'etage ne s'arme que si le catalogue
-# et la commande sont tous deux presents ; sinon il est ignore, sans consequence
-# sur le reste.
+# et le typeur sont tous deux presents ; sinon il est ignore, sans consequence
+# sur le reste. Le typeur est une image (PGX_IMG_PYPGX), lancee comme les trois
+# autres par le moteur de conteneurs, ou une commande de l'hote (PGX_PYPGX).
 PYPGX="${PGX_PYPGX:-}"
+IMG_PYPGX="${PGX_IMG_PYPGX:-}"
 CAT_PYPGX=""
-[ -n "$PYPGX" ] && [ -s "$RES/pypgx_genes.json" ] && CAT_PYPGX="$RES/pypgx_genes.json"
+{ [ -n "$PYPGX" ] || [ -n "$IMG_PYPGX" ]; } && [ -s "$RES/pypgx_genes.json" ] \
+  && CAT_PYPGX="$RES/pypgx_genes.json"
 IMG_BCF="${PGX_IMG_BCFTOOLS:-quay.io/biocontainers/bcftools:1.24--h118bc1c_2}"
 IMG_PHARMCAT="${PGX_IMG_PHARMCAT:-pgkb/pharmcat:3.4.0}"
 IMG_OPTITYPE="${PGX_IMG_OPTITYPE:-quay.io/biocontainers/optitype:1.3.5--hdfd78af_3}"
@@ -233,25 +236,37 @@ fi
 # courant de l'hote par defaut, ce qu'on desactive pour que l'execution ne
 # depende pas du repertoire d'appel.
 MOTEUR="${PGX_MOTEUR:-docker}"
-conteneur() {   # $1 dossier de travail  $2 image  $3... commande
-  local cwd="$1" image="$2"; shift 2
-  local m=() d
+# La commande qui lance une image, sans la commande interne : les etages
+# l'executent, et le typeur complementaire la recoit comme prefixe. Un dossier
+# en lecture seule et une variable d'environnement peuvent s'y ajouter.
+CONT=()
+args_conteneur() {   # $1 dossier de travail  $2 image  [$3 dossier en lecture seule]  [$4 VAR=valeur]
+  local cwd="$1" image="$2" extra="${3:-}" env="${4:-}" d
+  CONT=()
   case "$MOTEUR" in
     docker)
-      for d in "${DOSSIERS[@]}"; do m+=(-v "$d":"$d":ro); done
-      for d in "${ECRIVABLES[@]}"; do m+=(-v "$d":"$d"); done
-      docker run --rm "${m[@]}" -w "$cwd" "$image" "$@"
+      CONT=(docker run --rm)
+      for d in "${DOSSIERS[@]}" ${extra:+"$extra"}; do CONT+=(-v "$d":"$d":ro); done
+      for d in "${ECRIVABLES[@]}"; do CONT+=(-v "$d":"$d"); done
+      [ -n "$env" ] && CONT+=(-e "$env")
+      CONT+=(-w "$cwd" "$image")
       ;;
     apptainer|singularity)
-      for d in "${DOSSIERS[@]}"; do m+=(--bind "$d":"$d":ro); done
-      for d in "${ECRIVABLES[@]}"; do m+=(--bind "$d":"$d"); done
-      "$MOTEUR" exec --cleanenv --no-home --pwd "$cwd" "${m[@]}" \
-        "docker://$image" "$@"
+      CONT=("$MOTEUR" exec --cleanenv --no-home)
+      for d in "${DOSSIERS[@]}" ${extra:+"$extra"}; do CONT+=(--bind "$d":"$d":ro); done
+      for d in "${ECRIVABLES[@]}"; do CONT+=(--bind "$d":"$d"); done
+      [ -n "$env" ] && CONT+=(--env "$env")
+      CONT+=(--pwd "$cwd" "docker://$image")
       ;;
     *)
       echo "moteur de conteneurs inconnu : $MOTEUR" >&2; return 127
       ;;
   esac
+}
+conteneur() {   # $1 dossier de travail  $2 image  $3... commande
+  local cwd="$1" image="$2"; shift 2
+  args_conteneur "$cwd" "$image" || return 127
+  "${CONT[@]}" "$@"
 }
 BCF() { conteneur "$D_SORTIE" "$IMG_BCF" bcftools "$@"; }
 
@@ -271,6 +286,20 @@ if ! command -v "$MOTEUR" >/dev/null 2>&1; then
 fi
 
 T="$SORTIE/travail"
+
+# Le typeur complementaire en image : sa commande est celle de son conteneur,
+# avec sa ressource de donnees montee. Elle n'est pas dans l'image, parce
+# qu'elle pese plusieurs gigaoctets et evolue a part ; sans elle, le typeur
+# echouerait au premier gene, et le motif serait moins clair qu'ici.
+if [ -n "$IMG_PYPGX" ]; then
+  if [ -z "${PYPGX_BUNDLE:-}" ] || [ ! -d "$PYPGX_BUNDLE" ]; then
+    echo "pgx_genome : PGX_IMG_PYPGX demande PYPGX_BUNDLE, le dossier de donnees du typeur" >&2
+    exit 2
+  fi
+  args_conteneur "$T" "$IMG_PYPGX" "$PYPGX_BUNDLE" "PYPGX_BUNDLE=$PYPGX_BUNDLE"
+  PYPGX="${CONT[*]} pypgx"
+fi
+IMAGES="$IMG_BCF,$IMG_PHARMCAT,$IMG_OPTITYPE${IMG_PYPGX:+,$IMG_PYPGX}"
 
 # Les chemins que les etages se transmettent sont fixes, et poses ici : un etage
 # lance seul doit les connaitre sans que l'etage qui les produit ait tourne dans
@@ -464,7 +493,7 @@ if [ "$RECEVABLE" != 1 ]; then
   python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
     --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
     --gq "$GQ" --profondeur "$PROF" \
-    --images "$IMG_BCF,$IMG_PHARMCAT,$IMG_OPTITYPE" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
+    --images "$IMAGES" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
   --filtre "$([ -n "$IGNORER_FILTRE" ] && echo ignore || echo respecte)" \
   --perimetre-clinique "$RES/perimetre_rnpgx.json" >>"$JOURNAL" 2>&1
   dire "termine, reussite complete : False"
@@ -599,13 +628,13 @@ if [ -n "$MOTIF" ]; then
     etat "$e" ECHEC 0 "$m"
   done
   [ -n "$CAT_PYPGX" ] && etat pypgx ECHEC 0 "$m" \
-    || etat pypgx IGNORE 0 "PGX_PYPGX non defini"
+    || etat pypgx IGNORE 0 "typeur non defini"
   dire "arret : $MOTIF"
   python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
     --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
     --gq "$GQ" --profondeur "$PROF" --couverture-min "$COUV_MIN" \
     --couverture "$COUV" --melange-max "$MELANGE_MAX" --melange "${MEL_PART:-}" \
-    --images "$IMG_BCF,$IMG_PHARMCAT,$IMG_OPTITYPE" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
+    --images "$IMAGES" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
     --filtre "$([ -n "$IGNORER_FILTRE" ] && echo ignore || echo respecte)" \
     --perimetre-clinique "$RES/perimetre_rnpgx.json" >>"$JOURNAL" 2>&1
   dire "termine, reussite complete : False"
@@ -742,8 +771,8 @@ fi
 if a_faire pypgx; then
 t0=$(date +%s)
 if [ -z "$CAT_PYPGX" ]; then
-  dire "4b. typage complementaire : ignore (PGX_PYPGX non defini)"
-  etat pypgx IGNORE 0 "PGX_PYPGX non defini"
+  dire "4b. typage complementaire : ignore (ni PGX_IMG_PYPGX ni PGX_PYPGX)"
+  etat pypgx IGNORE 0 "typeur non defini"
 elif [ "$RECEVABLE" != 1 ]; then
   dire "4b. typage complementaire : ECHEC, genome non recevable"
   etat pypgx ECHEC 0 "genome non recevable"
@@ -860,7 +889,7 @@ python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
   --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
   --gq "$GQ" --profondeur "$PROF" --couverture-min "$COUV_MIN" \
   --couverture "${COUV:-}" --melange-max "$MELANGE_MAX" --melange "${MEL_PART:-}" \
-  --images "$IMG_BCF,$IMG_PHARMCAT,$IMG_OPTITYPE" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
+  --images "$IMAGES" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
   --filtre "$([ -n "$IGNORER_FILTRE" ] && echo ignore || echo respecte)" \
   --perimetre-clinique "$RES/perimetre_rnpgx.json" >>"$JOURNAL" 2>&1
 
