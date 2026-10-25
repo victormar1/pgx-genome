@@ -32,3 +32,8 @@ __pycache__/
 # La règle porte sur tout le dossier, pour qu'une ressource ajoutée plus tard ne
 # soit pas ignorée en silence.
 !ressources/*.vcf
+
+# Exception : le jeu de qualification, un génome public et son rapport de
+# référence, est livré avec le dépôt.
+!bench/qualification/
+!bench/qualification/**

@@ -12,15 +12,16 @@ git config core.hooksPath outils/crochets   # une fois par copie de travail
 | Contrôle | Quand | Ce qu'il refuse |
 |---|---|---|
 | `outils/valider_message.py` | crochet `commit-msg`, à chaque commit | sujet hors format, corps au-delà de 72 caractères, motif interdit, casse de ligne de fin |
-| `python -m unittest discover -s tests` | crochet `pre-push` | régression sur un garde-fou de l'étage 4b |
-| `outils/verifier_depot.py` | crochet `pre-push` | SVG non conforme XML, nombre de gènes incohérent, chemin de poste, ressource générée périmée |
+| `python -m unittest discover -s tests` | crochet `pre-push` | régression sur un garde-fou : contrôle qualité, typage complémentaire, appels externes, rendu, trace, découpage en étages, outils |
+| `outils/verifier_depot.py` | crochet `pre-push` | SVG non conforme XML, nombre de gènes ou de tests incohérent avec la documentation, chemin de poste, script shell invalide, ressource générée périmée |
 
 Ce dépôt n'a pas d'intégration continue distante : le crochet `pre-push` en tient
 le rôle, sur le poste. `git push --no-verify` le contourne, en connaissance.
 
-Les tests valent ce que vaut leur capacité à échouer. Ceux de l'étage 4b ont été
-audités par mutation : dix défauts déjà constatés réintroduits un à un, dix
-suites en échec, aucune mutation survivante.
+Les tests valent ce que vaut leur capacité à échouer. Chaque garde-fou ajouté est
+audité par mutation : le défaut qu'il empêche est réintroduit, et sa suite doit
+rougir. Cumul sur les versions : 79 défauts réintroduits, 79 suites en échec,
+aucune mutation survivante (`doc/VALIDATION.md`, § 3.6).
 
 ## Messages de commit
 
