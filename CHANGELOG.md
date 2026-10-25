@@ -8,6 +8,33 @@ incrémente au moins le rang mineur et déclenche la revalidation décrite dans
 La version du module figure dans `provenance.json` et au pied du compte rendu.
 Elle ne vaut aucune déclaration de conformité.
 
+## 0.4.2
+
+**Compte rendu de patient.** La mention « prototype » tombe dès que l'identité
+est fournie ; la préindication se lit dans le fichier d'identité ou se passe
+par `--contexte`. Sans cette correction, aucun document de patient ne pouvait
+sortir du module.
+
+**Portabilité sur une plateforme.** Le typeur complémentaire tourne dans son
+image (`PGX_IMG_PYPGX`), lancée comme les trois autres. Sous Docker, les
+conteneurs tournent sous l'identité de l'appelant. Sous Apptainer, un fichier
+`.sif` est accepté et son empreinte tracée. Un verrou posé depuis un autre hôte
+n'est jamais repris. L'appeleur CYP2D6 n'écrit plus dans `/tmp`. Les empreintes
+de `env/conteneurs.txt`, tronquées, sont complètes.
+
+**Qualification d'une installation.** `bench/qualification/` porte un génome
+public, son fichier de variants et le rapport de référence ; le mode d'emploi
+décrit la mise en service, étape par étape.
+
+**Documentation.** La liste des prélèvements du banc est déduite du lot
+(`outils/construire_banc.py`) : 256 soumis, 242 analysés. Le README est
+resserré sur l'emploi ; les preuves sont dans `doc/VALIDATION.md`, seule source.
+Les affirmations périmées sur l'ancien lot de 105 génomes, le profil de
+ressources et les comptes de tests sont retirées ou corrigées.
+
+Aucun résultat rendu ne change : chaque correction du module est vérifiée sur
+3 génomes contre le lot de validation, 0 écart. 247 cas de test.
+
 ## 0.4.1
 
 **OptiType sur `--fils` fils.** La configuration de son image en fixait seize,
@@ -21,7 +48,7 @@ déclare désormais sa consommation mesurée, transmise au module comme nombre d
 fils : 51,4 génomes par heure à froid au lieu de 16,8.
 
 Aucun résultat rendu ne change : 0 écart sur 720 couples gène × génome, trente
-génomes distincts. Débit et consommation par étage : `doc/VALIDATION.md` § 3.11.
+génomes distincts. Débit et consommation par étage : `doc/VALIDATION.md` § 3.10.
 
 ## 0.4.0
 
