@@ -75,6 +75,21 @@ class VersionsExterieures(unittest.TestCase):
         nom = "depot/image_inexistante_xyz:1.0"
         self.assertEqual(p.version_image(nom), nom)
 
+    def test_sous_apptainer_un_fichier_sif_est_trace_par_son_empreinte(self):
+        # Sous Apptainer, seul un fichier local a un contenu fige : la trace
+        # doit porter son empreinte, et non le nom qu'on lui a donne.
+        with tempfile.NamedTemporaryFile(suffix=".sif", delete=False) as fh:
+            fh.write(b"image factice")
+        try:
+            v = p.version_image(fh.name, "apptainer")
+        finally:
+            os.remove(fh.name)
+        self.assertEqual(v, "sha256:" + hashlib.sha256(b"image factice").hexdigest())
+
+    def test_sous_apptainer_une_image_de_depot_rend_son_etiquette(self):
+        nom = "depot/image_inexistante_xyz:1.0"
+        self.assertEqual(p.version_image(nom, "apptainer"), nom)
+
     def test_un_depot_git_absent_ne_leve_pas(self):
         self.assertIsInstance(p.version_git(tempfile.gettempdir()), (str, dict))
 
