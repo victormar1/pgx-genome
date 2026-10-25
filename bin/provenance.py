@@ -28,8 +28,16 @@ def sha256(chemin, limite=None):
     return h.hexdigest()
 
 
-def version_image(image):
-    """Identifiant immuable de l image, pas seulement son etiquette."""
+def version_image(image, moteur="docker"):
+    """Identifiant immuable de l image, pas seulement son etiquette.
+
+    Sous Docker, l empreinte de depot ou l identifiant local. Sous Apptainer,
+    l empreinte d un fichier .sif ; une image de depot n a pas d identifiant
+    stable ici, et son etiquette est rendue telle quelle."""
+    if moteur != "docker":
+        if os.path.isfile(image):
+            return "sha256:" + sha256(image)
+        return image
     try:
         out = subprocess.run(["docker", "image", "inspect", image, "--format", "{{index .RepoDigests 0}}"],
                              capture_output=True, text=True, timeout=60)
@@ -98,6 +106,8 @@ def main():
     p.add_argument("--melange", default="",
                    help="part d'heterozygotes desequilibres mesuree")
     p.add_argument("--images", default="")
+    p.add_argument("--moteur", default="docker",
+                   help="moteur de conteneurs : commande comment les images sont identifiees")
     p.add_argument("--cyrius", default="")
     p.add_argument("--pypgx", default="")
     p.add_argument("--equilibre", type=float, default=0.25)
@@ -159,7 +169,8 @@ def main():
         "module": version_module(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
         "ressources": ressources,
-        "outils": {img: version_image(img) for img in a.images.split(",") if img},
+        "outils": {img: version_image(img, a.moteur) for img in a.images.split(",") if img},
+        "moteur": a.moteur,
         "cyrius": {"chemin": a.cyrius, "version": version_git(a.cyrius)} if a.cyrius else {},
         "pypgx": version_pypgx(a.pypgx),
         "seuils": {"GQ": a.gq, "profondeur": a.profondeur,

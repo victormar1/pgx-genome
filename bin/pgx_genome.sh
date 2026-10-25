@@ -252,6 +252,10 @@ args_conteneur() {   # $1 dossier de travail  $2 image  [$3 dossier en lecture s
   CONT=()
   case "$MOTEUR" in
     docker)
+      if [ -f "$image" ]; then
+        echo "pgx_genome : $image est un fichier ; Docker nomme une image, un fichier .sif demande PGX_MOTEUR=apptainer" >&2
+        return 127
+      fi
       # Sous l'identite de l'appelant, et non en root : un demon classique
       # ecrirait les sorties au nom de root, et le module ne pourrait plus
       # purger son propre dossier de travail. Le dossier courant tient lieu de
@@ -263,11 +267,14 @@ args_conteneur() {   # $1 dossier de travail  $2 image  [$3 dossier en lecture s
       CONT+=(-w "$cwd" "$image")
       ;;
     apptainer|singularity)
+      # Un fichier .sif local est employe tel quel ; un nom d'image est tire
+      # du depot, ce qui demande le reseau au moment de l'execution.
       CONT=("$MOTEUR" exec --cleanenv --no-home)
       for d in "${DOSSIERS[@]}" ${extra:+"$extra"}; do CONT+=(--bind "$d":"$d":ro); done
       for d in "${ECRIVABLES[@]}"; do CONT+=(--bind "$d":"$d"); done
       [ -n "$env" ] && CONT+=(--env "$env")
-      CONT+=(--pwd "$cwd" "docker://$image")
+      if [ -f "$image" ]; then CONT+=(--pwd "$cwd" "$image")
+      else CONT+=(--pwd "$cwd" "docker://$image"); fi
       ;;
     *)
       echo "moteur de conteneurs inconnu : $MOTEUR" >&2; return 127
@@ -504,7 +511,7 @@ if [ "$RECEVABLE" != 1 ]; then
   python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
     --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
     --gq "$GQ" --profondeur "$PROF" \
-    --images "$IMAGES" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
+    --images "$IMAGES" --moteur "$MOTEUR" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
   --filtre "$([ -n "$IGNORER_FILTRE" ] && echo ignore || echo respecte)" \
   --perimetre-clinique "$RES/perimetre_rnpgx.json" >>"$JOURNAL" 2>&1
   dire "termine, reussite complete : False"
@@ -645,7 +652,7 @@ if [ -n "$MOTIF" ]; then
     --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
     --gq "$GQ" --profondeur "$PROF" --couverture-min "$COUV_MIN" \
     --couverture "$COUV" --melange-max "$MELANGE_MAX" --melange "${MEL_PART:-}" \
-    --images "$IMAGES" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
+    --images "$IMAGES" --moteur "$MOTEUR" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
     --filtre "$([ -n "$IGNORER_FILTRE" ] && echo ignore || echo respecte)" \
     --perimetre-clinique "$RES/perimetre_rnpgx.json" >>"$JOURNAL" 2>&1
   dire "termine, reussite complete : False"
@@ -715,7 +722,8 @@ empreinte_image() {
     docker) docker image inspect "$1" \
               --format '{{index .RepoDigests 0}}' 2>/dev/null \
             || docker image inspect "$1" --format '{{.Id}}' 2>/dev/null;;
-    *) echo "$1";;   # Apptainer resout l'image a chaque appel
+    *) if [ -f "$1" ]; then printf 'sha256:%s\n' "$(sha256sum "$1" | cut -d' ' -f1)"
+       else echo "$1"; fi;;   # une image de depot : Apptainer la resout a chaque appel
   esac
 }
 HLA_REPRIS=0
@@ -902,7 +910,7 @@ python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
   --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
   --gq "$GQ" --profondeur "$PROF" --couverture-min "$COUV_MIN" \
   --couverture "${COUV:-}" --melange-max "$MELANGE_MAX" --melange "${MEL_PART:-}" \
-  --images "$IMAGES" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
+  --images "$IMAGES" --moteur "$MOTEUR" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
   --filtre "$([ -n "$IGNORER_FILTRE" ] && echo ignore || echo respecte)" \
   --perimetre-clinique "$RES/perimetre_rnpgx.json" >>"$JOURNAL" 2>&1
 
