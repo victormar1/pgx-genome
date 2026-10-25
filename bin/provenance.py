@@ -44,8 +44,8 @@ def version_image(image):
 
 
 def version_pypgx(cmd):
-    """Le typeur complementaire ne tourne pas en conteneur : sa version est celle
-    de l installation, et elle doit figurer au meme titre que les images."""
+    """La commande du typeur complementaire, telle que l etage l a lancee, et la
+    version qu elle annonce : celle de son image ou de l installation de l hote."""
     if not cmd:
         return {}
     try:

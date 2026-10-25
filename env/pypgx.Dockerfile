@@ -45,4 +45,5 @@ j = glob.glob(os.path.join(d, 'api', 'beagle*.jar')); \
 assert j, 'archive de phasage absente'; \
 print('phasage :', os.path.basename(j[0]))"
 
-ENTRYPOINT ["pypgx"]
+# Pas de point d'entree : le module nomme la commande, comme pour ses trois
+# autres images, et Apptainer n'en tiendrait de toute facon pas compte.
