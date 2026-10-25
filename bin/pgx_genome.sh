@@ -150,9 +150,15 @@ ETATS="$SORTIE/travail/etats.tsv"
 # peuvent tourner ensemble, et rien ne tourne pendant que la recevabilite ou une
 # execution complete purge le dossier de travail.
 VERROUS=()
+HOTE=$(hostname 2>/dev/null || echo inconnu)
 vivant() {   # $1 dossier de verrou : tenu par un autre processus vivant ?
   local autre
   [ -d "$1" ] || return 1
+  # Un verrou pose depuis un autre hote ne se juge pas d'ici : le numero de
+  # processus n'y veut rien dire, et sur un dossier partage entre noeuds, le
+  # reprendre ecraserait le travail d'une tache vivante ailleurs. Il est tenu
+  # pour vivant ; apres une panne de noeud, l'exploitant le retire a la main.
+  [ -s "$1/hote" ] && [ "$(cat "$1/hote")" != "$HOTE" ] && return 0
   autre=$(cat "$1/pid" 2>/dev/null)
   [ -n "$autre" ] && [ "$autre" != "$$" ] && kill -0 "$autre" 2>/dev/null
 }
@@ -163,6 +169,7 @@ prendre() {  # $1 dossier de verrou
     rm -rf "$1" && mkdir "$1" 2>/dev/null || return 1
   fi
   echo "$$" > "$1/pid"
+  echo "$HOTE" > "$1/hote"
   date -Iseconds > "$1/depuis"
   VERROUS+=("$1")
 }
@@ -174,7 +181,7 @@ refus_verrou() {  # $1 message
 }
 if [ "$DECOUPE" = 0 ]; then
   prendre "$SORTIE/.verrou" || refus_verrou \
-    "une autre execution travaille deja dans $SORTIE (processus $(cat "$SORTIE/.verrou/pid" 2>/dev/null))"
+    "une autre execution travaille deja dans $SORTIE (processus $(cat "$SORTIE/.verrou/pid" 2>/dev/null) sur $(cat "$SORTIE/.verrou/hote" 2>/dev/null))"
   for v in "$SORTIE"/.verrou.*; do
     vivant "$v" && refus_verrou "l'etage ${v##*.verrou.} travaille deja dans $SORTIE"
   done
@@ -245,7 +252,11 @@ args_conteneur() {   # $1 dossier de travail  $2 image  [$3 dossier en lecture s
   CONT=()
   case "$MOTEUR" in
     docker)
-      CONT=(docker run --rm)
+      # Sous l'identite de l'appelant, et non en root : un demon classique
+      # ecrirait les sorties au nom de root, et le module ne pourrait plus
+      # purger son propre dossier de travail. Le dossier courant tient lieu de
+      # dossier personnel, seul endroit garanti en ecriture a cette identite.
+      CONT=(docker run --rm --user "$(id -u):$(id -g)" -e "HOME=$cwd")
       for d in "${DOSSIERS[@]}" ${extra:+"$extra"}; do CONT+=(-v "$d":"$d":ro); done
       for d in "${ECRIVABLES[@]}"; do CONT+=(-v "$d":"$d"); done
       [ -n "$env" ] && CONT+=(-e "$env")
@@ -649,7 +660,9 @@ if [ -z "$CYRIUS" ]; then
   dire "3. CYP2D6 : ECHEC, chemin Cyrius non fourni (PGX_CYRIUS)"
   etat cyp2d6 ECHEC 0 "PGX_CYRIUS non defini"
 elif [ "$RECEVABLE" = 1 ]; then
-  d=$(mktemp -d); echo "$CRAM" > "$d/m.txt"
+  # Dans le dossier de travail, pas dans /tmp de l'hote : un noeud de calcul
+  # peut l'avoir petit, en lecture seule ou non partage.
+  d=$(mktemp -d -p "$T" cyrius.XXXXXX); echo "$CRAM" > "$d/m.txt"
   (cd "$CYRIUS" && python3 star_caller.py -m "$d/m.txt" -g 38 -o "$d" -p x -t "$FILS" \
       ${FASTA:+-r "$FASTA"} >>"$JOURNAL" 2>&1)
   rc=$?
