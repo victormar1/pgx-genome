@@ -347,5 +347,27 @@ class Couverture(unittest.TestCase):
         self.assertIn("18", L.couverture(meta, 18))
         self.assertNotIn("40", L.couverture(meta, 18))
 
+
+class EnTete(unittest.TestCase):
+    """Un compte rendu de patient ne doit pas pouvoir sortir avec la mention
+    « ne concerne aucun patient » : elle tombe avec l'identite, sans option."""
+
+    def test_sans_identite_le_document_est_un_prototype(self):
+        self.assertTrue(L.mention_prototype(False, False))
+
+    def test_l_identite_leve_la_mention(self):
+        self.assertFalse(L.mention_prototype(False, True))
+
+    def test_l_option_la_leve_aussi(self):
+        self.assertFalse(L.mention_prototype(True, False))
+
+    def test_le_contexte_vient_du_fichier_d_identite(self):
+        self.assertEqual(L.contexte({"contexte": "néphropathies"}, ""), "néphropathies")
+
+    def test_l_argument_vaut_quand_le_fichier_n_en_porte_pas(self):
+        self.assertEqual(L.contexte({"patient": "X"}, "épilepsie"), "épilepsie")
+        self.assertEqual(L.contexte(None, ""), "")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

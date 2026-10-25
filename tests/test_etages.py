@@ -119,6 +119,14 @@ class Garanties(unittest.TestCase):
     def test_l_ajout_a_la_table_passe_par_un_verrou(self):
         self.assertRegex(self.s, r"etat\(\) \{ inscrire")
 
+    def test_le_rendu_recoit_l_identite_et_le_contexte(self):
+        # Sans eux, tout compte rendu sortirait en prototype, sans preindication :
+        # une plateforme ne pourrait pas produire un document de patient.
+        i = self.s.index("compte_rendu.py")
+        bloc = self.s[i:self.s.index("\n\n", i)]
+        self.assertIn('--identite "$IDENTITE"', bloc)
+        self.assertIn('--contexte "$CONTEXTE"', bloc)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

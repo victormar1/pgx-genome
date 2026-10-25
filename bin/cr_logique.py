@@ -233,6 +233,23 @@ def recommandations(rep, genes, mesures, les_ambigus, tr, meds):
     return brutes
 
 
+# ------------------------------------------------------------- en-tete du CR
+def mention_prototype(sans_mention, identite_fournie):
+    """Un document etabli pour un patient identifie n'est pas un prototype.
+
+    La mention tombe des que l'identite est fournie, sans option a ajouter :
+    une option oubliee par la plateforme ferait sortir un compte rendu de
+    patient portant « ne concerne aucun patient »."""
+    return not (sans_mention or identite_fournie)
+
+
+def contexte(identite, argument):
+    """La preindication vient du fichier d'identite, comme le patient ; un
+    argument explicite reste possible et l'emporte sur un fichier qui n'en
+    porte pas."""
+    return (identite or {}).get("contexte", "") or argument or ""
+
+
 def par_medicament(brutes):
     """Un medicament, la consigne la plus severe. A severite egale, les textes
     distincts s'additionnent plutot que de s'ecraser : deux genes peuvent
