@@ -1,4 +1,4 @@
-﻿"# Prélèvements du banc — 1000 Genomes Project, séquençage 30x haute couverture NYGC, aligné GRCh38"
+# Prélèvements soumis au banc — 1000 Genomes Project, séquençage 30x haute couverture NYGC, aligné GRCh38. 256 soumis : 242 analysés, 13 refusés à l'entrée, 1 en échec d'étage. Produit par outils/construire_banc.py.
 Prélèvement,Source,Population,Statut,Vérité GeT-RM,Vérité HLA Sanger
 HG00100,1000G 30x (NYGC),GBR,analysé,non,oui
 HG00101,1000G 30x (NYGC),GBR,analysé,non,oui
@@ -93,7 +93,7 @@ HG00734,1000G 30x (NYGC),PUR,analysé,oui,oui
 HG00736,1000G 30x (NYGC),PUR,analysé,non,oui
 HG01047,1000G 30x (NYGC),PUR,analysé,non,oui
 HG01048,1000G 30x (NYGC),PUR,analysé,non,oui
-HG01049,1000G 30x (NYGC),PUR,analysé,non,oui
+HG01049,1000G 30x (NYGC),PUR,échec : cyp2d6,non,oui
 HG01072,1000G 30x (NYGC),PUR,analysé,non,oui
 HG01082,1000G 30x (NYGC),PUR,analysé,non,oui
 HG01083,1000G 30x (NYGC),PUR,analysé,oui,oui
@@ -110,6 +110,7 @@ HG01374,1000G 30x (NYGC),CLM,analysé,oui,oui
 HG01437,1000G 30x (NYGC),CLM,analysé,non,oui
 HG01456,1000G 30x (NYGC),CLM,analysé,oui,oui
 HG01461,1000G 30x (NYGC),CLM,analysé,non,oui
+HG01465,1000G 30x (NYGC),CLM,refusé : samtools quickcheck : alignement tronque,oui,oui
 HG01474,1000G 30x (NYGC),CLM,analysé,oui,non
 HG01631,1000G 30x (NYGC),IBS,analysé,oui,non
 HG01680,1000G 30x (NYGC),IBS,analysé,oui,non
@@ -117,6 +118,8 @@ HG01697,1000G 30x (NYGC),IBS,analysé,oui,non
 HG01809,1000G 30x (NYGC),CDX,analysé,oui,non
 HG01816,1000G 30x (NYGC),CDX,analysé,oui,non
 HG01865,1000G 30x (NYGC),KHV,analysé,oui,non
+HG02029,1000G 30x (NYGC),KHV,analysé,oui,non
+HG02054,1000G 30x (NYGC),ACB,analysé,oui,non
 HG02087,1000G 30x (NYGC),KHV,analysé,oui,non
 HG02134,1000G 30x (NYGC),KHV,analysé,oui,non
 HG02146,1000G 30x (NYGC),PEL,analysé,oui,non
@@ -129,8 +132,11 @@ HG02861,1000G 30x (NYGC),GWD,analysé,oui,non
 HG02952,1000G 30x (NYGC),ESN,analysé,oui,non
 HG03115,1000G 30x (NYGC),ESN,analysé,oui,non
 HG03159,1000G 30x (NYGC),ESN,analysé,oui,non
+HG03225,1000G 30x (NYGC),MSL,refusé : samtools quickcheck : alignement tronque,oui,non
 HG03246,1000G 30x (NYGC),GWD,analysé,oui,non
+HG03259,1000G 30x (NYGC),GWD,refusé : samtools quickcheck : alignement tronque,oui,non
 HG03370,1000G 30x (NYGC),ESN,analysé,oui,non
+HG03521,1000G 30x (NYGC),ESN,refusé : samtools quickcheck : alignement tronque,oui,non
 HG03619,1000G 30x (NYGC),PJL,analysé,oui,non
 NA06991,1000G 30x (NYGC),CEU,analysé,oui,oui
 NA06993,1000G 30x (NYGC),CEU,analysé,oui,oui
@@ -168,9 +174,12 @@ NA12248,1000G 30x (NYGC),CEU,analysé,oui,oui
 NA12273,1000G 30x (NYGC),CEU,analysé,oui,oui
 NA12336,1000G 30x (NYGC),CEU,analysé,oui,non
 NA12717,1000G 30x (NYGC),CEU,analysé,oui,non
-NA12813,1000G 30x (NYGC),CEU,refusé : assemblage : chr12 absent de l alignement ; c,oui,non
+NA12753,1000G 30x (NYGC),CEU,refusé : samtools quickcheck : alignement tronque,oui,non
+NA12813,1000G 30x (NYGC),CEU,refusé : assemblage : chr12 absent de l alignement ; chr22 absent de l alignement ; chr13 absent de l alignement,oui,non
+NA12815,1000G 30x (NYGC),CEU,refusé : samtools quickcheck : alignement tronque,oui,non
 NA12873,1000G 30x (NYGC),CEU,analysé,oui,non
 NA12878,1000G 30x (NYGC),CEU,analysé,oui,non
+NA12892,1000G 30x (NYGC),CEU,refusé : samtools quickcheck : alignement tronque,oui,non
 NA18484,1000G 30x (NYGC),YRI,analysé,oui,non
 NA18500,1000G 30x (NYGC),YRI,analysé,non,oui
 NA18518,1000G 30x (NYGC),YRI,analysé,oui,non
@@ -181,6 +190,7 @@ NA18545,1000G 30x (NYGC),CHB,analysé,oui,oui
 NA18547,1000G 30x (NYGC),CHB,analysé,non,oui
 NA18552,1000G 30x (NYGC),CHB,analysé,oui,oui
 NA18559,1000G 30x (NYGC),CHB,analysé,non,oui
+NA18561,1000G 30x (NYGC),CHB,refusé : samtools quickcheck : alignement tronque,oui,oui
 NA18563,1000G 30x (NYGC),CHB,analysé,oui,oui
 NA18564,1000G 30x (NYGC),CHB,analysé,oui,oui
 NA18565,1000G 30x (NYGC),CHB,analysé,oui,non
@@ -211,6 +221,7 @@ NA18980,1000G 30x (NYGC),JPT,analysé,oui,oui
 NA18992,1000G 30x (NYGC),JPT,refusé : samtools quickcheck : alignement tronque,oui,oui
 NA19003,1000G 30x (NYGC),JPT,analysé,oui,oui
 NA19007,1000G 30x (NYGC),JPT,analysé,oui,oui
+NA19035,1000G 30x (NYGC),LWK,refusé : samtools quickcheck : alignement tronque,oui,oui
 NA19075,1000G 30x (NYGC),JPT,analysé,oui,oui
 NA19078,1000G 30x (NYGC),JPT,analysé,non,oui
 NA19079,1000G 30x (NYGC),JPT,analysé,oui,oui
@@ -227,6 +238,7 @@ NA19176,1000G 30x (NYGC),YRI,analysé,oui,non
 NA19207,1000G 30x (NYGC),YRI,analysé,oui,oui
 NA19213,1000G 30x (NYGC),YRI,analysé,oui,non
 NA19226,1000G 30x (NYGC),YRI,analysé,oui,non
+NA19238,1000G 30x (NYGC),YRI,refusé : samtools quickcheck : alignement tronque,oui,oui
 NA19239,1000G 30x (NYGC),YRI,analysé,oui,oui
 NA19317,1000G 30x (NYGC),LWK,analysé,oui,oui
 NA19327,1000G 30x (NYGC),LWK,analysé,oui,oui
