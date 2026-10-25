@@ -283,7 +283,8 @@ def main():
             print("positions complementaires deja suivies, ignorees : %d" % len(doublons))
     clinique = set()
     if a.clinique and os.path.exists(a.clinique):
-        clinique = set(json.load(open(a.clinique, encoding="utf-8")).get("genes", {}))
+        with open(a.clinique, encoding="utf-8") as fh:
+            clinique = set(json.load(fh).get("genes", {}))
     prof = lire_profondeur(a.profondeur)
     if not prof:
         print("profondeur absente : le perimetre ne peut pas etre etabli", file=sys.stderr)
