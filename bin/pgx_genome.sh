@@ -14,13 +14,19 @@
 # etage optionnel : non arme, il s'inscrit IGNORE et ne pese pas sur le resultat.
 #
 # Options :
+#   --echantillon ID   identifiant du prelevement    (defaut : nom de l'alignement)
 #   --fasta CHEMIN     reference d'alignement, requise pour un CRAM
+#   --identite FICHIER JSON {patient, naissance, contexte} pour le compte rendu ;
+#                      fourni, il leve la mention prototype. Un fichier et non
+#                      des arguments : la table des processus est lisible par tous
+#   --contexte TEXTE   preindication portee sur le compte rendu
 #   --gq N             seuil de qualite de genotype           (defaut 20)
 #   --profondeur N     seuil de profondeur par position       (defaut 10)
 #   --couverture-min N couverture mediane minimale du perimetre (defaut 18,
 #                      0 pour accepter un genome hors du domaine valide)
 #   --melange-max N    part d'heterozygotes desequilibres au-dela de laquelle
 #                      l'echantillon est tenu pour melange     (defaut 35, 0 leve)
+#   --ignorer-filtre   retient les sites que l'appelant a rejetes (FILTER)
 #   --fils N           fils pour samtools, Cyrius et OptiType (defaut 4)
 #   --reprise          reutilise les intermediaires si les entrees sont identiques
 #   --forcer           ecrit dans un dossier non vide sans reprise
@@ -28,9 +34,10 @@
 #                      recevabilite filtre tranche qc cyp2d6 hla pypgx appels
 #                      pharmcat rendu provenance. La recevabilite ouvre le
 #                      dossier ; les autres le reprennent la ou il en est.
+#   --version          version du module
 #
 # Variables : PGX_FASTA PGX_CYRIUS PGX_GQ PGX_PROFONDEUR PGX_COUVERTURE_MIN
-#             PGX_MELANGE_MAX PGX_FILS
+#             PGX_MELANGE_MAX PGX_IGNORER_FILTRE PGX_FILS PGX_MOTEUR
 #             PGX_IMG_BCFTOOLS PGX_IMG_PHARMCAT PGX_IMG_OPTITYPE PGX_PYPGX
 
 set -uo pipefail
@@ -38,7 +45,7 @@ set -uo pipefail
 RACINE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RES="$RACINE/ressources"
 
-CRAM=""; VCF=""; SORTIE=""; ECH=""; REPRISE=0; FORCER=0; IDENTITE=""
+CRAM=""; VCF=""; SORTIE=""; ECH=""; REPRISE=0; FORCER=0; IDENTITE=""; CONTEXTE=""
 ETAGES=""; RECEVABLE=0
 FASTA="${PGX_FASTA:-}"
 GQ="${PGX_GQ:-20}"
@@ -85,11 +92,12 @@ while [ $# -gt 0 ]; do
     --melange-max) MELANGE_MAX="$2"; shift 2;;
     --fils) FILS="$2"; shift 2;;
     --identite) IDENTITE="$2"; shift 2;;
+    --contexte) CONTEXTE="$2"; shift 2;;
     --reprise) REPRISE=1; shift;;
     --forcer) FORCER=1; shift;;
     --ignorer-filtre) IGNORER_FILTRE="--ignorer-filtre"; shift;;
     --etage) ETAGES="${ETAGES:+$ETAGES,}$2"; shift 2;;
-    -h|--help) sed -n '2,35p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0;;
+    -h|--help) sed -n '2,42p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0;;
     --version) cat "$RACINE/VERSION" 2>/dev/null || echo inconnue; exit 0;;
     *) echo "option inconnue : $1" >&2; exit 2;;
   esac
@@ -825,11 +833,12 @@ t0=$(date +%s)
 if [ -s "$RAP" ] && [ -s "$T/perimetre.json" ]; then
   # L'identite, si elle a ete fournie, passe par un chemin de fichier et non
   # par sa valeur : un nom en argument serait lisible dans la table des
-  # processus et dans les journaux de l'ordonnanceur.
+  # processus et dans les journaux de l'ordonnanceur. Fournie, elle leve la
+  # mention prototype du document.
   if python3 "$RACINE/bin/compte_rendu.py" --rapport "$RAP" --perimetre "$T/perimetre.json" \
        --sortie "$SORTIE/sortie/CR_$ECH.pdf" --echantillon "$ECH" \
        --couverture-min "$COUV_MIN" \
-       ${IDENTITE:+--identite "$IDENTITE"} >>"$JOURNAL" 2>&1 \
+       ${IDENTITE:+--identite "$IDENTITE"} ${CONTEXTE:+--contexte "$CONTEXTE"} >>"$JOURNAL" 2>&1 \
      && [ -s "$SORTIE/sortie/CR_$ECH.pdf" ]; then
     dire "7. compte rendu : $SORTIE/sortie/CR_$ECH.pdf"
     etat rendu OK $(( $(date +%s)-t0 )) "CR_$ECH.pdf"

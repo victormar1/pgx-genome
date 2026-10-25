@@ -36,8 +36,8 @@ _p.add_argument("--echantillon", default="")
 # se retrouve dans les journaux de l'ordonnanceur. Le fichier attendu est un
 # JSON a deux cles, « patient » et « naissance ».
 _p.add_argument("--identite", default="",
-                help="JSON {patient, naissance} fourni par le SIL ; "
-                     "a preferer aux deux arguments suivants")
+                help="JSON {patient, naissance, contexte} fourni par le SIL ; "
+                     "a preferer aux arguments suivants, et leve la mention prototype")
 _p.add_argument("--patient", default="",
                 help="deconseille : visible dans la table des processus")
 _p.add_argument("--naissance", default="",
@@ -60,7 +60,7 @@ if os.path.exists(_vf):
     with open(_vf, encoding="utf-8") as _fh:
         VERSION_MODULE = _fh.read().strip()
 
-PATIENT, NAISSANCE = _a.patient, _a.naissance
+PATIENT, NAISSANCE, _id = _a.patient, _a.naissance, {}
 if _a.identite:
     with open(_a.identite, encoding="utf-8") as _fh:
         _id = json.load(_fh)
@@ -202,13 +202,14 @@ def tableau(rows, widths, fonds=None):
 
 # ------------------------------------------------------------------ document
 h = [Paragraph("COMPTE RENDU DE PHARMACOGÉNÉTIQUE", st_titre), Spacer(1, 4)]
-proto = not _a.sans_mention_prototype
+proto = L.mention_prototype(_a.sans_mention_prototype, bool(_a.identite))
+CONTEXTE = L.contexte(_id, _a.contexte)
 ident = []
 if PATIENT:
     ident.append(("Patient", e_(PATIENT)
                   + (f" — né(e) le {e_(NAISSANCE)}" if NAISSANCE else "")))
 ident.append(("Prélèvement", f"{e_(ECH)}" + (" — génome public du projet 1000 Genomes, aucun patient" if proto else "")))
-ident.append(("Contexte", f"Préindication PFMG : {e_(_a.contexte)}" if _a.contexte else
+ident.append(("Contexte", f"Préindication PFMG : {e_(CONTEXTE)}" if CONTEXTE else
               "Sous-ensemble néphrologie et épilepsie du panel socle RNPGx 2026"))
 ident.append(("Analyse", "Extraction pharmacogénétique secondaire à partir du génome (lectures courtes, GRCh38) — "
               f"{len(MESURES)} gènes rendus sur 12"))
