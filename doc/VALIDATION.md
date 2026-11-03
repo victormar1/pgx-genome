@@ -111,7 +111,7 @@ couvrant le génome entier, contig mitochondrial compris, et n'a rien à ajouter
 
 | Gène | Rendus | Non conclusifs | Concordance avec la mesure |
 |---|---|---|---|
-| MT-RNR1 | 242 / 243 | 1 (contig `chrM` absent du fichier de variants) | **aucun porteur sur ce banc** |
+| MT-RNR1 | 242 / 243 | 1 (contig `chrM` absent du fichier de variants) | aucun porteur dans le lot ; 2 porteurs de m.1095T>C hors lot, voir 4.1 |
 | BCHE | 243 / 243 | 0 | 243 / 243 sur ses deux positions |
 | MTHFR | 243 / 243 | 0 | 243 / 243 sur C677T et A1298C |
 | POR | 243 / 243 | 0 | 243 / 243 sur `rs1057868` |
@@ -122,8 +122,10 @@ conclusif est le comportement voulu : sans le contig mitochondrial dans le
 fichier de variants, le typeur rendrait « référence » — donc « risque normal de
 surdité sous aminoside » — sur un gène jamais lu.
 
-**L'appel positif de MT-RNR1 est exercé par un cas construit.** Un fichier de
-variants portant `m.1555A>G` en homoplasmie traverse la chaîne entière :
+**L'appel positif de MT-RNR1** est éprouvé sur deux porteurs réels de
+m.1095T>C (limite 4.1) ; pour m.1555A>G, faute de porteur, il est exercé par un
+cas construit. Un fichier de variants portant `m.1555A>G` en homoplasmie
+traverse la chaîne entière :
 l'étage le type, l'allèle part en appel externe, l'interpréteur rend « risque
 augmenté de surdité sous aminoside », **onze recommandations CPIC fortes** sont
 générées, et la consigne « éviter les aminosides » figure au compte rendu avec
@@ -509,13 +511,25 @@ réservée à la tâche ; sous Apptainer, ils y restent tenus.
 
 ## 4. Limites connues, à déclarer
 
-**4.1 MT-RNR1 n'a aucun porteur sur le banc.** Ses trois positions du panel sont
-de référence sur les 243 génomes. Le gène porte pourtant toute la valeur
-clinique du typage complémentaire, puisqu'il est le seul à rendre un phénotype
-et une recommandation. L'appel négatif est vérifié 242 fois ; l'appel positif
-l'est par un cas construit (`outils/cas_construit.py`), qui valide la chaîne
-logicielle et non la détection. **Un matériau de référence porteur reste
-nécessaire.**
+**4.1 MT-RNR1 : un seul des trois variants est éprouvé sur porteur réel.** Ses
+trois positions du panel sont de référence sur les 243 génomes du lot ;
+l'appel négatif y est vérifié 242 fois. Deux porteurs de m.1095T>C ont été
+trouvés hors du lot, dans les appels mitochondriaux de la phase 3 du 1000
+Genomes — une autre série de séquençage, à basse couverture, et un autre appel —
+puis passés en entier dans le module sur leur alignement 30× :
+
+| | Lectures portant C à m.1095 | Module | Compte rendu |
+|---|---|---|---|
+| Porteur 1 | 13 255 / 13 269 | `m.1095T>C`, risque augmenté | « Éviter les aminosides », onze molécules |
+| Porteur 2 | 14 772 / 14 782 | `m.1095T>C`, risque augmenté | « Éviter les aminosides », onze molécules |
+
+Les deux sont homoplasmiques. **m.1555A>G et m.1494C>T n'ont aucun porteur
+disponible** : la phase 3 n'en compte aucun sur 2 504 individus, et leur appel
+positif n'est exercé que par un cas construit (`outils/cas_construit.py`), qui
+valide la chaîne logicielle et non la détection. Un porteur hétéroplasmique n'a
+pas été rencontré. Les génotypes mitochondriaux du banc viennent d'un appel
+bcftools diploïde (§ 3.3) ; un appeleur mitochondrial de plateforme, qui écrit
+une fraction d'hétéroplasmie, est à confronter au génome de qualification.
 
 **4.2 POR et ABCG2 n'ont pas de vérité GeT-RM ; ils sont confrontés à une
 puce.** GeT-RM couvre 41 gènes, et ni l'un ni l'autre. Leur position décisive est
@@ -583,7 +597,8 @@ sur le banc ; aucun texte rendu n'est laissé sans traduction.
 traduction, médicament, gène, nombre de comptes rendus concernés, et une colonne
 de visa — classée par usage, pour que la relecture commence par ce qui sert. Les
 15 entrées qu'aucun compte rendu n'emploie y figurent à part : l'avertissement
-sur les aminosides en tête, faute de porteur de MT-RNR1 (limite 4.1).
+sur les aminosides en tête. Elle est depuis employée par les deux porteurs de
+m.1095T>C (limite 4.1), et la relecture doit la viser en premier.
 
 **4.6 Un mélange d'échantillons de 20 % n'est pas détecté par le module.** Il
 modifie le document rendu (§ 3.7). Sur les positions que le module lit,
