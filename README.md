@@ -56,6 +56,7 @@ protocole de revalidation sont dans `doc/VALIDATION.md`.
 | Génomes soumis, refusés à l'entrée, recevables, menés au bout | 256, 13, 243, **242** | 3.2 |
 | Concordance sur les dix gènes à vérité | **1000 / 1009 = 99,1 %** ; 100 % sur les huit gènes à allèles étoile | 3.1 |
 | Allèles HLA à risque (A\*31:01, B\*15:02, B\*57:01, B\*58:01, B\*15:11) | **81 porteurs sur 81 retrouvés, 0 faux positif** | 3.1 |
+| ABCG2 et POR, absents de GeT-RM, contre une puce de génotypage | **228 / 228** et **204 / 204** concordants | 4.2 |
 | Domaine de validité en couverture | aucun allèle à conséquence clinique perdu jusqu'à 18 × ; neuf faux appels à 11 × | 3.4 |
 | Indépendance à l'appeleur de variants | 103 683 positions, 99,924 % ; aucun écart de phénotype ni de recommandation sur 29 génomes | 3.5 |
 | Mélange d'échantillons | refusé à 30 %, **non détecté à 20 %** : un contrôle de contamination reste nécessaire en amont | 3.7 |
@@ -64,10 +65,9 @@ protocole de revalidation sont dans `doc/VALIDATION.md`.
 <p align="center"><img src="doc/figures/concordance_par_gene.svg" alt="Concordance du module contre la vérité, par gène : 100 % sur les huit gènes à allèles étoile, 97,9 % et 97,4 % sur HLA-A et HLA-B" width="720"></p>
 
 Les neuf écarts portent tous sur le second champ d'un allèle HLA, sans
-conséquence de prescription. POR et ABCG2 sont dans le périmètre sans vérité sur
-ce banc, et MT-RNR1 n'y a aucun porteur : son appel positif n'est exercé que par
-un cas construit. Les traductions des recommandations CPIC n'ont pas de
-validation pharmacologique.
+conséquence de prescription. MT-RNR1 n'a aucun porteur sur ce banc : son appel
+positif n'est exercé que par un cas construit. Les traductions des
+recommandations CPIC n'ont pas de validation pharmacologique.
 
 ## Prérequis
 
