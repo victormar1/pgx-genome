@@ -306,10 +306,11 @@ titre « Hors périmètre ». Leur validation clinique n'a pas été conduite.
 
 Deux réserves sur le périmètre lui-même. **POR** n'a pas de table dans
 l'interpréteur : le typage complémentaire le rend en allèle nommé, sans phénotype
-ni recommandation. **ABCG2** n'a aucun échantillon de référence dans la table du
-CDC, et NUDT15 seulement six : le banc ne prouve donc rien sur l'allopurinol par
-ce gène, et peu sur l'azathioprine. Ce que le banc établit, gène par gène, est
-dans `doc/VALIDATION.md`, § 3.1.
+ni recommandation. **ABCG2** n'a aucun échantillon dans la table du CDC : sa
+position décisive est confrontée à une puce de génotypage, 228 génomes sur 228
+concordants. **NUDT15** n'y a que six échantillons, ce qui prouve peu sur
+l'azathioprine. Ce que le banc établit, gène par gène, est dans
+`doc/VALIDATION.md`, § 3.1 et limite 4.2.
 
 ## 5 bis. Ce que le module ne fait pas
 

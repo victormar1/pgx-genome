@@ -56,8 +56,9 @@ GeT-RM (CDC) pour les gènes à allèles étoile, typage HLA Sanger (Gourraud
 | CYP3A4 | 101 / 101 | | HLA-A | 190 / 194 |
 | CYP3A5 | 80 / 80 | | HLA-B | 189 / 194 |
 
-POR et ABCG2 sont dans le périmètre sans vérité sur ce banc (limite 4.2) ;
-MT-RNR1 n'y a aucun porteur (limite 4.1).
+POR et ABCG2, absents de GeT-RM, sont confrontés à la puce Omni 2.5 du 1000
+Genomes : 204 / 204 et 228 / 228 concordants (limite 4.2). MT-RNR1 est traité en
+4.1.
 
 <p align="center"><img src="figures/concordance_par_gene.svg" alt="Concordance du module contre la vérité, par gène : 100 % sur les huit gènes à allèles étoile, 97,9 % et 97,4 % sur HLA-A et HLA-B" width="720"></p>
 
@@ -516,32 +517,29 @@ l'est par un cas construit (`outils/cas_construit.py`), qui valide la chaîne
 logicielle et non la détection. **Un matériau de référence porteur reste
 nécessaire.**
 
-**4.2 POR et ABCG2 sont rendus sans vérité.** Aucun matériau de référence du
-banc ne les porte : GeT-RM couvre 41 gènes, et ni l'un ni l'autre. Ce qui est
-mesurable à défaut de vérité :
+**4.2 POR et ABCG2 n'ont pas de vérité GeT-RM ; ils sont confrontés à une
+puce.** GeT-RM couvre 41 gènes, et ni l'un ni l'autre. Leur position décisive est
+confrontée aux génotypes de la puce Illumina Omni 2.5 du 1000 Genomes : une
+technologie indépendante du séquençage et de tout appeleur de variants, sur les
+mêmes individus.
 
 | | ABCG2 `rs2231142` | POR `rs1057868` |
 |---|---|---|
-| Position lue | **243 / 243** | **243 / 243** |
-| Profondeur médiane | 33 × | 53 × |
-| GQ médian | 96 | 127 |
-| Deux appeleurs indépendants | **243 / 243 concordants** | hors du fichier de variants |
-| Hétérozygotes, part de l'allèle mineur | 45, médiane 0,448, minimum 0,312 | — |
-| Génotypes observés | 78 % / 19 % / 3 % | 47 % / 46 % / 7 % |
+| Génomes du lot génotypés sur la puce | 228 | 204 |
+| **Concordants avec la puce** | **228 / 228** | **204 / 204** |
+| Répartition 0 / 1 / 2 allèles alternatifs | 176 / 44 / 8 | 89 / 98 / 17 |
+| Ce que le module rend et qui est comparé | génotype du contrôle qualité, celui que l'interpréteur reçoit | diplotype du typage complémentaire ; `*28` et `*36` portent la position |
+| Profondeur médiane, GQ médian | 33 ×, 96 | 53 ×, 127 |
+| Deux appeleurs de séquençage | 243 / 243 concordants (§ 3.5) | hors du fichier de variants |
 
-ABCG2 est appelé depuis le fichier de variants, et les deux appeleurs s'accordent
-sur les 243 génomes ; ses hétérozygotes sont équilibrés, ce qui exclut la perte
-d'un allèle. POR vient du typage complémentaire, dont la concordance position par
-position est établie en 3.3 ; sa position de classe 2 est mesurée, jamais
-interprétée.
+Quinze génomes du lot ne figurent pas sur la puce, et 24 n'y ont pas de génotype
+à la position de POR. Pour ABCG2, la table CPIC ne retient que cette position :
+le phénotype rendu en découle directement. POR, de classe 2, est rendu en allèle
+nommé sans interprétation.
 
-**Ce que cela ne prouve pas.** Deux appeleurs qui s'accordent peuvent se tromper
-ensemble, et une lecture équilibrée à bonne profondeur n'établit pas le bon
-allèle. Ces mesures excluent les modes de défaillance connus — perte d'allèle,
-position non lue, qualité insuffisante — elles ne remplacent pas un matériau de
-référence. L'écart à l'équilibre de Hardy-Weinberg n'est pas utilisable ici : la
-cohorte mêle des populations où la fréquence de `rs2231142` varie fortement, et
-la structure de population suffit à l'expliquer.
+**Ce que cela ne prouve pas.** La confrontation porte sur une position par gène,
+pas sur un diplotype complet : un allèle de POR défini par une autre position
+que `rs1057868` n'est pas vérifié ici.
 
 **4.3 Le seuil GQ ≥ 20 est mesuré sur deux appeleurs, pas sur tous.** Le GQ n'a
 pas la même échelle d'un appeleur à l'autre : plafond 99 pour GATK, 127 pour
