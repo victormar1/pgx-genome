@@ -5,12 +5,14 @@ constatee, et porte en commentaire ce qu'il empeche de revenir.
 Aucune dependance externe : les fonctions testees ne font pas appel au typeur,
 qui est invoque en sous-processus ailleurs dans le module.
 """
+import io
 import json
 import os
 import sys
 import tempfile
 import unittest
 import zipfile
+from unittest import mock
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(RACINE, "bin"))
@@ -235,6 +237,45 @@ class LectureDesEntrees(unittest.TestCase):
         # fichier de controle, et un genotype douteux passe en silence.
         with self.assertRaises(SystemExit):
             t.exige(os.path.join(tempfile.gettempdir(), "absent_xyz.tsv"), "qualites")
+
+
+class TypeurEnPanne(unittest.TestCase):
+    """Un typeur qui ne tourne pas est une panne de l'installation : l'etage doit
+    echouer. Rendu en « non conclusif », il passait en reussite complete, et
+    MT-RNR1 perdait ses recommandations sans un mot."""
+
+    def test_un_typeur_qui_ne_tourne_pas_fait_echouer_l_etage(self):
+        d = tempfile.mkdtemp()
+        p = lambda n: os.path.join(d, n)
+        cat = {"genes": {"POR": {"classe_rnpgx": "2", "contig": "chr7",
+                                 "positions": ["chr7:75985688"],
+                                 "positions_panel": ["chr7:75985688"],
+                                 "alleles_positions": {"*28": ["chr7:75985688"]},
+                                 "allele_reference": "*1", "phenotype": False,
+                                 "appel_externe_pharmcat": False, "haploide": False}}}
+        with open(p("cat.json"), "w", encoding="utf-8") as fh:
+            json.dump(cat, fh)
+        with open(p("prof.txt"), "w", encoding="utf-8") as fh:
+            fh.write("chr7\t75985688\t40\n")
+        with open(p("contigs.txt"), "w", encoding="utf-8") as fh:
+            fh.write("chr7\n")
+        with open(p("qual.tsv"), "w", encoding="utf-8") as fh:
+            fh.write("chr7\t75985688\tPASS\t99\t40\n")
+        with open(p("panne.py"), "w", encoding="utf-8") as fh:
+            fh.write("import sys\nsys.stderr.write('FATAL: image introuvable\\n')\nsys.exit(255)\n")
+        argv = ["typage_pypgx.py", "--catalogue", p("cat.json"), "--variants", p("v.vcf.gz"),
+                "--profondeur", p("prof.txt"), "--contigs-vcf", p("contigs.txt"),
+                "--qualites", p("qual.tsv"), "--travail", d, "--sortie", p("sortie.tsv"),
+                "--pypgx", "%s %s" % (sys.executable, p("panne.py"))]
+        sortie = io.StringIO()
+        with mock.patch.object(sys, "argv", argv), mock.patch("sys.stdout", sortie), \
+                mock.patch("sys.stderr", io.StringIO()):
+            code = t.main()
+        self.assertEqual(code, 1)
+        with open(p("sortie.tsv"), encoding="utf-8") as fh:
+            lignes = fh.read()
+        self.assertIn("\techec\t", lignes)
+        self.assertNotIn("non conclusif", lignes)
 
 
 class ResultatDuTypeur(unittest.TestCase):
