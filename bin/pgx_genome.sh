@@ -302,6 +302,15 @@ if ! command -v "$MOTEUR" >/dev/null 2>&1; then
   echo "pgx_genome : $MOTEUR demande par PGX_MOTEUR mais introuvable" >&2
   exit 2
 fi
+# Une image designee par un chemin doit exister. Sans ce controle, un fichier
+# .sif absent devenait un nom de depot invalide, et l'etage 0 concluait que le
+# fichier de variants ne portait aucun echantillon.
+for i in "$IMG_BCF" "$IMG_PHARMCAT" "$IMG_OPTITYPE" ${IMG_PYPGX:+"$IMG_PYPGX"}; do
+  case "$i" in
+    /*|./*|../*|*.sif)
+      [ -f "$i" ] || { echo "pgx_genome : image introuvable : $i" >&2; exit 2; };;
+  esac
+done
 
 T="$SORTIE/travail"
 
@@ -463,11 +472,18 @@ DEBUT_ETATS=$(wc -l < "$ETATS")
 if a_faire recevabilite; then
 t0=$(date +%s)
 NOMS_VCF=$(BCF query -l "$D_VCF/$(basename "$VCF")" 2>>"$JOURNAL")
+RC_VCF=$?
 NB_VCF=$(printf '%s\n' "$NOMS_VCF" | grep -c . || true)
 SM_CRAM=$(samtools view -H ${FASTA:+--reference "$FASTA"} "$CRAM" 2>>"$JOURNAL" \
           | tr '\t' '\n' | grep -oE '^SM:.+' | sed 's/SM://' | sed 's/\\t.*//' \
           | sort -u | head -3 | tr '\n' ',' | sed 's/,$//')
-if [ "$NB_VCF" != "1" ]; then
+if [ "$RC_VCF" != 0 ]; then
+  # bcftools n'a pas tourne, ou n'a pas lu le fichier : la faute peut etre dans
+  # le conteneur comme dans le fichier, et le journal porte son message.
+  dire "0. recevabilite : ECHEC, bcftools n'a pas lu le fichier de variants (code $RC_VCF) ; voir son message ci-dessus"
+  etat recevabilite ECHEC $(( $(date +%s)-t0 )) "lecture du VCF impossible, code $RC_VCF"
+  RECEVABLE=0
+elif [ "$NB_VCF" != "1" ]; then
   dire "0. recevabilite : ECHEC, le fichier de variants porte $NB_VCF echantillons"
   etat recevabilite ECHEC $(( $(date +%s)-t0 )) "$NB_VCF echantillons dans le VCF"
   RECEVABLE=0
