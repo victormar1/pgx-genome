@@ -1,14 +1,27 @@
 # pgx-genome
 
-Module de pharmacogénétique pour génome entier. Il lit un génome déjà séquencé et
-aligné, et rend un avis pharmacogénétique sur treize gènes. Il ne demande ni
-nouveau prélèvement, ni nouvelle course de séquençage, ni réalignement, ni second
-appel de variants : il se branche en aval d'un pipeline de séquençage existant.
+Un avis pharmacogénétique tiré d'un génome **déjà séquencé** : ni nouveau
+prélèvement, ni nouvelle course, ni réalignement. Le module se branche en aval
+du pipeline de séquençage de la plateforme et rend, pour treize gènes du panel
+socle RNPGx 2026 (sous-ensemble néphrologie et épilepsie), les recommandations
+CPIC qui modifient la prise en charge.
+
+| Médicaments | Gènes | Ce que le compte rendu peut dire |
+|---|---|---|
+| allopurinol | HLA-B\*58:01 | contre-indication, risque de réaction cutanée sévère |
+| carbamazépine, oxcarbazépine, phénytoïne | HLA-B\*15:02, HLA-A\*31:01, CYP2C9 | contre-indication ou adaptation de dose |
+| abacavir | HLA-B\*57:01 | contre-indication |
+| tacrolimus | CYP3A5 | dose initiale majorée chez l'expresseur |
+| azathioprine, mercaptopurine | TPMT, NUDT15 | réduction de dose ou alternative |
+| clopidogrel, IPP, antidépresseurs | CYP2C19, CYP2D6 | alternative ou adaptation |
+| codéine, tramadol | CYP2D6 | éviter chez le métaboliseur ultrarapide ou lent |
+| statines | SLCO1B1, ABCG2, CYP2C9 | dose ou molécule |
+| aminosides | MT-RNR1 | éviter, risque de surdité définitive |
 
 Règle de conception unique : **aucun résultat faux ne sort sans être signalé**.
-Chaque étage teste son code de retour, inscrit son état, et refuse de se rabattre
-sur une entrée de secours. Le code de retour du module ne vaut zéro que si les
-neuf étages requis ont abouti.
+Une position non lue n'est jamais prise pour une référence ; un génome hors du
+domaine validé est refusé plutôt que rendu avec une réserve. La validation
+biologique reste au biologiste médical.
 
 ## Ce qu'il fait
 
