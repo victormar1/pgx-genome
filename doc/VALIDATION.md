@@ -653,7 +653,8 @@ l'identique, tables cliniques comprises.
 
 1. `python -m unittest discover -s tests` et `python outils/verifier_depot.py`
    doivent passer. Le crochet `pre-push` les impose.
-2. Rejouer le banc complet et comparer les diplotypes gène par gène à
+2. Rejouer le banc complet (`bench/preparer_banc.sh`, valeurs attendues dans
+   `bench/LISEZMOI.md`) et comparer les diplotypes gène par gène à
    l'exécution précédente, par `outils/comparer_rapports.py`. Un écart n'est pas
    un échec : c'est un élément à instruire, dont la matérialité clinique se juge
    au cas par cas.
@@ -672,5 +673,6 @@ l'identique, tables cliniques comprises.
 | `outils/fiche_traductions.py` | fiche de relecture des traductions, classée par usage, avec les entrées inemployées à part |
 | `outils/comparer_rapports.py` | compare deux exécutions — diplotype, phénotype, recommandations, rapport manquant — et rend un code de sortie non nul au premier écart |
 | `outils/construire_banc.py` | reconstruit la liste des prélèvements du banc depuis le lot et les tables de vérité |
+| `bench/preparer_banc.sh`, `bench/fiche_performance.py`, `bench/confronter_puce.sh` | refont le banc depuis les données publiques et le confrontent aux vérités ; voir `bench/LISEZMOI.md` |
 | `bench/qualification/` | un génome public, son fichier de variants et son rapport de référence, pour qualifier une installation |
 | `provenance.json` | empreintes des entrées, des images, des ressources, et seuils employés |
