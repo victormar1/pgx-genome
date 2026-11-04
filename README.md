@@ -211,7 +211,7 @@ tests/          250 cas, audités par mutation
 doc/            mode d'emploi, flux de fichiers, dossier de validation, figures
 env/            dépendances Python, empreintes des conteneurs, image PyPGx
 exemples/       un manifeste type, une recette Nextflow
-bench/          la liste des prélèvements du banc et la fiche de résultats par gène
+bench/          l'outillage qui refait la validation, ses vérités, le génome de qualification
 ```
 
 `doc/MODE_EMPLOI.md` est le manuel de référence, étage par étage, avec la

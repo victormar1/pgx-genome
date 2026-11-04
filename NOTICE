@@ -11,6 +11,15 @@ Mozilla Public License 2.0 (https://mozilla.org/MPL/2.0/) :
   ressources/pharmcat_positions.vcf
   ressources/pharmcat_positions.bed
   ressources/positions_exactes.bed
+  bench/verites/alleles_pharmcat.json
+  bench/verites/definitions_alleles.json
+
+Les tables de vérité du banc dérivent de données publiques :
+
+  bench/verites/verite_getrm.tsv  classeur « Consolidated PGx-HLA table » du
+      programme GeT-RM du CDC, version du 22 janvier 2025 ;
+  bench/verites/hla_sanger.tsv    typage HLA par séquençage Sanger des génomes
+      du 1000 Genomes, Gourraud P.-A. et coll., PLoS One 2014.
 
 Le fichier ressources/rnpgx_complement.vcf liste des positions du core panel
 RNPGx 2026 (Picard N. et coll., PMID 41491663, Table 2). Leurs coordonnées
