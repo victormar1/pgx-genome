@@ -29,7 +29,7 @@ d'un fichier de variants **produits en amont par la plateforme**.
 | Équilibre allélique | ≥ 0,25 pour un hétérozygote, hors CYP2D6 | mesuré sur 105 génomes |
 | Parallélisme en lot | jusqu'à 6 génomes | mesuré de 2 à 6, voir 3.10 ; au-delà, rien n'est mesuré |
 | Dossier de sortie | disque local recommandé | 1 361 Mo/s contre 99 sur un disque monté ; les débits de 3.10 sont mesurés sur disque monté, donc minorants |
-| Moteur de conteneurs | `docker`, éprouvé ; `apptainer` ou `singularity`, acceptés, **non éprouvés**, voir 4.8 | vérifié avant tout étage ; un moteur absent est refusé, non diagnostiqué comme une donnée fautive |
+| Moteur de conteneurs | `docker`, éprouvé sur tout le banc ; `apptainer`, éprouvé sur le génome de qualification, voir 4.8 | vérifié avant tout étage ; un moteur ou une image absents sont refusés, non diagnostiqués comme une donnée fautive |
 | Identité du patient | fichier, par `--identite` | un argument de ligne de commande est lisible dans la table des processus |
 
 ## 3. Preuves disponibles
@@ -352,8 +352,8 @@ aucun de ces six écarts : c'est la raison de l'avoir étendu.
 
 | Mesure | Résultat |
 |---|---|
-| Cas de test | 245 |
-| Audit par mutation, cumulé sur les versions | **79 défauts réintroduits, 79 suites en échec, 0 mutation survivante** |
+| Cas de test | 250 |
+| Audit par mutation, cumulé sur les versions | **81 défauts réintroduits, 81 suites en échec, 0 mutation survivante** |
 | Contrôles d'intégrité du dépôt | 4 fautes réintroduites, 4 attrapées |
 | Reproductibilité du catalogue généré | 3 régénérations, **même empreinte**, égale au fichier livré |
 
@@ -608,13 +608,27 @@ reste nécessaire en amont.**
 **4.7 Aucun contrôle de qualité externe.** Une participation à un programme
 (EMQN, GenQA) reste à organiser.
 
-**4.8 Apptainer n'a pas été exécuté sur ce banc.** Le module l'accepte — image de
-dépôt ou fichier `.sif`, dont l'empreinte est tracée — mais toutes les mesures de
-ce dossier sont faites sous Docker. Une plateforme qui l'emploie rejoue le génome
-de qualification sous ce moteur avant tout autre usage (`doc/MODE_EMPLOI.md`,
-§ 11). Sous Docker même, deux points tiennent à l'installation et non au module :
-les conteneurs tournent sous l'identité de l'appelant, et ils échappent à la
-mémoire réservée par un ordonnanceur à la tâche.
+**4.8 Apptainer n'est éprouvé que sur le génome de qualification.** Apptainer
+1.5.5, installé sans privilège, a fait tourner le génome de qualification ; les
+mesures de débit, de mémoire et de non-régression de ce dossier restent faites
+sous Docker.
+
+| Épreuve sous Apptainer | Résultat |
+|---|---|
+| Quatre images en fichiers `.sif` | **0 écart** sur 12 couples ; l'empreinte de chaque fichier est tracée |
+| Trois images tirées du dépôt, typeur en `.sif` | **0 écart** ; la trace ne porte que l'étiquette |
+| Fichier `.sif` absent | refusé au démarrage, code 2 |
+| Typeur complémentaire inutilisable | étage 4b en échec, réussite complète fausse, code 1 |
+
+Les deux derniers cas sont des corrections : avant elles, un `.sif` absent
+faisait conclure à un fichier de variants sans échantillon, et un typeur qui ne
+tournait pas passait en silence, MT-RNR1 et ses onze recommandations perdus en
+réussite complète. **La conversion d'une image en `.sif` demande un dossier
+temporaire sur disque local** : sur un disque monté, celle de l'interpréteur a
+pris cinq heures et demie, contre une minute sur disque local pour l'image du
+typeur. Sous Docker, deux points tiennent à l'installation et non au module : les
+conteneurs tournent sous l'identité de l'appelant, et ils échappent à la mémoire
+réservée par un ordonnanceur à la tâche.
 
 ## 5. Protocole de revalidation
 
@@ -651,7 +665,7 @@ l'identique, tables cliniques comprises.
 
 | Outil | Rôle |
 |---|---|
-| `tests/` | 247 cas, audités par mutation |
+| `tests/` | 250 cas, audités par mutation |
 | `outils/verifier_depot.py` | intégrité des figures, cohérence du périmètre et des comptes annoncés, syntaxe des scripts, reproductibilité des ressources générées |
 | `outils/cas_construit.py` | exercice d'un allèle absent de la cohorte |
 | `outils/fiche_traductions.py` | fiche de relecture des traductions, classée par usage, avec les entrées inemployées à part |

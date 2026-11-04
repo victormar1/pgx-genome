@@ -8,6 +8,24 @@ incrémente au moins le rang mineur et déclenche la revalidation décrite dans
 La version du module figure dans `provenance.json` et au pied du compte rendu.
 Elle ne vaut aucune déclaration de conformité.
 
+## 0.4.3
+
+**Un typeur complémentaire inutilisable fait échouer son étage.** Il rendait
+ses quatre gènes « non conclusifs » en réussite complète : une installation
+cassée passait pour un génome difficile, et MT-RNR1 perdait ses recommandations
+sans un mot.
+
+**Une image désignée par un chemin absent est refusée au démarrage**, et une
+lecture impossible du fichier de variants est nommée comme telle au lieu de
+conclure à un fichier sans échantillon.
+
+**Apptainer éprouvé** sur le génome de qualification : 0 écart, en fichiers
+`.sif` comme en images du dépôt. **Témoins ajoutés au dossier** : ABCG2 et POR
+confrontés à une puce de génotypage, 228 / 228 et 204 / 204 ; MT-RNR1 éprouvé
+sur deux porteurs réels de m.1095T>C.
+
+Aucun résultat rendu ne change sur une installation valide. 250 cas de test.
+
 ## 0.4.2
 
 **Compte rendu de patient.** La mention « prototype » tombe dès que l'identité

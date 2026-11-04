@@ -351,7 +351,20 @@ pgx-genome/pypgx:0.27.0        construite sur place : env/pypgx.Dockerfile
 Sous Docker, les conteneurs tournent sous l'identité de l'appelant, pour que les
 sorties lui appartiennent. Sous Apptainer, `PGX_IMG_*` peut nommer une image de
 dépôt (tirée à l'exécution, ce qui demande le réseau) ou un fichier `.sif` local,
-dont l'empreinte est alors tracée.
+dont l'empreinte est alors tracée ; un `.sif` absent est refusé au démarrage. Les
+`.sif` se préparent une fois, avec un dossier temporaire sur disque local :
+
+```
+export APPTAINER_TMPDIR=/disque/local/tmp
+apptainer build bcftools.sif docker://quay.io/biocontainers/bcftools:1.24--h118bc1c_2
+apptainer build pharmcat.sif docker://pgkb/pharmcat:3.4.0
+apptainer build optitype.sif docker://quay.io/biocontainers/optitype:1.3.5--hdfd78af_3
+apptainer build pypgx.sif docker-daemon://pgx-genome/pypgx:0.27.0
+export PGX_MOTEUR=apptainer PGX_IMG_BCFTOOLS=$PWD/bcftools.sif PGX_IMG_PHARMCAT=$PWD/pharmcat.sif
+export PGX_IMG_OPTITYPE=$PWD/optitype.sif PGX_IMG_PYPGX=$PWD/pypgx.sif
+```
+
+Sur un disque monté, la conversion de l'image de l'interpréteur prend des heures.
 
 ## 7. Appel
 
@@ -543,6 +556,6 @@ Le code de retour vaut zéro si diplotypes, phénotypes et recommandations sont
 identiques. Tout écart désigne une différence d'installation — version d'image,
 référence, typeur — avant tout usage sur un patient.
 
-**Apptainer.** Le moteur est accepté par le module mais n'a pas été exécuté sur
-ce banc (`doc/VALIDATION.md`, limite 4.8) : la plateforme qui l'emploie rejoue le
-génome de qualification sous ce moteur avant tout autre usage.
+**Apptainer.** Le génome de qualification rend 0 écart sous Apptainer, en `.sif`
+comme en images du dépôt (`doc/VALIDATION.md`, limite 4.8). Une plateforme qui
+emploie ce moteur le rejoue chez elle, sous ce moteur, avant tout autre usage.

@@ -194,7 +194,7 @@ porteur de HLA-B\*58:01 et de CYP3A5 \*1/\*3.
 bin/            les neuf scripts du pipeline
 ressources/     les ressources figées, lues à l'exécution (dont les traductions CPIC)
 outils/         les générateurs de ressources, les contrôles, les crochets
-tests/          247 cas, audités par mutation
+tests/          250 cas, audités par mutation
 doc/            mode d'emploi, flux de fichiers, dossier de validation, figures
 env/            dépendances Python, empreintes des conteneurs, image PyPGx
 exemples/       un manifeste type, une recette Nextflow
