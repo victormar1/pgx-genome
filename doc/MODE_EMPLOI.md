@@ -133,7 +133,9 @@ l'exécution complète. Un étage relancé après un échec compte par sa derni�
 exécution, et la trace note le nombre de tentatives.
 
 `exemples/pgx_genome.nf` en donne une recette Nextflow, un processus par étage,
-qui déclare pour chacun les cœurs et la mémoire mesurés (§ 10).
+qui déclare pour chacun les cœurs et la mémoire mesurés (§ 10). Elle reçoit le
+moteur, les images et le typeur complémentaire en paramètres (`--moteur`,
+`--img_*`, `--bundle`) ; son en-tête donne l'appel.
 
 ## 3. Les étages
 
