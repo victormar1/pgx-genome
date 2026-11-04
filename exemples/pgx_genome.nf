@@ -39,12 +39,17 @@
  * genomes et un alignement tronque : rendus identiques a l'execution complete,
  * refus du tronque sans arret des autres. Sur des lots de dix genomes : rendus
  * identiques au lot, 51 genomes par heure a froid, contre 39 au lanceur de lot
- * a six. Sous un ordonnanceur de grappe, elle reste a eprouver sur le site.
+ * a six. Le genome de qualification y rend 0 ecart sous Docker comme sous
+ * Apptainer. Sous un ordonnanceur de grappe, elle reste a eprouver sur le site.
  *
  * Usage :
  *   nextflow run exemples/pgx_genome.nf \
  *     --manifeste manifeste.tsv --sortie /partage/resultats \
- *     --racine /chemin/du/depot --fasta /chemin/GRCh38.fa -profile slurm
+ *     --racine /chemin/du/depot --fasta /chemin/GRCh38.fa \
+ *     --cyrius /opt/Cyrius --img_pypgx pgx-genome/pypgx:0.27.0 \
+ *     --bundle /opt/pypgx-bundle -profile slurm
+ * Sous Apptainer : --moteur apptainer et --img_bcftools, --img_pharmcat,
+ * --img_optitype, --img_pypgx sur les fichiers .sif.
  */
 
 nextflow.enable.dsl = 2
@@ -54,19 +59,34 @@ params.sortie    = null                       // chemin partage, absolu
 params.racine    = projectDir.parent          // la racine du depot
 params.fasta     = null
 params.cyrius    = null                       // depot de l'appeleur CYP2D6
-params.pypgx     = ''                         // vide : etage 4b non arme
 params.moteur    = 'docker'                   // ou apptainer
+// Images : vides, celles que le module epingle. Sous Apptainer, un fichier .sif
+// par image, prepare une fois (doc/MODE_EMPLOI.md, section 6).
+params.img_bcftools = ''
+params.img_pharmcat = ''
+params.img_optitype = ''
+// Typeur complementaire : son image et sa ressource de donnees ; tous deux
+// vides, l'etage 4b n'est pas arme. params.pypgx nomme a la place une
+// installation de l'hote.
+params.img_pypgx = ''
+params.bundle    = ''
+params.pypgx     = ''
 params.identites = null                       // dossier de fichiers d'identite
 
 // L'appel commun. Le code 1 est un echec inscrit : la chaine continue, comme en
 // execution complete. Les codes 2 et 3 remontent a l'ordonnanceur.
 def etage(String noms, String e, al, va, fils, String extra = '') {
+    def env = [PGX_IMG_BCFTOOLS: params.img_bcftools, PGX_IMG_PHARMCAT: params.img_pharmcat,
+               PGX_IMG_OPTITYPE: params.img_optitype, PGX_IMG_PYPGX: params.img_pypgx,
+               PYPGX_BUNDLE: params.bundle, PGX_PYPGX: params.pypgx, PGX_CYRIUS: params.cyrius]
+        .findAll { _k, v -> v }
+        .collect { k, v -> "export ${k}='${v}'" }
+        .join('\n    ')
     """
     export PGX_MOTEUR='${params.moteur}'
     export PGX_FASTA='${params.fasta}'
     export PGX_FILS='${fils}'
-    ${params.cyrius ? "export PGX_CYRIUS='${params.cyrius}'" : ''}
-    ${params.pypgx  ? "export PGX_PYPGX='${params.pypgx}'"   : ''}
+    ${env}
 
     rc=0
     bash '${params.racine}/bin/pgx_genome.sh' \\

@@ -448,6 +448,7 @@ même code que l'exécution complète ; il est éprouvé sur génomes réels.
 | Étage par étage, CYP2D6, HLA et typage complémentaire en parallèle | **0 écart**, réussite complète |
 | Recette Nextflow, deux génomes | **0 écart** sur 24 couples |
 | Recette Nextflow, lots de dix génomes, à froid et déjà lus | **0 écart** sur 240 couples |
+| Recette Nextflow, génome de qualification, typeur en image, sous Docker et sous Apptainer | **0 écart** sur 12 couples, dans les deux cas |
 | Refus : dossier sans recevabilité, entrées changées, génome refusé en amont, étage déjà en cours | **7 codes sur 7** attendus |
 | Verrou posé depuis un autre hôte | jamais repris, code 3 ; repris sur le même hôte si son processus est mort |
 | Recette Nextflow, alignement tronqué | refusé, sorti de la chaîne, porté au bilan |
