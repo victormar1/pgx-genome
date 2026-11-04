@@ -20,7 +20,7 @@ le rôle, sur le poste. `git push --no-verify` le contourne, en connaissance.
 
 Les tests valent ce que vaut leur capacité à échouer. Chaque garde-fou ajouté est
 audité par mutation : le défaut qu'il empêche est réintroduit, et sa suite doit
-rougir. Cumul sur les versions : 79 défauts réintroduits, 79 suites en échec,
+rougir. Cumul sur les versions : 81 défauts réintroduits, 81 suites en échec,
 aucune mutation survivante (`doc/VALIDATION.md`, § 3.6).
 
 ## Messages de commit
