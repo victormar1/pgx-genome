@@ -296,7 +296,7 @@ def main():
     travail = os.path.join(a.travail, "pypgx")
     os.makedirs(travail, exist_ok=True)
 
-    resultats, rendus = [], 0
+    resultats, rendus, pannes = [], 0, 0
     for gene in sorted(cat["genes"]):
         info = cat["genes"][gene]
         ligne = {"gene": gene, "classe_rnpgx": info["classe_rnpgx"],
@@ -314,7 +314,12 @@ def main():
             continue
         dossier, err = lance(pypgx_cmd, gene, a.variants, os.path.join(travail, gene))
         if err:
-            ligne.update({"statut": "non conclusif", "motif": "PyPGx : " + err})
+            # Le typeur n'a pas tourne : une panne de l'installation, pas une
+            # limite de la donnee. Rendue en « non conclusif », elle faisait
+            # passer un typeur casse pour un genome difficile, en reussite
+            # complete, et MT-RNR1 perdait ses recommandations sans un mot.
+            ligne.update({"statut": "echec", "motif": "PyPGx : " + err})
+            pannes += 1
             resultats.append(ligne)
             continue
         brut, err = lis_resultat(dossier)
@@ -375,6 +380,10 @@ def main():
             detail += " -> " + r["phenotype"]
         print("  %-9s %-14s %s" % (r["gene"], r["statut"], detail))
     print("typage complementaire : %d rendu(s) sur %d" % (rendus, len(resultats)))
+    if pannes:
+        print("le typeur n'a pas tourne pour %d gene(s) : l'etage echoue" % pannes,
+              file=sys.stderr)
+        return 1
     return 0
 
 

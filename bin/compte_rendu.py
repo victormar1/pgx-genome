@@ -331,7 +331,8 @@ if _TYP:
             Paragraph(e_(r.get("genotype") or "—"), st_gras if rendu else st_corps),
             Paragraph("%s/%s" % (r.get("positions_lues", "?"), r.get("positions_attendues", "?")), st_corps),
             Paragraph("Aucune interprétation clinique disponible pour ce gène." if rendu
-                      else f"Non conclusif : {e_(r.get('motif') or 'non précisé')}.", st_petit)])
+                      else ("Échec du typeur : gène non analysé." if r.get("statut") == "echec"
+                            else f"Non conclusif : {e_(r.get('motif') or 'non précisé')}."), st_petit)])
     h.append(tableau(rows, [20, 14, 34, 22, 80]))
     h.append(Paragraph(
         "Ces gènes appartiennent au core panel RNPGx mais sont absents des tables de l'interpréteur. "
