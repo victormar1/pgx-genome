@@ -119,6 +119,17 @@ class Garanties(unittest.TestCase):
     def test_l_ajout_a_la_table_passe_par_un_verrou(self):
         self.assertRegex(self.s, r"etat\(\) \{ inscrire")
 
+    def test_une_image_designee_par_un_chemin_doit_exister(self):
+        # Un .sif absent devenait un nom de depot invalide, et la recevabilite
+        # concluait a un fichier de variants sans echantillon.
+        self.assertIn('[ -f "$i" ] || { echo "pgx_genome : image introuvable', self.s)
+
+    def test_une_lecture_du_vcf_en_echec_n_est_pas_un_vcf_vide(self):
+        i = self.s.index("NOMS_VCF=$(BCF query -l")
+        bloc = self.s[i:i + 900]
+        self.assertIn("RC_VCF=$?", bloc)
+        self.assertLess(bloc.index('if [ "$RC_VCF" != 0 ]'), bloc.index('"$NB_VCF" != "1"'))
+
     def test_le_rendu_recoit_l_identite_et_le_contexte(self):
         # Sans eux, tout compte rendu sortirait en prototype, sans preindication :
         # une plateforme ne pourrait pas produire un document de patient.
