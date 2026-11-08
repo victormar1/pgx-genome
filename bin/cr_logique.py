@@ -122,6 +122,20 @@ def perimetre(rapport, meta):
     return sorted(rendus), sorted(absents), reserves
 
 
+def interpretables(rapport, meta):
+    """Combien de genes du perimetre l'interpreteur sait rendre.
+
+    C'est le denominateur porte en tete du compte rendu. Il se lit dans les
+    donnees : ecrit en dur, il s'eloigne du perimetre des qu'un gene y entre,
+    et le document annonce un compte faux sans que rien ne le signale. Un gene
+    du perimetre que l'interpreteur ne connait pas - POR, qui n'a aucune table
+    clinique - ne peut pas etre rendu : le compter ferait lire une perte la ou
+    il n'y en a pas.
+    """
+    clinique = set(meta.get("perimetre_clinique") or [])
+    return len(clinique & set(rapport.get("genes") or {}))
+
+
 # ------------------------------------------------------------- lecture d'un gene
 def diplotypes(genes, sym):
     e = genes.get(sym) or {}

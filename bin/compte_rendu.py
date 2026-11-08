@@ -211,8 +211,9 @@ if PATIENT:
 ident.append(("Prélèvement", f"{e_(ECH)}" + (" — génome public du projet 1000 Genomes, aucun patient" if proto else "")))
 ident.append(("Contexte", f"Préindication PFMG : {e_(CONTEXTE)}" if CONTEXTE else
               "Sous-ensemble néphrologie et épilepsie du panel socle RNPGx 2026"))
+INTERPRETABLES = L.interpretables(rep, META) or len(MESURES)
 ident.append(("Analyse", "Extraction pharmacogénétique secondaire à partir du génome (lectures courtes, GRCh38) — "
-              f"{len(MESURES)} gènes rendus sur 12"))
+              f"{len(MESURES)} gènes rendus sur {INTERPRETABLES}"))
 ident.append(("Date / version", f"{datetime.date.today().strftime('%d/%m/%Y')} — PharmCAT {e_(rep.get('pharmcatVersion', '?'))}, "
               f"référentiel CPIC, traductions v{e_(TR.get('version', '?'))}"))
 t = Table([[Paragraph(f"<b>{k}</b>", st_petit), Paragraph(v, st_corps)] for k, v in ident],

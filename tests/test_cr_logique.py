@@ -195,6 +195,35 @@ class Perimetre(unittest.TestCase):
         self.assertNotIn("CYP4F2", [a[0] for a in absents])
 
 
+class Denominateur(unittest.TestCase):
+    """Le « N genes rendus sur M » porte en tete du compte rendu.
+
+    M etait ecrit en dur. Le perimetre est passe a treize genes sans que ce
+    nombre bouge, et chaque document annoncait un denominateur faux.
+    """
+
+    RAPPORT = {"genes": {"TPMT": gene(labels=["*1/*1"]),
+                         "NUDT15": gene(labels=["*1/*1"]),
+                         "CYP4F2": gene(labels=["*1/*1"])}}
+
+    def test_compte_les_genes_du_perimetre_que_l_interpreteur_connait(self):
+        meta = {"perimetre_clinique": ["TPMT", "NUDT15", "POR"]}
+        self.assertEqual(L.interpretables(self.RAPPORT, meta), 2)
+
+    def test_un_gene_ajoute_au_perimetre_deplace_le_denominateur(self):
+        meta = {"perimetre_clinique": ["TPMT", "NUDT15", "CYP4F2", "POR"]}
+        self.assertEqual(L.interpretables(self.RAPPORT, meta), 3)
+
+    def test_un_gene_hors_perimetre_ne_compte_pas(self):
+        meta = {"perimetre_clinique": ["TPMT"]}
+        self.assertEqual(L.interpretables(self.RAPPORT, meta), 1)
+
+    def test_sans_perimetre_le_denominateur_est_nul(self):
+        # l'appelant se rabat alors sur le nombre de genes rendus, plutot que
+        # d'ecrire « sur 22 », le compte des genes de l'interpreteur
+        self.assertEqual(L.interpretables(self.RAPPORT, {}), 0)
+
+
 class Recommandations(unittest.TestCase):
     GENES = {"CYP2D6": gene(labels=["*1/*4"], phenotypes=["Poor Metabolizer"])}
 
