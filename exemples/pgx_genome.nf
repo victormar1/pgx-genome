@@ -35,12 +35,9 @@
  *      etage suivant ne tourne pour lui
  *   3  un autre processus tient deja cet etage pour ce genome
  *
- * Executee sous Nextflow 25.04, executeur local, vingt-quatre coeurs. Sur deux
- * genomes et un alignement tronque : rendus identiques a l'execution complete,
- * refus du tronque sans arret des autres. Sur des lots de dix genomes : rendus
- * identiques au lot, 51 genomes par heure a froid, contre 39 au lanceur de lot
- * a six. Le genome de qualification y rend 0 ecart sous Docker comme sous
- * Apptainer. Sous un ordonnanceur de grappe, elle reste a eprouver sur le site.
+ * Eprouvee sous Nextflow 25.04 avec l'executeur local, sous Docker et sous
+ * Apptainer : memes rendus que l'execution d'un seul tenant, 51 genomes par
+ * heure sur 24 coeurs. Sous un ordonnanceur de grappe, a eprouver sur le site.
  *
  * Usage :
  *   nextflow run exemples/pgx_genome.nf \
@@ -61,7 +58,7 @@ params.fasta     = null
 params.cyrius    = null                       // depot de l'appeleur CYP2D6
 params.moteur    = 'docker'                   // ou apptainer
 // Images : vides, celles que le module epingle. Sous Apptainer, un fichier .sif
-// par image, prepare une fois (doc/MODE_EMPLOI.md, section 6).
+// par image, prepare une fois (doc/MODE_EMPLOI.md, section 1.2).
 params.img_bcftools = ''
 params.img_pharmcat = ''
 params.img_optitype = ''

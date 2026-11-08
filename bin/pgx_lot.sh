@@ -1,7 +1,7 @@
 #!/bin/bash
 # Traitement d'un lot d'echantillons, avec tableau de bord.
 #
-#   pgx_lot.sh --manifeste liste.tsv --sortie DOSSIER [--parallele 4] [--reprise]
+#   pgx_lot.sh --manifeste liste.tsv --sortie DOSSIER [--parallele N] [--reprise]
 #
 # Le manifeste porte trois colonnes separees par des tabulations :
 #   identifiant   chemin de l'alignement   chemin du fichier de variants
