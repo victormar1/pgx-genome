@@ -28,8 +28,8 @@ expliquent ce que fait le module et ce qu'il garantit.
 | dépôt Cyrius, commit `7c060db`, avec ses dépendances Python | l'étage CYP2D6 |
 | ressource de données PyPGx 0.27.0 (`PYPGX_BUNDLE`) | le typage complémentaire, s'il est armé |
 
-Deux ressources volumineuses ne sont pas dans le dépôt : **la référence GRCh38**
-qui a servi à l'alignement, indexée, et **le dépôt Cyrius**, épinglé.
+La **référence GRCh38** indexée qui a servi à l'alignement ne se télécharge pas :
+c'est celle de la plateforme, et elle doit être la même. Le reste s'installe.
 
 ```bash
 git clone <url-de-ce-depot> pgx-genome
@@ -507,8 +507,8 @@ l'azathioprine. Ce que le banc établit, gène par gène, est dans `doc/VALIDATI
 
 Ce banc : vingt-quatre cœurs, soixante-deux gigaoctets de mémoire, disque dur
 monté sous WSL2. Un génome prend 270 secondes et coûte 351 secondes de
-processeur, soit **1,3 cœur en moyenne**. Il laisse 364 Mo sur disque, 477 au
-plus sur dix, dont trois quarts de lectures du complexe HLA.
+processeur, soit **1,3 cœur en moyenne**. Il laisse 364 Mo sur disque en médiane
+et 477 au plus sur dix, dont trois quarts de lectures du complexe HLA.
 
 <p align="center"><img src="figures/cout_par_etage.svg" alt="Coût par étage, médiane par génome sur 243 génomes : HLA 170 s, contrôle qualité 71 s, CYP2D6 39 s, tranche 19 s, typage complémentaire 17 s, interprétation 6 s, les autres sous 5 s" width="720"></p>
 
