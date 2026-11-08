@@ -8,6 +8,23 @@ incrémente au moins le rang mineur et déclenche la revalidation décrite dans
 La version du module figure dans `provenance.json` et au pied du compte rendu.
 Elle ne vaut aucune déclaration de conformité.
 
+## 0.5.1
+
+**Documentation resserrée pour une plateforme qui installe.** Le mode d'emploi
+porte toute la mise en service, du clone à la qualification de l'installation ;
+le README n'en garde plus de copie, et ses limites sont dites d'un trait. La
+section du coût ne donne que ce qu'un ordonnanceur doit réserver et combien de
+génomes mener de front ; les mesures restent au dossier de validation.
+
+**Références corrigées.** Les trois empreintes d'images étaient tronquées à 46
+des 64 caractères, et l'image construite sur place n'était pas documentée dans
+`env/conteneurs.txt`. La recette Nextflow renvoyait à une section du mode
+d'emploi qui n'existe plus. Le flux de fichiers nommait la seule installation
+sur l'hôte pour armer le typage complémentaire, et décrivait la réussite
+complète comme indifférente à cet étage, même armé.
+
+Aucun résultat rendu ne change.
+
 ## 0.5.0
 
 **Les consignes du compte rendu sont relues.** Vingt et une traductions sur 66
@@ -52,8 +69,7 @@ sortir du module.
 image (`PGX_IMG_PYPGX`), lancée comme les trois autres. Sous Docker, les
 conteneurs tournent sous l'identité de l'appelant. Sous Apptainer, un fichier
 `.sif` est accepté et son empreinte tracée. Un verrou posé depuis un autre hôte
-n'est jamais repris. L'appeleur CYP2D6 n'écrit plus dans `/tmp`. Les empreintes
-de `env/conteneurs.txt`, tronquées, sont complètes.
+n'est jamais repris. L'appeleur CYP2D6 n'écrit plus dans `/tmp`.
 
 **Qualification d'une installation.** `bench/qualification/` porte un génome
 public, son fichier de variants et le rapport de référence ; le mode d'emploi
