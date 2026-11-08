@@ -8,6 +8,17 @@ incrémente au moins le rang mineur et déclenche la revalidation décrite dans
 La version du module figure dans `provenance.json` et au pied du compte rendu.
 Elle ne vaut aucune déclaration de conformité.
 
+## 0.5.2
+
+**Le dénominateur du compte rendu se lit dans le périmètre.** Le document
+annonce « N gènes rendus sur M » ; M était écrit en dur à 12, et le périmètre
+clinique est passé à treize gènes sans que ce nombre bouge. Il se compte
+désormais sur les gènes du périmètre que l'interpréteur connaît, treize moins
+POR, qui n'a aucune table clinique. Les comptes rendus produits sur une
+installation à jour sont inchangés, dénominateur compris.
+
+254 cas de test.
+
 ## 0.5.1
 
 **Documentation resserrée pour une plateforme qui installe.** Le mode d'emploi
