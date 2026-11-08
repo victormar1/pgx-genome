@@ -8,6 +8,21 @@ incrémente au moins le rang mineur et déclenche la revalidation décrite dans
 La version du module figure dans `provenance.json` et au pied du compte rendu.
 Elle ne vaut aucune déclaration de conformité.
 
+## 0.5.0
+
+**Les consignes du compte rendu sont relues.** Vingt et une traductions sur 66
+sont corrigées : trois consignes étaient atténuées ou durcies par rapport au
+texte d'origine, et dix-huit omettaient l'adaptation de dose ultérieure, ce qui
+pouvait faire passer une dose initiale plafond pour un plafond définitif. Le
+pied du document ne porte plus de mention « à valider » : il nomme le référentiel
+CPIC, qui fait foi, et la version de la table.
+
+**Documentation réordonnée pour une plateforme qui déploie.** Le mode d'emploi
+commence par la mise en service — prérequis, images, qualification de
+l'installation — puis l'exploitation, puis le fonctionnement ; les sections
+« bis » et « ter » disparaissent. Le dossier de validation ouvre sur une synthèse
+et les trois limites qui engagent une plateforme.
+
 ## 0.4.3
 
 **Un typeur complémentaire inutilisable fait échouer son étage.** Il rendait
