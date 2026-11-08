@@ -31,20 +31,42 @@ expliquent ce que fait le module et ce qu'il garantit.
 Deux ressources volumineuses ne sont pas dans le dépôt : **la référence GRCh38**
 qui a servi à l'alignement, indexée, et **le dépôt Cyrius**, épinglé.
 
+```bash
+git clone <url-de-ce-depot> pgx-genome
+cd pgx-genome
+pip install -r env/requirements.txt
+
+git clone https://github.com/Illumina/Cyrius.git /opt/Cyrius
+git -C /opt/Cyrius checkout 7c060db
+pip install -r /opt/Cyrius/requirements.txt
+
+git clone --branch 0.27.0 https://github.com/sbslee/pypgx-bundle.git /opt/pypgx-bundle
+```
+
+Les variables à exporter, une fois pour toutes :
+
+```bash
+export PGX_FASTA=/chemin/GRCh38_full_analysis_set_plus_decoy_hla.fa
+export PGX_CYRIUS=/opt/Cyrius
+export PGX_IMG_PYPGX=pgx-genome/pypgx:0.27.0   # absent : étage 4b ignoré
+export PYPGX_BUNDLE=/opt/pypgx-bundle
+```
+
 ### 1.2 Les quatre conteneurs
 
 Versions figées, empreintes dans `env/conteneurs.txt`. Un changement de version
 change les résultats et impose une revalidation (§ 10).
 
-```
-quay.io/biocontainers/bcftools:1.24--h118bc1c_2
-quay.io/biocontainers/optitype:1.3.5--hdfd78af_3
-pgkb/pharmcat:3.4.0
-pgx-genome/pypgx:0.27.0        construite sur place : env/pypgx.Dockerfile
+```bash
+docker pull quay.io/biocontainers/bcftools:1.24--h118bc1c_2
+docker pull quay.io/biocontainers/optitype:1.3.5--hdfd78af_3
+docker pull pgkb/pharmcat:3.4.0
+docker build -f env/pypgx.Dockerfile -t pgx-genome/pypgx:0.27.0 env
 ```
 
-Sous Docker, les conteneurs tournent sous l'identité de l'appelant, pour que les
-sorties lui appartiennent.
+La quatrième se construit sur place : ses auteurs ne la distribuent pas en
+conteneur. Sous Docker, les conteneurs tournent sous l'identité de l'appelant,
+pour que les sorties lui appartiennent.
 
 Sous Apptainer, `PGX_IMG_*` nomme soit une image de dépôt, tirée à l'exécution,
 ce qui demande le réseau sur chaque nœud, soit un fichier `.sif` local, dont
@@ -71,7 +93,7 @@ Dans l'ordre, chaque étape ayant un résultat attendu.
 
 | Étape | Commande | Attendu |
 |---|---|---|
-| 1. Installer | README, et § 1.1 ci-dessus | `bin/pgx_genome.sh --version` rend la version |
+| 1. Installer | § 1.1 et 1.2 ci-dessus | `bin/pgx_genome.sh --version` rend la version |
 | 2. Contrôler les images | `docker image inspect --format '{{index .RepoDigests 0}}' <image>` | les empreintes de `env/conteneurs.txt` |
 | 3. Passer les contrôles du dépôt | `python3 -m unittest discover -s tests` puis `python3 outils/verifier_depot.py` | tous passent |
 | 4. Rejouer le génome de qualification | voir ci-dessous | **0 écart** |
@@ -141,12 +163,9 @@ déclaration. Le résultat est le même qu'avec un VCF de variants.
 
 ### 3.1 Un génome
 
-```bash
-export PGX_FASTA=/chemin/GRCh38.fa
-export PGX_CYRIUS=/chemin/Cyrius
-export PGX_IMG_PYPGX=pgx-genome/pypgx:0.27.0
-export PYPGX_BUNDLE=/chemin/pypgx-bundle
+Les variables de la section 1.1 étant exportées :
 
+```bash
 bin/pgx_genome.sh \
   --cram    /chemin/echantillon.cram \
   --vcf     /chemin/echantillon.vcf.gz \
@@ -195,7 +214,8 @@ bin/pgx_lot.sh --manifeste liste.tsv --sortie /chemin/resultats --parallele 6
 Le manifeste porte trois colonnes séparées par des tabulations : identifiant,
 chemin de l'alignement, chemin du fichier de variants. Un échantillon déjà complet
 est sauté. Le lot produit `tableau_de_bord.tsv` : une ligne par échantillon,
-l'état et la durée de chaque étage. Le parallélisme est mesuré jusqu'à six (§ 9).
+l'état et la durée de chaque étage. Le parallélisme vaut 4 par défaut et est
+mesuré jusqu'à six : compter un génome pour quatre cœurs (§ 9).
 Le lanceur ne transmet pas d'identité : ses comptes rendus portent la mention
 prototype.
 
@@ -206,7 +226,7 @@ prototype.
 est ce qui tourne étage par étage. Un ordonnanceur peut ainsi réserver à chaque
 étage ce qu'il consomme (§ 9), et relancer un étage sans rejouer les autres.
 
-| Ordre | Étages | |
+| Ordre | Étages | À savoir |
 |---|---|---|
 | 1 | `recevabilite` | ouvre le dossier : seule à le purger et à remettre la trace à zéro |
 | 2 | `filtre`, `tranche` | |
@@ -486,29 +506,20 @@ l'azathioprine. Ce que le banc établit, gène par gène, est dans `doc/VALIDATI
 ## 9. Coût mesuré
 
 Ce banc : vingt-quatre cœurs, soixante-deux gigaoctets de mémoire, disque dur
-monté sous WSL2.
-
-**Durée par étage**, sur les 243 génomes du lot de validation lus à froid, deux
-génomes en parallèle :
-
-| Étage | Médiane | p90 | Max |
-|---|---|---|---|
-| recevabilité | 1 s | 2 s | 2 s |
-| filtre | 3 s | 4 s | 5 s |
-| tranche | 19 s | 24 s | 33 s |
-| contrôle qualité | 71 s | 75 s | 113 s |
-| CYP2D6 | 39 s | 51 s | 86 s |
-| HLA | 170 s | 209 s | 306 s |
-| typage complémentaire | 17 s | 20 s | 35 s |
-| appels externes | < 1 s | < 1 s | 1 s |
-| interprétation | 6 s | 7 s | 15 s |
-| compte rendu | < 1 s | 1 s | 1 s |
+monté sous WSL2. Un génome prend 270 secondes et coûte 351 secondes de
+processeur, soit **1,3 cœur en moyenne**. Il laisse 364 Mo sur disque, 477 au
+plus sur dix, dont trois quarts de lectures du complexe HLA.
 
 <p align="center"><img src="figures/cout_par_etage.svg" alt="Coût par étage, médiane par génome sur 243 génomes : HLA 170 s, contrôle qualité 71 s, CYP2D6 39 s, tranche 19 s, typage complémentaire 17 s, interprétation 6 s, les autres sous 5 s" width="720"></p>
 
-**Cœurs et mémoire par étage**, chaque étage lancé seul, la machine ne faisant rien
-d'autre : les cœurs sur trois génomes déjà lus, la mémoire sur trois autres, dont
-le pire cas du lot — le plus de lectures HLA et la plus forte couverture.
+Le typage HLA est l'étage long, devant le contrôle qualité et CYP2D6. À froid, la
+tranche et CYP2D6 s'allongent : ce sont les deux qui lisent l'alignement, CYP2D6
+en trois mille régions dispersées.
+
+**Ce qu'un ordonnanceur doit réserver.** Chaque étage lancé seul, la machine ne
+faisant rien d'autre : les cœurs sur trois génomes déjà lus, la mémoire sur trois
+autres, dont le pire cas du lot — le plus de lectures HLA et la plus forte
+couverture.
 
 | Étage | Durée | Cœurs, moyenne | Cœurs, pointe | Mémoire, pointe |
 |---|---|---|---|---|
@@ -522,25 +533,15 @@ le pire cas du lot — le plus de lectures HLA et la plus forte couverture.
 | 6 · interprétation | 5 s | 2,0 | 3,8 | 1,6 Go |
 | appels, compte rendu, trace | 4 s | 1,5 | 4,1 | 120 Mo |
 
-Un génome coûte 351 secondes de processeur pour 270 secondes de durée : **1,3 cœur
-en moyenne**. À froid, la tranche et CYP2D6 s'allongent : ce sont les deux étages
-qui lisent l'alignement, CYP2D6 en trois mille régions dispersées. L'interprétation
-tourne sur Java, qui prend 1,6 Go parce qu'il le peut : sous une limite de 1 Go,
-elle rend le même avis. Chaque génome laisse 364 Mo sur disque (médiane sur dix,
-477 au plus), dont trois quarts de lectures du complexe HLA.
+La recette Nextflow déclare ces valeurs, étage par étage. L'interprétation tourne
+sur Java, qui prend 1,6 Go parce qu'il le peut : sous une limite de 1 Go, elle
+rend le même avis.
 
-**Débit.** Le module étant presque séquentiel, le débit d'une machine tient au
-nombre de génomes menés de front. Sur des lots de dix génomes :
-
-| Mode | À froid | Génomes déjà lus |
-|---|---|---|
-| Recette Nextflow, exécuteur local | **51 génomes/h** | 56 |
-| `--parallele 6` | 39 | 52 |
-| `--parallele 4` | — | 39 |
-| `--parallele 2` | — | 24 |
-
-Au-delà de six génomes en lot, rien n'est mesuré. Sur ce banc, la recette n'occupe
-à froid que six cœurs sur vingt-quatre : c'est le disque qui borne
+**Combien de génomes de front.** Le module est presque séquentiel : le débit
+d'une machine ne tient qu'à ce nombre. Compter **un génome pour quatre cœurs**.
+Six de front sur vingt-quatre cœurs rendent 51 génomes par heure par la recette,
+39 par le lanceur de lot, sur des alignements lus à froid. Au-delà de six, rien
+n'est mesuré ; à froid, c'est le disque qui borne et non le processeur
 (`doc/VALIDATION.md` § 3.10).
 
 ## 10. Régler les seuils, et quand tout remesurer
