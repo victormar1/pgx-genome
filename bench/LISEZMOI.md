@@ -34,7 +34,7 @@ banc à une liste ; `--etapes` choisit les étapes.
 
 ## Ce qui doit en sortir
 
-| Mesure | Attendu, version 0.4.3 |
+| Mesure | Attendu |
 |---|---|
 | Prélèvements soumis, refusés à l'entrée, menés au bout | 256, 13, 242 |
 | Concordance sur les dix gènes à vérité | 1000 / 1009 |

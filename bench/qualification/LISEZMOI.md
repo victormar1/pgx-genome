@@ -10,7 +10,7 @@ quand elle rend le même rapport.
 | Alignement | `ftp://ftp.sra.ebi.ac.uk/vol1/run/ERR324/ERR3241747/HG00699.final.cram` et son `.crai`, MD5 `0bd9d2f5f91bdbecda1f19968c59a4e6` |
 | Variants | `HG00699.vcf.gz`, appels de la plateforme NYGC (GATK) sur les régions de l'interpréteur, complétés par des appels bcftools sur les régions du typage complémentaire (`doc/VALIDATION.md`, § 3.3), restreints aux régions utiles et au contig mitochondrial ; rend le même rapport que le fichier complet |
 | Référence | `GRCh38_full_analysis_set_plus_decoy_hla.fa`, celle de l'alignement |
-| Rapport de référence | `HG00699/sortie/HG00699.report.json`, produit par le module en version 0.4.2 avec les images de `env/conteneurs.txt` |
+| Rapport de référence | `HG00699/sortie/HG00699.report.json`, produit par ce module avec les images de `env/conteneurs.txt` |
 
 ```bash
 bin/pgx_genome.sh --cram /chemin/HG00699.final.cram --vcf bench/qualification/HG00699.vcf.gz \
