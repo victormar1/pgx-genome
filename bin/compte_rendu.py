@@ -405,8 +405,8 @@ h.append(Paragraph(
     "sur alignement complet ; HLA de classe I par OptiType ; autres gènes et interprétation par PharmCAT. "
     f"Module pgx-genome {e_(VERSION_MODULE or '?')}. "
     + L.couverture(META, _a.couv_min)
-    + f"Traductions des recommandations CPIC : version {e_(TR.get('version', '?'))}"
-    + (" (proposition, à valider)." if TR.get("statut") != "validée" else " (validée).")
+    + f"Les consignes sont traduites du référentiel CPIC, qui fait foi (table de "
+      f"traductions {e_(TR.get('version', '?'))})."
     + (f" Texte d'origine conservé pour : {', '.join(NON_TRADUITS)}." if NON_TRADUITS else ""), st_petit))
 if proto:
     h.append(Paragraph("<b>PROTOTYPE.</b> Établi sur un génome public du projet 1000 Genomes, à des fins de mise au "

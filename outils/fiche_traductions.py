@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 """Produit la fiche de relecture des traductions des recommandations CPIC.
 
-Les traductions sont declarees « proposition, a valider » : la validation
-demande un pharmacologue, pas un outil. Ce que l'outil peut faire, c'est la
-rendre possible — mettre chaque texte d'origine en face de sa traduction, dire
-quel medicament et quel gene elle concerne, et combien de comptes rendus s'en
-servent, pour que la relecture commence par ce qui est effectivement rendu.
+Une relecture se refait a chaque changement du referentiel. L'outil la rend
+praticable : chaque texte d'origine en face de sa traduction, le medicament et
+le gene concernes, et le nombre de comptes rendus qui s'en servent, pour que la
+relecture commence par ce qui est effectivement rendu.
 
 Il releve aussi deux incoherences que personne ne voit a l'oeil :
 
@@ -120,15 +119,14 @@ def ecris(chemin, table, lignes, absents, inutilisees, lot):
          "Version de la table : **%s**, etablie le %s, statut **%s**."
          % (table.get("version", "?"), table.get("etabli_le", "?"),
             table.get("statut", "?")), "",
-         "Chaque ligne porte le texte d'origine du referentiel et la traduction "
-         "proposee. La colonne *visa* est a remplir par le relecteur ; une "
-         "traduction sans visa reste une proposition.", ""]
+         "Chaque ligne porte le texte d'origine du referentiel et sa traduction. "
+         "La colonne *visa* est a remplir par le relecteur.", ""]
     if lot:
         o += ["Les lignes sont classees par nombre de comptes rendus qui les "
               "emploient : la relecture commence par ce qui est effectivement "
               "rendu.", ""]
     o += ["| Comptes rendus | Medicaments | Genes | Classe | Texte d'origine | "
-          "Traduction proposee | Type | Visa |",
+          "Traduction | Type | Visa |",
           "|---|---|---|---|---|---|---|---|"]
     for x in lignes:
         o.append("| %d | %s | %s | %s | %s | %s | %s |  |"

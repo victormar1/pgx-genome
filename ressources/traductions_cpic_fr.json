@@ -1,8 +1,8 @@
 {
- "version": "1.0",
- "etabli_le": "2026-09-25",
- "statut": "proposition",
- "statut_note": "Traductions proposées, à valider par un pharmacologue ou un biologiste avant usage clinique. Passer 'statut' à 'validée' une fois relues.",
+ "version": "1.1",
+ "etabli_le": "2026-11-08",
+ "statut": "relue",
+ "statut_note": "Traductions relues pour fidelite au texte CPIC et coherence d'une consigne a l'autre. Le texte qui fait foi est celui du referentiel CPIC, cite au pied du compte rendu.",
  "referentiel": "CPIC, textes émis par PharmCAT 3.4.0",
  "types": {
   "contre-indication": "ne pas prescrire ; restitué en tête",
@@ -60,7 +60,7 @@
  },
  "traductions": {
   "Abacavir is not recommended": {
-   "fr": "Ne pas prescrire l'abacavir : risque de syndrome d'hypersensibilité.",
+   "fr": "Abacavir non recommandé : risque de syndrome d'hypersensibilité.",
    "type": "contre-indication"
   },
   "Allopurinol is contraindicated": {
@@ -100,7 +100,7 @@
    "type": "standard"
   },
   "Based on CYP2C9 status, prescribe ≤40mg per day as a starting dose and adjust doses of fluvastatin based on disease-specific guidelines. If dose >40mg needed for desired efficacy, consider an alternative statin or combination therapy (i.e., fluvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391). SLCO1B1 phenotype could not be assigned based on genotyping.": {
-   "fr": "D'après CYP2C9 : dose initiale de 40 mg/j au plus ; au-delà, envisager une autre statine ou une association. Phénotype SLCO1B1 non attribuable.",
+   "fr": "D'après CYP2C9 : dose initiale de 40 mg/j au plus, puis adaptation selon la pathologie ; au-delà de 40 mg/j, envisager une autre statine ou une association à un hypolipémiant non statine. Phénotype SLCO1B1 non attribuable.",
    "type": "adaptation"
   },
   "Based on NUDT15, initiate therapy with reduced starting doses (30-80% of standard starting dose) if standard starting dose is ≥2 mg/kg/day. If starting dose is already below standard starting dose, dose reduction might not be necessary. During therapy, adjust the doses of azathioprine based on the degree of myelosuppression and disease-specific guidelines. It usually takes at least 2-4 weeks of stable dosing to reach steady state after each dose adjustment.": {
@@ -156,7 +156,7 @@
    "type": "adaptation"
   },
   "Increase starting dose 1.5 to 2 times recommended starting dose. Total starting dose should not exceed 0.3 mg/kg/day. Use therapeutic drug monitoring to guide dose adjustments.": {
-   "fr": "Envisager une dose initiale 1,5 à 2 fois supérieure à la dose standard, sans dépasser 0,3 mg/kg/j, puis adapter impérativement sur le suivi thérapeutique pharmacologique.",
+   "fr": "Augmenter la dose initiale à 1,5 à 2 fois la dose recommandée, sans dépasser 0,3 mg/kg/j au total ; adapter les doses par le suivi thérapeutique pharmacologique.",
    "type": "adaptation"
   },
   "Initiate standard starting daily dose. Consider increasing dose by 50-100% for the treatment of H. pylori infection and erosive esophagitis. Daily dose may be given in divided doses. Monitor for efficacy.": {
@@ -192,19 +192,19 @@
    "type": "sans recommandation"
   },
   "Prescribe an alternative statin depending on the desired potency (see Figure 1 of PMID: 35152405 for recommendations for alternative statins).": {
-   "fr": "Privilégier une autre statine selon la puissance recherchée.",
+   "fr": "Prescrire une autre statine selon la puissance recherchée.",
    "type": "adaptation"
   },
   "Prescribe an alternative statin depending on the desired potency (see Figure 1 of PMID: 35152405 for recommendations for alternative statins). If lovastatin therapy is warranted, limit dose to ≤20mg/day.": {
-   "fr": "Privilégier une autre statine selon la puissance recherchée. Si la lovastatine est maintenue, limiter la dose à 20 mg/j au plus.",
+   "fr": "Prescrire une autre statine selon la puissance recherchée. Si la lovastatine est maintenue, limiter la dose à 20 mg/j au plus.",
    "type": "adaptation"
   },
   "Prescribe an alternative statin depending on the desired potency (see Figure 1 of PMID: 35152405 for recommendations for alternative statins). If simvastatin therapy is warranted, limit dose to <20mg/day.": {
-   "fr": "Privilégier une autre statine selon la puissance recherchée. Si la simvastatine est maintenue, limiter la dose à moins de 20 mg/j.",
+   "fr": "Prescrire une autre statine selon la puissance recherchée. Si la simvastatine est maintenue, limiter la dose à moins de 20 mg/j.",
    "type": "adaptation"
   },
   "Prescribe an alternative statin depending on the desired potency. (see Table 2 and Figure 1 of PMID: 35152405 for recommendations for alternative statins).": {
-   "fr": "Privilégier une autre statine selon la puissance recherchée.",
+   "fr": "Prescrire une autre statine selon la puissance recherchée.",
    "type": "adaptation"
   },
   "Prescribe desired starting dose and adjust doses based on disease-specific guidelines.": {
@@ -216,11 +216,11 @@
    "type": "standard"
   },
   "Prescribe desired starting dose and adjust doses of fluvastatin based on disease-specific guidelines. Prescriber should be aware of possible increased risk for myopathy especially for doses >40mg per day.": {
-   "fr": "Dose initiale souhaitée ; risque de myopathie accru, surtout au-delà de 40 mg/j.",
+   "fr": "Dose initiale souhaitée, puis adaptation selon la pathologie ; risque de myopathie accru, surtout au-delà de 40 mg/j.",
    "type": "vigilance"
   },
   "Prescribe desired starting dose and adjust doses of pravastatin based on disease-specific guidelines. Prescriber should be aware of possible increased risk for myopathy with pravastatin especially with doses >40mg per day.": {
-   "fr": "Dose initiale souhaitée ; risque de myopathie accru, surtout au-delà de 40 mg/j.",
+   "fr": "Dose initiale souhaitée, puis adaptation selon la pathologie ; risque de myopathie accru, surtout au-delà de 40 mg/j.",
    "type": "vigilance"
   },
   "Prescribe desired starting dose and adjust doses of rosuvastatin based on disease-specific and specific population guidelines.": {
@@ -228,51 +228,51 @@
    "type": "standard"
   },
   "Prescribe desired starting dose and adjust doses of rosuvastatin based on disease-specific and specific population guidelines. Prescriber should be aware of possible increased risk for myopathy especially for doses >20mg.": {
-   "fr": "Dose initiale souhaitée ; risque de myopathie accru, surtout au-delà de 20 mg/j.",
+   "fr": "Dose initiale souhaitée, puis adaptation selon la pathologie ; risque de myopathie accru, surtout au-delà de 20 mg/j.",
    "type": "vigilance"
   },
   "Prescribe ≤ 2mg as a starting dose and adjust doses of pitavastatin based on disease-specific guidelines. Prescriber should be aware of possible increased risk for myopathy especially for doses >1mg. If dose >2mg needed for desired efficacy, consider an alternative statin (see Figure 1 of PMID: 35152405 for recommendations for alternative statins) or combination therapy (i.e. pitavastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
-   "fr": "Dose initiale de 2 mg/j au plus ; risque de myopathie accru au-delà de 1 mg. Au-delà de 2 mg, envisager une autre statine ou une association.",
+   "fr": "Dose initiale de 2 mg/j au plus, puis adaptation selon la pathologie ; risque de myopathie accru au-delà de 1 mg/j. Au-delà de 2 mg/j, envisager une autre statine ou une association à un hypolipémiant non statine.",
    "type": "adaptation"
   },
   "Prescribe ≤10mg as a starting dose and adjust doses of rosuvastatin based on disease-specific and specific population guidelines. If dose >10mg needed for desired efficacy, consider an alternative statin or combination therapy (i.e., rosuvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
-   "fr": "Dose initiale de 10 mg/j au plus ; au-delà, envisager une autre statine ou une association.",
+   "fr": "Dose initiale de 10 mg/j au plus, puis adaptation selon la pathologie ; au-delà de 10 mg/j, envisager une autre statine ou une association à un hypolipémiant non statine.",
    "type": "adaptation"
   },
   "Prescribe ≤1mg as a starting dose and adjust doses of pitavastatin based on disease-specific guidelines. If dose >1mg needed for desired efficacy, consider an alternative statin (see Figure 1 of PMID: 35152405 for recommendations for alternative statins) or combination therapy (i.e. pitavastatin plus non-statin guideline directed medical therapy)(PMID: 30423391).": {
-   "fr": "Dose initiale de 1 mg/j au plus ; au-delà, envisager une autre statine ou une association.",
+   "fr": "Dose initiale de 1 mg/j au plus, puis adaptation selon la pathologie ; au-delà de 1 mg/j, envisager une autre statine ou une association à un hypolipémiant non statine.",
    "type": "adaptation"
   },
   "Prescribe ≤20mg as a starting dose and adjust doses of atorvastatin based on disease-specific guidelines. If dose >20mg is needed for desired efficacy, consider rosuvastatin or combination therapy (i.e., atorvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
-   "fr": "Dose initiale de 20 mg/j au plus ; au-delà, envisager la rosuvastatine ou une association.",
+   "fr": "Dose initiale de 20 mg/j au plus, puis adaptation selon la pathologie ; au-delà de 20 mg/j, envisager la rosuvastatine ou une association à un hypolipémiant non statine.",
    "type": "adaptation"
   },
   "Prescribe ≤20mg as a starting dose and adjust doses of rosuvastatin based on disease-specific and specific population guidelines. If dose > 20mg needed for desired efficacy, consider combination therapy (i.e., rosuvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
-   "fr": "Dose initiale de 20 mg/j au plus ; au-delà, envisager une association à un hypolipémiant non statine.",
+   "fr": "Dose initiale de 20 mg/j au plus, puis adaptation selon la pathologie ; au-delà de 20 mg/j, envisager une association à un hypolipémiant non statine.",
    "type": "adaptation"
   },
   "Prescribe ≤20mg as a starting dose and adjust doses of rosuvastatin based on disease-specific and specific population guidelines. If dose >20mg needed for desired efficacy, consider an alternative statin or combination therapy (i.e., rosuvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
-   "fr": "Dose initiale de 20 mg/j au plus ; au-delà, envisager une autre statine ou une association.",
+   "fr": "Dose initiale de 20 mg/j au plus, puis adaptation selon la pathologie ; au-delà de 20 mg/j, envisager une autre statine ou une association à un hypolipémiant non statine.",
    "type": "adaptation"
   },
   "Prescribe ≤20mg per day as a starting dose and adjust doses of fluvastatin based on disease-specific guidelines. If dose >20mg needed for desired efficacy, consider an alternative statin or combination therapy (i.e., fluvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
-   "fr": "Dose initiale de 20 mg/j au plus ; au-delà, envisager une autre statine ou une association.",
+   "fr": "Dose initiale de 20 mg/j au plus, puis adaptation selon la pathologie ; au-delà de 20 mg/j, envisager une autre statine ou une association à un hypolipémiant non statine.",
    "type": "adaptation"
   },
   "Prescribe ≤40mg as a starting dose and adjust doses of atorvastatin based on disease-specific guidelines. Prescriber should be aware of possible increased risk for myopathy especially for 40mg dose. If dose >40mg needed for desired efficacy, consider combination therapy (i.e., atorvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
-   "fr": "Dose initiale de 40 mg/j au plus, puis adaptée selon la pathologie ; risque de myopathie accru, surtout à 40 mg. Au-delà de 40 mg, envisager une association à un hypolipémiant non statine.",
+   "fr": "Dose initiale de 40 mg/j au plus, puis adaptation selon la pathologie ; risque de myopathie accru, surtout à 40 mg/j. Au-delà de 40 mg/j, envisager une association à un hypolipémiant non statine.",
    "type": "adaptation"
   },
   "Prescribe ≤40mg as a starting dose and adjust doses of pravastatin based on disease-specific guidelines. If patient is tolerating 40mg dose but higher potency is needed, a higher dose (>40mg) or an alternative statin (see Figure 1 of of PMID: 35152405 for recommendations for alternative statins) or combination therapy (i.e. pravastatin plus non-statin guideline directed medical therapy)(PMID: 30423391) could be considered. Prescriber should be aware of possible increased risk for myopathy especially with pravastatin doses >40mg.": {
-   "fr": "Dose initiale de 40 mg/j au plus. Si 40 mg sont tolérés mais qu'une puissance supérieure est nécessaire : dose plus élevée, autre statine ou association ; risque de myopathie accru au-delà de 40 mg/j.",
+   "fr": "Dose initiale de 40 mg/j au plus, puis adaptation selon la pathologie. Si 40 mg/j sont tolérés mais qu'une puissance supérieure est nécessaire : dose plus élevée, autre statine ou association à un hypolipémiant non statine ; risque de myopathie accru au-delà de 40 mg/j.",
    "type": "adaptation"
   },
   "Prescribe ≤40mg per day as a starting dose and adjust doses of fluvastatin based on disease-specific guidelines. If dose >40mg needed for desired efficacy, consider an alternative statin or combination therapy (i.e., fluvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391).": {
-   "fr": "Dose initiale de 40 mg/j au plus ; au-delà, envisager une autre statine ou une association.",
+   "fr": "Dose initiale de 40 mg/j au plus, puis adaptation selon la pathologie ; au-delà de 40 mg/j, envisager une autre statine ou une association à un hypolipémiant non statine.",
    "type": "adaptation"
   },
   "Prescribe ≤40mg per day as a starting dose and adjust doses of fluvastatin based on disease-specific guidelines. If patient is tolerating 40mg per day but higher potency is needed, a higher dose (>40mg) or an alternative statin or combination therapy (i.e. fluvastatin plus non-statin guideline directed medical therapy) (PMID: 30423391) could be considered. Prescriber should be aware of possible increased risk for myopathy with fluvastatin especially with doses >40mg per day.": {
-   "fr": "Dose initiale de 40 mg/j au plus. Si 40 mg sont tolérés mais qu'une puissance supérieure est nécessaire : dose plus élevée, autre statine ou association ; risque de myopathie accru au-delà de 40 mg/j.",
+   "fr": "Dose initiale de 40 mg/j au plus, puis adaptation selon la pathologie. Si 40 mg/j sont tolérés mais qu'une puissance supérieure est nécessaire : dose plus élevée, autre statine ou association à un hypolipémiant non statine ; risque de myopathie accru au-delà de 40 mg/j.",
    "type": "adaptation"
   },
   "The latency period for cutaneous adverse drug reactions is variable depending on phenotype; however, all usually occur within three months of regular dosing. Therefore, if the patient has previously used carbamazepine consistently for longer than three months without incidence of cutaneous adverse reactions, cautiously consider use of carbamazepine.": {
