@@ -265,6 +265,12 @@ moteur, les images et le typeur complémentaire en paramètres (`--moteur`,
 | `travail/qc_positions.tsv` | une ligne par position diagnostique, ce qui a été lu |
 | `travail/etats.tsv` | l'état et la durée de chaque étage |
 
+Un compte rendu complet, contexte épilepsie : les médicaments concernés en tête,
+les treize gènes du périmètre, les positions du core panel rendues en génotype
+sans interprétation, le typage complémentaire, puis la conclusion et les limites.
+
+<p align="center"><img src="figures/exemple_cr_HG00140.png" alt="Compte rendu d'un génome public en contexte épilepsie : abacavir et carbamazépine contre-indiqués, résultats des treize gènes du périmètre, positions du core panel hors interprétation, typage complémentaire, conclusion et limites" width="620"></p>
+
 **Le champ à surveiller est `reussite_complete`**, dans `provenance.json`. Il vaut
 `true` seulement si les neuf étages requis sont présents et qu'aucun étage,
 l'optionnel compris, n'est en échec. Un dictionnaire d'étages vide donne `false`.
