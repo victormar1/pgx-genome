@@ -11,11 +11,11 @@ Elle ne vaut aucune déclaration de conformité.
 ## 0.5.2
 
 **Le dénominateur du compte rendu se lit dans le périmètre.** Le document
-annonce « N gènes rendus sur M » ; M était écrit en dur à 12, et le périmètre
-clinique est passé à treize gènes sans que ce nombre bouge. Il se compte
-désormais sur les gènes du périmètre que l'interpréteur connaît, treize moins
-POR, qui n'a aucune table clinique. Les comptes rendus produits sur une
-installation à jour sont inchangés, dénominateur compris.
+annonce « N gènes rendus sur M ». M était écrit dans le code : il vaut bien 12
+aujourd'hui, mais serait resté à 12 le jour où un gène entre au périmètre, sans
+que rien ne le signale. Il se compte désormais sur les gènes du périmètre que
+l'interpréteur connaît, treize moins POR, qui n'a aucune table clinique. Les
+comptes rendus sont inchangés, dénominateur compris.
 
 254 cas de test.
 
