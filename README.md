@@ -81,8 +81,10 @@ protocole de revalidation sont dans `doc/VALIDATION.md`.
 Les neuf écarts portent tous sur le second champ d'un allèle HLA, sans
 conséquence de prescription. Pour MT-RNR1, m.1555A>G et m.1494C>T n'ont aucun
 porteur disponible : leur appel positif n'est exercé que par un cas construit.
-Les traductions des recommandations CPIC n'ont pas de validation
-pharmacologique.
+
+`bench/` porte l'outillage qui refait ces mesures depuis les données publiques :
+une plateforme peut les reproduire chez elle, et doit le faire après tout
+changement de version (`bench/LISEZMOI.md`).
 
 ## Prérequis
 
@@ -136,7 +138,7 @@ export PYPGX_BUNDLE=/opt/pypgx-bundle
 ```
 
 La mise en service sur une plateforme — contrôle des empreintes, tests, génome
-de qualification — est décrite dans `doc/MODE_EMPLOI.md`, § 11.
+de qualification — est décrite dans `doc/MODE_EMPLOI.md`, § 1.
 
 ## Utilisation
 
@@ -168,7 +170,7 @@ Un génome n'occupe que 1,3 cœur en moyenne : le débit tient au nombre de gén
 menés de front, mesuré jusqu'à six. `exemples/pgx_genome.nf` est une recette
 Nextflow, un processus par étage, qui déclare les cœurs et la mémoire mesurés.
 
-Les options complètes sont dans `doc/MODE_EMPLOI.md`, § 7.
+Les options complètes sont dans `doc/MODE_EMPLOI.md`, § 3.
 
 ## Entrées, sorties, contrat
 

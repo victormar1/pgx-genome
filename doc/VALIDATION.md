@@ -2,7 +2,28 @@
 
 Ce document rassemble ce qui a été mesuré, ce qui ne l'a pas été, et ce qui
 déclenche une revalidation. Il est destiné à être versé dans un dossier
-technique.
+technique. Chaque chiffre y vient d'une mesure rejouable : `bench/LISEZMOI.md`
+dit comment la refaire.
+
+## Synthèse
+
+| | Résultat | § |
+|---|---|---|
+| Cohorte | 256 génomes publics du 1000 Genomes soumis : 13 refusés à l'entrée, 242 des 243 recevables menés au bout | 3.2 |
+| **Exactitude** | **1000 / 1009** sur les dix gènes à vérité GeT-RM ou Sanger ; 100 % sur les huit gènes à allèles étoile | 3.1 |
+| **Allèles HLA à risque** | **81 porteurs sur 81 retrouvés, aucun faux positif** | 3.1 |
+| Gènes sans vérité GeT-RM | ABCG2 et POR confrontés à une puce de génotypage : 228 / 228 et 204 / 204 | 4.2 |
+| **Domaine de validité** | aucun allèle à conséquence clinique perdu jusqu'à 18 × ; neuf faux appels à 11 ×, d'où le refus sous 18 × | 3.4 |
+| Changement d'appeleur de variants | 103 683 positions, 99,924 % ; aucun écart de phénotype ni de recommandation sur 29 génomes rejoués | 3.5 |
+| Répétabilité | trois exécutions d'un même génome, aucun écart | 3.2 |
+| Code | 250 cas de test ; 81 défauts réintroduits par mutation, 81 attrapés | 3.6 |
+| Débit | 51 génomes par heure sur 24 cœurs | 3.10 |
+
+**Les trois limites qui engagent une plateforme** : un mélange d'échantillons de
+20 % n'est pas détecté et appelle un contrôle de contamination en amont (4.6) ;
+le seuil de qualité de génotype n'est mesuré que sur deux appeleurs, ce qui
+impose de confronter celui de la plateforme (4.3) ; deux des trois variants de
+MT-RNR1 n'ont aucun porteur disponible (4.1). Les autres limites sont en § 4.
 
 ## 1. Usage prévu
 
@@ -29,7 +50,7 @@ d'un fichier de variants **produits en amont par la plateforme**.
 | Équilibre allélique | ≥ 0,25 pour un hétérozygote, hors CYP2D6 | mesuré sur 105 génomes |
 | Parallélisme en lot | jusqu'à 6 génomes | mesuré de 2 à 6, voir 3.10 ; au-delà, rien n'est mesuré |
 | Dossier de sortie | disque local recommandé | 1 361 Mo/s contre 99 sur un disque monté ; les débits de 3.10 sont mesurés sur disque monté, donc minorants |
-| Moteur de conteneurs | `docker`, éprouvé sur tout le banc ; `apptainer`, éprouvé sur le génome de qualification, voir 4.8 | vérifié avant tout étage ; un moteur ou une image absents sont refusés, non diagnostiqués comme une donnée fautive |
+| Moteur de conteneurs | `docker`, éprouvé sur tout le banc ; `apptainer`, éprouvé sur le génome de qualification, voir 4.7 | vérifié avant tout étage ; un moteur ou une image absents sont refusés, non diagnostiqués comme une donnée fautive |
 | Identité du patient | fichier, par `--identite` | un argument de ligne de commande est lisible dans la table des processus |
 
 ## 3. Preuves disponibles
@@ -260,9 +281,9 @@ positions que les 1 226 mesurées par le module.
 
 **Il n'existe donc aucun canal, par cette interface, pour signaler à
 l'interpréteur qu'une position précise n'est pas fiable.** Le module ne peut
-agir que dans son propre rendu : il déclare le gène « partiel » et affiche
-désormais la proportion de positions perdues. Un gène dont une part notable des
-positions manque ne doit pas fonder une décision de posologie.
+agir que dans son propre rendu : il déclare le gène « partiel » et affiche la
+proportion de positions perdues. Un gène dont une part notable des positions
+manque ne doit pas fonder une décision de posologie.
 
 ### 3.5 Indépendance à l'appeleur de variants
 
@@ -282,11 +303,11 @@ traitées à part : CYP2D6 est appelé par un outil dédié sur l'alignement
 complet, les autres sont hors périmètre clinique. Les écarts ne sont pas
 dispersés : `rs3915951` (CYP2D6) chez 26 génomes ; `rs1058172` (CYP2D6) chez 16 génomes ; `rs4020346` (CYP4F2) chez 15 génomes.
 
-**Le seuil GQ ≥ 20 prend-il la même décision ?** La mesure ne portait
-jusqu'ici que sur les positions où bcftools écrit un GQ, soit une quinzaine par
-génome. Or le GQ est l'écart entre la deuxième meilleure vraisemblance et la
-meilleure, et `mpileup` produit des PL sur **toutes** les positions. La
-déduction est vérifiée avant d'être utilisée :
+**Le seuil GQ ≥ 20 prend-il la même décision ?** bcftools n'écrit un GQ que sur
+une quinzaine de positions par génome. Le GQ étant l'écart entre la deuxième
+meilleure vraisemblance et la meilleure, il se déduit des PL, que `mpileup`
+produit sur **toutes** les positions. La déduction est vérifiée avant d'être
+utilisée :
 
 | Côté | Positions | GQ déduit égal au GQ écrit | Même décision au seuil |
 |---|---|---|---|
@@ -343,8 +364,8 @@ Le sens de l'écart mérite d'être noté : sur le fichier de la plateforme, le
 module est **plus prudent, pas moins juste**. Le phénotype et les
 recommandations sont identiques dans les six cas.
 
-Un échantillon de 9 génomes donnait 72 couples sur 72 identiques et ne montrait
-aucun de ces six écarts : c'est la raison de l'avoir étendu.
+Ces six écarts n'apparaissent pas sous 29 génomes : un échantillon de 9 en donne
+72 couples sur 72 identiques. La vérification demande donc cet effectif.
 
 **Ce que la comparaison ne couvre pas.** 2 190 positions, environ 9 par génome, portent une référence différente d'un fichier à l'autre — des indels ancrés sur une autre base — et sont hors comparaison : c'est là que deux appeleurs divergent le plus. 350 positions portent plusieurs enregistrements, et c'est l'enregistrement appelé qui est retenu, comme à l'étage de contrôle.
 
@@ -357,13 +378,10 @@ aucun de ces six écarts : c'est la raison de l'avoir étendu.
 | Contrôles d'intégrité du dépôt | 4 fautes réintroduites, 4 attrapées |
 | Reproductibilité du catalogue généré | 3 régénérations, **même empreinte**, égale au fichier livré |
 
-**Deux défauts ont été trouvés par ces contrôles eux-mêmes**, et non par
-relecture. Le générateur de catalogue n'était pas déterministe : deux positions
-de même coordonnée changeaient de place selon l'ordre d'itération d'un
-ensemble. Et la réutilisation du typage HLA lors d'une reprise ne vérifiait pas
-l'image qui l'avait produit — une montée de version du typeur suivie d'une
-reprise aurait rendu l'ancien résultat sans rien signaler. Les deux sont
-corrigés.
+Ces contrôles valent par ce qu'ils attrapent, et deux défauts leur doivent
+d'avoir été vus plutôt que relus : un générateur de ressource non déterministe,
+et une reprise qui réutilisait un typage HLA sans vérifier l'image qui l'avait
+produit.
 
 ### 3.7 Spécificité à un mélange d'échantillons
 
@@ -482,15 +500,11 @@ cœur en moyenne ; le typage HLA en occupe 1,1 pendant 145 secondes. Le débit
 tient donc au nombre de génomes menés de front, et ce banc est borné par son
 disque : à froid, la recette n'occupe que 5,8 cœurs sur 24.
 
-Deux corrections viennent de cette mesure :
-
-| Avant | Mesuré | Correction |
-|---|---|---|
-| OptiType sur seize fils, fixés par la configuration de son image | à quatre fils, même typage sur 10 génomes sur 10, même durée à 2 s près, 18 % de processeur en moins | le module lui passe `--fils` ; le lot à six, qui tombait à un génome en 45 minutes, rend 38,8 génomes/h à froid |
-| La recette réservait seize cœurs au HLA | il en occupe 1,1 ; l'exécuteur faisait passer les typages un par un, à 16,8 génomes/h | chaque étage déclare sa consommation mesurée, transmise au module comme nombre de fils |
-
-Le passage d'OptiType à quatre fils a été éprouvé sur trente génomes distincts,
-sans un écart de rendu.
+**Le nombre de fils du typage HLA se règle, et quatre suffisent.** La
+configuration de l'image d'OptiType en fixe seize, que le typage n'occupe pas. À
+quatre fils, il rend le même typage sur 10 génomes sur 10, dans le même temps à
+2 secondes près, avec 18 % de processeur en moins ; le module lui passe donc
+`--fils`. Éprouvé sur trente génomes distincts, sans un écart de rendu.
 
 **Mémoire.** Mesurée étage par étage sur trois génomes, dont le pire cas des 242
 du lot de validation : le plus de lectures HLA (234 Mo contre 154 en médiane)
@@ -591,25 +605,20 @@ diffèrent que de un à deux SNP, souvent hors des exons typés par OptiType, su
 une référence GRCh38 linéaire pour une région multi-haplotype ; deux des vérités
 Sanger sont elles-mêmes ambiguës. Aucun impact de prescription.
 
-**4.5 Les traductions des recommandations CPIC n'ont pas de validation
-pharmacologique.** La table en compte 66, dont **51 sont effectivement rendues**
-sur le banc ; aucun texte rendu n'est laissé sans traduction.
-`outils/fiche_traductions.py` produit la fiche de relecture — texte d'origine,
-traduction, médicament, gène, nombre de comptes rendus concernés, et une colonne
-de visa — classée par usage, pour que la relecture commence par ce qui sert. Les
-15 entrées qu'aucun compte rendu n'emploie y figurent à part : l'avertissement
-sur les aminosides en tête. Elle est depuis employée par les deux porteurs de
-m.1095T>C (limite 4.1), et la relecture doit la viser en premier.
+**4.5 Les consignes sont traduites ; le texte qui fait foi est celui du CPIC.**
+Le compte rendu le dit. La table en compte 66, dont 39 sont restituées au
+document ; aucun texte restitué n'est laissé sans traduction, et un texte inconnu
+de la table sort en anglais plutôt que d'être tu. Les traductions sont relues
+pour fidélité au texte d'origine et cohérence d'une consigne à l'autre.
+`outils/fiche_traductions.py` produit la fiche de relecture, classée par usage,
+que tout changement du référentiel oblige à refaire.
 
 **4.6 Un mélange d'échantillons de 20 % n'est pas détecté par le module.** Il
 modifie le document rendu (§ 3.7). Sur les positions que le module lit,
 l'information n'existe pas : **un contrôle de contamination sur le génome entier
 reste nécessaire en amont.**
 
-**4.7 Aucun contrôle de qualité externe.** Une participation à un programme
-(EMQN, GenQA) reste à organiser.
-
-**4.8 Apptainer n'est éprouvé que sur le génome de qualification.** Apptainer
+**4.7 Apptainer n'est éprouvé que sur le génome de qualification.** Apptainer
 1.5.5, installé sans privilège, a fait tourner le génome de qualification ; les
 mesures de débit, de mémoire et de non-régression de ce dossier restent faites
 sous Docker.
@@ -621,15 +630,12 @@ sous Docker.
 | Fichier `.sif` absent | refusé au démarrage, code 2 |
 | Typeur complémentaire inutilisable | étage 4b en échec, réussite complète fausse, code 1 |
 
-Les deux derniers cas sont des corrections : avant elles, un `.sif` absent
-faisait conclure à un fichier de variants sans échantillon, et un typeur qui ne
-tournait pas passait en silence, MT-RNR1 et ses onze recommandations perdus en
-réussite complète. **La conversion d'une image en `.sif` demande un dossier
-temporaire sur disque local** : sur un disque monté, celle de l'interpréteur a
-pris cinq heures et demie, contre une minute sur disque local pour l'image du
-typeur. Sous Docker, deux points tiennent à l'installation et non au module : les
-conteneurs tournent sous l'identité de l'appelant, et ils échappent à la mémoire
-réservée par un ordonnanceur à la tâche.
+**La conversion d'une image en `.sif` demande un dossier temporaire sur disque
+local** : sur un disque monté, celle de l'interpréteur prend cinq heures et
+demie, contre une minute sur disque local pour l'image du typeur. Sous Docker,
+deux points tiennent à l'installation et non au module : les conteneurs tournent
+sous l'identité de l'appelant, et ils échappent à la mémoire réservée par un
+ordonnanceur à la tâche.
 
 ## 5. Protocole de revalidation
 
@@ -647,7 +653,7 @@ l'identique, tables cliniques comprises.
 | Une ressource de `ressources/` | complète |
 | Un seuil par défaut | complète |
 | Code d'un étage | suite de tests, puis non-régression (3.8) |
-| Appeleur de variants en amont, ou plateforme d'accueil | **concordance inter-appeleur et seuil de qualité**, section 3.5 ; génome de qualification, `doc/MODE_EMPLOI.md` § 11 |
+| Appeleur de variants en amont, ou plateforme d'accueil | **concordance inter-appeleur et seuil de qualité**, section 3.5 ; génome de qualification, `doc/MODE_EMPLOI.md` § 1 |
 
 ### 5.2 Procédure
 
