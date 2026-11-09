@@ -8,6 +8,38 @@ incrémente au moins le rang mineur et déclenche la revalidation décrite dans
 La version du module figure dans `provenance.json` et au pied du compte rendu.
 Elle ne vaut aucune déclaration de conformité.
 
+## 0.5.5
+
+Correctifs issus d'un audit de code et de documentation par un agent de modèle
+alternatif. Chaque défaut retenu a été vérifié sur le code réel avant d'être
+corrigé, et chaque correction est tenue par un test.
+
+**Recevabilité.** Un VCF qui ne déclare pas `AD` est refusé : sans lectures par
+allèle, l'équilibre allélique et le critère de mélange ne se mesuraient pas, sans
+que rien le signale. Une divergence acceptée entre le champ `SM` de l'alignement
+et le nom du VCF est désormais dite et tracée, et non annoncée comme une
+concordance.
+
+**Exécution.** `INT` et `TERM` arrêtent le module après le nettoyage de ses
+verrous. Les livrables d'une exécution précédente sont purgés à la recevabilité,
+et une trace absente vaut échec. La version du module entre dans la signature de
+reprise.
+
+**Contrôle de non-régression.** Un génome refusé dans la référence puis rendu, et
+une recommandation dont seule la force change, comptent comme écarts.
+
+**Trace et compte rendu.** La trace porte le hash complet de l'index de la
+référence ; un PMID nul n'est plus rendu comme référence.
+
+**Outillage et documentation.** Le validateur reconnaît le trailer d'assistance à
+son adresse et tout chemin Windows ; la CI teste une pull request sur sa fusion,
+sans garder le jeton. Commandes d'installation copiables, Docker et Apptainer
+précisés.
+
+Aucun résultat rendu ne change sur une entrée conforme : le génome de
+qualification rend 0 écart sur 12 couples gène × génome. 271 cas de test ; 99
+mutants, 99 tués.
+
 ## 0.5.4
 
 **Figures à jour.** La figure du coût par étage reprend la mesure du tableau
