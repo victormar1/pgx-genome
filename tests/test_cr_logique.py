@@ -261,6 +261,16 @@ class Recommandations(unittest.TestCase):
             "Strong", {"CYP2D6": "Poor Metabolizer"}, "Avoid codeine use.")]})
         self.assertEqual(self.selection(rep, ambigus=("CYP2D6",)), [])
 
+    def test_un_pmid_nul_n_est_pas_une_reference(self):
+        # PharmCAT ecrit parfois "pmid": null : rendue telle quelle, la valeur
+        # afficherait « PMID None » au compte rendu.
+        rep = rapport({"codeine": [annotation(
+            "Strong", {"CYP2D6": "Poor Metabolizer"}, "Avoid codeine use.")]})
+        rep["drugs"]["CPIC Guideline Annotation"]["codeine"]["citations"] = [
+            {"pmid": None, "year": 2021}]
+        b = self.selection(rep)
+        self.assertEqual(b[0][6], "")
+
     def test_un_texte_inconnu_de_la_ressource_est_rendu_tel_quel(self):
         # Jamais tu : un texte non traduit sort en anglais et le compte rendu
         # le signale, plutot que de perdre la conduite.

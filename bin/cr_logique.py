@@ -203,7 +203,9 @@ def recommandations(rep, genes, mesures, les_ambigus, tr, meds):
         if nom not in meds:
             continue
         cites = sorted(m.get("citations") or [], key=lambda c: c.get("year") or 0)
-        pmid = cites[-1].get("pmid", "") if cites else ""
+        # PharmCAT ecrit parfois "pmid": null ; une valeur nulle n'est pas une
+        # reference, et rendue telle quelle elle afficherait « PMID None ».
+        pmid = (cites[-1].get("pmid") or "") if cites else ""
         for gl in m.get("guidelines") or []:
             for a in gl.get("annotations") or []:
                 cl = a.get("classification")
