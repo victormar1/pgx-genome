@@ -25,9 +25,9 @@
     <!-- R4 -> fichiers R4 -->
     <line x1="175" y1="226" x2="175" y2="235" marker-end="url(#ar)"/>
     <line x1="433" y1="226" x2="433" y2="235" marker-end="url(#ar)"/>
-    <!-- vers appels externes -->
+    <!-- vers outside calls -->
     <line x1="433" y1="256" x2="433" y2="273" marker-end="url(#ar)"/>
-    <!-- controle qualite -> typage complementaire -> appels externes -->
+    <!-- controle qualite -> typage PyPGx -> outside calls -->
     <line x1="269" y1="256" x2="269" y2="273" marker-end="url(#ar)"/>
     <line x1="342" y1="291" x2="351" y2="291" marker-end="url(#ar)"/>
     <line x1="608" y1="174" x2="608" y2="273" marker-end="url(#ar)"/>
@@ -106,7 +106,7 @@
     <text x="269" y="299" text-anchor="middle" font-size="7.5" fill="#5F726B">MT-RNR1 · BCHE · MTHFR · POR</text>
 
     <rect x="352" y="274" width="340" height="34" rx="5" fill="#fff" stroke="#17332B"/>
-    <text x="522" y="288" text-anchor="middle" font-weight="700"><tspan fill="#1B9E77">5 · </tspan>Appels externes</text>
+    <text x="522" y="288" text-anchor="middle" font-weight="700"><tspan fill="#1B9E77">5 · </tspan>Outside calls</text>
     <text x="522" y="301" text-anchor="middle" font-size="8.5" fill="#5F726B">format PharmCAT -po · espaces autour du + · MT-RNR1 haploïde</text>
 
     <rect x="8" y="356" width="684" height="34" rx="5" fill="#fff" stroke="#17332B"/>

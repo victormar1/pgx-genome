@@ -10,7 +10,8 @@ se rabattre sur une entrée de secours. Le code de retour du module ne vaut zér
 que si les neuf étages requis ont abouti.
 
 Les sections 1 à 4 suffisent pour installer et exploiter. Les suivantes
-expliquent ce que fait le module et ce qu'il garantit.
+expliquent ce que fait le module et ce qu'il garantit. Le vocabulaire est défini
+dans `doc/GLOSSAIRE.md`.
 
 ---
 
@@ -26,7 +27,7 @@ expliquent ce que fait le module et ce qu'il garantit.
 | `python3` 3.8 ou plus, avec `reportlab` | contrôle qualité, trace, compte rendu |
 | GNU `coreutils` et `findutils` | `stat -c`, `xargs -d` dans le traitement de lot |
 | dépôt Cyrius, commit `7c060db`, avec ses dépendances Python | l'étage CYP2D6 |
-| ressource de données PyPGx 0.27.0 (`PYPGX_BUNDLE`) | le typage complémentaire, s'il est armé |
+| ressource de données PyPGx 0.27.0 (`PYPGX_BUNDLE`) | le typage PyPGx, s'il est activé |
 
 La **référence GRCh38** indexée qui a servi à l'alignement ne se télécharge pas :
 c'est celle de la plateforme, et elle doit être la même. Le reste s'installe.
@@ -54,7 +55,7 @@ export PYPGX_BUNDLE=/opt/pypgx-bundle
 
 ### 1.2 Les quatre conteneurs
 
-Versions figées, empreintes dans `env/conteneurs.txt`. Un changement de version
+Versions figées, digests dans `env/conteneurs.txt`. Un changement de version
 change les résultats et impose une revalidation (§ 10).
 
 ```bash
@@ -70,7 +71,7 @@ pour que les sorties lui appartiennent.
 
 Sous Apptainer, `PGX_IMG_*` nomme soit une image de dépôt, tirée à l'exécution,
 ce qui demande le réseau sur chaque nœud, soit un fichier `.sif` local, dont
-l'empreinte est alors tracée ; un `.sif` absent est refusé au démarrage. Les
+le hash est alors tracé ; un `.sif` absent est refusé au démarrage. Les
 `.sif` se préparent une fois, **avec un dossier temporaire sur disque local** :
 sur un disque monté en réseau, la conversion de l'image de l'interpréteur prend
 des heures.
@@ -94,15 +95,15 @@ Dans l'ordre, chaque étape ayant un résultat attendu.
 | Étape | Commande | Attendu |
 |---|---|---|
 | 1. Installer | § 1.1 et 1.2 ci-dessus | `bin/pgx_genome.sh --version` rend la version |
-| 2. Contrôler les images | `docker image inspect --format '{{index .RepoDigests 0}}' <image>` | les empreintes de `env/conteneurs.txt` |
+| 2. Contrôler les images | `docker image inspect --format '{{index .RepoDigests 0}}' <image>` | les digests de `env/conteneurs.txt` |
 | 3. Passer les contrôles du dépôt | `python3 -m unittest discover -s tests` puis `python3 outils/verifier_depot.py` | tous passent |
 | 4. Rejouer le génome de qualification | voir ci-dessous | **0 écart** |
-| 5. Confronter l'appeleur de la plateforme | sur ses propres génomes | voir § 10 ; à faire avant tout usage clinique |
+| 5. Confronter le variant caller de la plateforme | sur ses propres génomes | voir § 10 ; à faire avant tout usage clinique |
 
 **Le génome de qualification.** `bench/qualification/` porte, pour un génome
 public du 1000 Genomes, son fichier de variants et le rapport de référence que ce
 module en produit. La plateforme télécharge l'alignement depuis le projet 1000
-Genomes (adresse et empreinte dans `bench/qualification/LISEZMOI.md`), exécute le
+Genomes (adresse et MD5 dans `bench/qualification/LISEZMOI.md`), exécute le
 module avec sa propre référence GRCh38, puis compare :
 
 ```bash
@@ -187,8 +188,8 @@ Sans identité, le document porte la mention « prototype ».
 | `--contexte` | absent | préindication portée sur le compte rendu, si le fichier d'identité n'en porte pas |
 | `--gq` | 20 | seuil de qualité de génotype |
 | `--profondeur` | 10 | seuil de profondeur par position |
-| `--couverture-min` | 18 | couverture médiane sous laquelle le génome est refusé ; `0` lève la porte |
-| `--melange-max` | 35 | part d'hétérozygotes déséquilibrés au-delà de laquelle l'échantillon est refusé ; `0` lève la porte |
+| `--couverture-min` | 18 | couverture médiane sous laquelle le génome est refusé ; `0` désactive le critère |
+| `--melange-max` | 35 | part d'hétérozygotes déséquilibrés au-delà de laquelle l'échantillon est refusé ; `0` désactive le critère |
 | `--ignorer-filtre` | absente | retient les sites rejetés par l'appelant ; seulement si le VCF a été refiltré en amont |
 | `--fils` | 4 | fils pour samtools, l'étage CYP2D6 et l'étage HLA |
 | `--etage` | tous | ne fait tourner que les étages nommés, voir § 3.3 |
@@ -199,7 +200,7 @@ Sans identité, le document porte la mention « prototype ».
 | Variable | Rôle |
 |---|---|
 | `PGX_FASTA`, `PGX_CYRIUS` | référence, dépôt Cyrius |
-| `PGX_IMG_PYPGX`, `PYPGX_BUNDLE` | image du typeur complémentaire et sa ressource ; `PGX_PYPGX` pour une installation de l'hôte |
+| `PGX_IMG_PYPGX`, `PYPGX_BUNDLE` | image de PyPGx et sa ressource ; `PGX_PYPGX` pour une installation de l'hôte |
 | `PGX_MOTEUR` | `docker` (défaut), `apptainer` ou `singularity` |
 | `PGX_IMG_BCFTOOLS`, `PGX_IMG_PHARMCAT`, `PGX_IMG_OPTITYPE` | images, à ne changer qu'avec une revalidation |
 | `PGX_GQ`, `PGX_PROFONDEUR`, `PGX_COUVERTURE_MIN`, `PGX_MELANGE_MAX`, `PGX_IGNORER_FILTRE`, `PGX_FILS` | les options correspondantes |
@@ -251,7 +252,7 @@ compte par sa dernière exécution, et la trace note le nombre de tentatives.
 
 `exemples/pgx_genome.nf` en donne une recette Nextflow, un processus par étage,
 qui déclare pour chacun les cœurs et la mémoire mesurés (§ 9). Elle reçoit le
-moteur, les images et le typeur complémentaire en paramètres (`--moteur`,
+moteur, les images et PyPGx en paramètres (`--moteur`,
 `--img_*`, `--bundle`) ; son en-tête donne l'appel.
 
 ## 4. Ce qu'il rend, et ce qu'il faut surveiller
@@ -259,15 +260,15 @@ moteur, les images et le typeur complémentaire en paramètres (`--moteur`,
 | Sortie | Contenu |
 |---|---|
 | `sortie/<ECH>.report.json` | l'avis complet, structuré, exploitable par une machine |
-| `sortie/CR_<ECH>.pdf` | compte rendu en français, deux pages : médicaments, résultats par gène, positions complémentaires, typage complémentaire, conclusion, limites |
-| `sortie/provenance.json` | entrées, empreintes, versions d'images, seuils, état de chaque étage |
+| `sortie/CR_<ECH>.pdf` | compte rendu en français, deux pages : médicaments, résultats par gène, positions complémentaires, typage complémentaire (PyPGx), conclusion, limites |
+| `sortie/provenance.json` | hash des entrées, digests et versions des images, seuils, état de chaque étage |
 | `travail/perimetre.json` | par gène : positions attendues, retenues, perdues, statut |
 | `travail/qc_positions.tsv` | une ligne par position diagnostique, ce qui a été lu |
 | `travail/etats.tsv` | l'état et la durée de chaque étage |
 
 Un compte rendu complet, contexte épilepsie : les médicaments concernés en tête,
 les treize gènes du périmètre, les positions du core panel rendues en génotype
-sans interprétation, le typage complémentaire, puis la conclusion et les limites.
+sans interprétation, le typage complémentaire (PyPGx), puis la conclusion et les limites.
 
 <p align="center"><img src="figures/exemple_cr_HG00140.png" alt="Compte rendu d'un génome public en contexte épilepsie : abacavir et carbamazépine contre-indiqués, résultats des treize gènes du périmètre, positions du core panel hors interprétation, typage complémentaire, conclusion et limites" width="620"></p>
 
@@ -297,11 +298,10 @@ dossier. Un verrou posé depuis **un autre hôte** n'est jamais repris, un numé
 processus n'y voulant rien dire ; après une panne de nœud, l'exploitant retire les
 dossiers `.verrou*` du dossier de sortie.
 
-**Traçabilité.** L'empreinte enregistrée pour l'alignement porte sur ses 512
+**Traçabilité.** Le hash enregistré pour l'alignement porte sur ses 512
 premiers mégaoctets : lire trente gigaoctets pour tracer une exécution coûterait
-plus cher que l'analyse. Celles du fichier de variants et des ressources portent
-sur la totalité. Les conteneurs sont tracés par leur empreinte immuable, pas par
-leur étiquette.
+plus cher que l'analyse. Ceux du fichier de variants et des ressources portent
+sur la totalité. Les conteneurs sont tracés par leur digest, pas par leur tag.
 
 ## 5. Les deux refus mesurés
 
@@ -321,16 +321,16 @@ reste inscrite sur le compte rendu.
 hétérozygotes appelés dont l'allèle mineur est soutenu par moins de 30 % des
 lectures. Au-delà de `--melange-max`, le module s'arrête de la même façon.
 
-**Cette porte arrête un mélange grossier et ne détecte pas un mélange de 20 %**,
+**Ce critère arrête un mélange grossier et ne détecte pas un mélange de 20 %**,
 qui modifie pourtant le document rendu : l'information n'existe pas sur les
 positions que le module lit. Un contrôle de contamination sur le génome entier
 reste nécessaire en amont (`doc/VALIDATION.md` § 3.7 et limite 4.6).
 
 ## 6. Les étages
 
-Neuf étages requis, plus un optionnel, le typage complémentaire (4b), armé par
-`PGX_IMG_PYPGX` ou `PGX_PYPGX`. Non armé, il est ignoré et ne pèse pas sur
-`reussite_complete` ; armé, son échec compte comme celui d'un autre étage.
+Neuf étages requis, plus un optionnel, le typage PyPGx (4b), activé par
+`PGX_IMG_PYPGX` ou `PGX_PYPGX`. Non activé, il est ignoré et ne pèse pas sur
+`reussite_complete` ; activé, son échec compte comme celui d'un autre étage.
 
 **0. Recevabilité.** Les cinq contrôles de la section 2. Aucun étage ne démarre si
 l'un d'eux échoue.
@@ -386,7 +386,7 @@ résultat**, qui n'est pas un échec : le gène est rendu non analysé, et le mo
 reste en réussite complète.
 
 Deux situations donnent ce résultat. L'outil peut ne rendre aucun diplotype, sur
-un locus trop remanié : sur ce banc, un génome porte onze copies du locus avec
+un locus trop remanié : sur ce benchmark, un génome porte onze copies du locus avec
 sept hybrides en série. Il peut aussi rendre plusieurs lectures possibles, qu'il
 sépare par un point-virgule. Elles ne sont **pas** transmises à l'interpréteur. En
 choisir une serait affirmer ce que l'outil n'a pas dit, et les phénotypes diffèrent
@@ -396,7 +396,7 @@ s'arrête, ce qui ferait perdre tout le génome.
 **4. HLA.** Même situation. Les lectures du complexe majeur sont extraites de la
 tranche et typées séparément. L'étage échoue en dessous de deux cents paires.
 
-**4b. Typage complémentaire (optionnel).** MT-RNR1, BCHE, MTHFR et POR sont typés
+**4b. Typage PyPGx (optionnel).** MT-RNR1, BCHE, MTHFR et POR sont typés
 par PyPGx, qui lit la région entière du gène : l'étage lui prépare une extraction
 distincte, sans toucher au fichier qualifié. Sur une région non couverte, le typeur
 rend « Reference » sans lever d'erreur ; un gène n'est donc rendu que si toutes ses
@@ -413,7 +413,7 @@ nœud n'est pas acceptable sur une plateforme. Sa ressource de données
 (`PYPGX_BUNDLE`, plusieurs gigaoctets, même version que le typeur) reste montée et
 n'est pas copiée dans l'image.
 
-**5. Appels externes.** Met les résultats précédents au format attendu par
+**5. Outside calls.** Met les résultats précédents au format attendu par
 l'interpréteur. Les tandems de CYP2D6 sont écrits avec des espaces autour du plus,
 faute de quoi l'interpréteur rend un résultat indéterminé sans lever d'erreur.
 MT-RNR1 est haploïde : un allèle seul, pas une paire. L'étage échoue si un étage
@@ -438,7 +438,7 @@ Les étages 3 et 4 ne dépendent pas de l'étage 2b.
 
 **Le périmètre se déduit des données, jamais d'une liste écrite à la main.** Avec
 une liste tenue à la main, un gène absent du fichier de variants passe au travers :
-il ressort de type référence, avec la mention « appelé ». Mesuré sur ce banc,
+il ressort de type référence, avec la mention « appelé ». Mesuré sur ce benchmark,
 quatre faux négatifs sur six pour un seul gène, sans aucun avertissement.
 
 **L'option de remplissage par la référence est limitée aux positions absentes.**
@@ -459,14 +459,14 @@ n'est pas un seuil satisfait.
 attendus sont construits, jamais devinés par un motif. Un reste d'exécution
 antérieure ne peut pas être repris à la place du fichier courant.
 
-**Les intermédiaires sont liés à une empreinte des entrées.** Sans `--reprise`, le
+**Les intermédiaires sont liés à un hash des entrées.** Sans `--reprise`, le
 dossier de travail est purgé. Avec `--reprise`, les intermédiaires ne sont
 réutilisés que si l'alignement, le fichier de variants, la référence, les
 ressources et les seuils sont identiques.
 
 **Une recommandation forte non traduite sort en texte source, jamais omise**, et
 les médicaments concernés sont nommés en bas du compte rendu. Écarter ce qu'on ne
-sait pas traduire ferait disparaître, sur un métaboliseur lent de ce banc, quatre
+sait pas traduire ferait disparaître, sur un métaboliseur lent de ce benchmark, quatre
 recommandations sur neuf, dont deux contre-indications d'antalgiques.
 
 **Un diplotype long n'est jamais résumé par une affirmation de contenu.** Il est
@@ -490,11 +490,11 @@ les dix autres, mesurés au passage, sont **nommés mais non rapportés**, sous 
 titre « Hors périmètre ». Leur validation clinique n'a pas été conduite.
 
 Trois réserves sur le périmètre lui-même. **POR** n'a pas de table dans
-l'interpréteur : le typage complémentaire le rend en allèle nommé, sans phénotype
+l'interpréteur : le typage PyPGx le rend en allèle nommé, sans phénotype
 ni recommandation. **ABCG2** n'a aucun échantillon dans la table du CDC : sa
 position décisive est confrontée à une puce de génotypage, 228 génomes sur 228
 concordants. **NUDT15** n'y a que six échantillons, ce qui prouve peu sur
-l'azathioprine. Ce que le banc établit, gène par gène, est dans `doc/VALIDATION.md`
+l'azathioprine. Ce que le benchmark établit, gène par gène, est dans `doc/VALIDATION.md`
 § 3.1 et limite 4.2.
 
 **Ce que le module ne fait pas :**
@@ -511,12 +511,12 @@ l'azathioprine. Ce que le banc établit, gène par gène, est dans `doc/VALIDATI
 
 ## 9. Coût mesuré
 
-Ce banc : vingt-quatre cœurs, soixante-deux gigaoctets de mémoire, disque dur
+Machine de mesure : vingt-quatre cœurs, soixante-deux gigaoctets de mémoire, disque dur
 monté sous WSL2. Un génome prend 270 secondes et coûte 351 secondes de
 processeur, soit **1,3 cœur en moyenne**. Il laisse 364 Mo sur disque en médiane
 et 477 au plus sur dix, dont trois quarts de lectures du complexe HLA.
 
-<p align="center"><img src="figures/cout_par_etage.svg" alt="Coût par étage, médiane par génome sur 243 génomes : HLA 170 s, contrôle qualité 71 s, CYP2D6 39 s, tranche 19 s, typage complémentaire 17 s, interprétation 6 s, les autres sous 5 s" width="720"></p>
+<p align="center"><img src="figures/cout_par_etage.svg" alt="Coût par étage, médiane par génome sur 243 génomes : HLA 170 s, contrôle qualité 71 s, CYP2D6 39 s, tranche 19 s, typage PyPGx 17 s, interprétation 6 s, les autres sous 5 s" width="720"></p>
 
 Le typage HLA est l'étage long, devant le contrôle qualité et CYP2D6. À froid, la
 tranche et CYP2D6 s'allongent : ce sont les deux qui lisent l'alignement, CYP2D6
@@ -535,7 +535,7 @@ couverture.
 | 2b · contrôle qualité | 65 s | 1,0 | 2,0 | 120 Mo |
 | 3 · CYP2D6 | 17 s | 1,9 | 3,8 | 650 Mo |
 | 4 · HLA | 145 s | 1,1 | 4,4 | 1,9 Go |
-| 4b · typage complémentaire | 14 s | 3,7 | 10,9 | 670 Mo |
+| 4b · typage PyPGx | 14 s | 3,7 | 10,9 | 670 Mo |
 | 6 · interprétation | 5 s | 2,0 | 3,8 | 1,6 Go |
 | appels, compte rendu, trace | 4 s | 1,5 | 4,1 | 120 Mo |
 
@@ -565,13 +565,13 @@ seuils, combien de gènes sortent complets, sous réserve ou sans résultat. Il 
 aussi les positions dont la qualité est juste au-dessus du seuil : ce sont elles
 qui basculent en premier.
 
-Mesuré sur cent cinq génomes de ce banc, la profondeur pèse environ huit fois plus
+Mesuré sur cent cinq génomes de ce benchmark, la profondeur pèse environ huit fois plus
 que la qualité de génotype. Passer la profondeur de dix à vingt coûte treize points
 de gènes complets, quand passer la qualité de vingt à trente n'en coûte qu'un et
 demi. Le seuil de qualité par défaut n'est donc pas au bord d'une falaise, celui de
 profondeur en est proche.
 
 **Ce qui impose une revalidation** : une version d'image, une table clinique, une
-ressource, un seuil par défaut, ou le changement d'appeleur de variants en amont.
-La procédure, les déclencheurs et l'outillage qui refait le banc sont dans
+ressource, un seuil par défaut, ou le changement de variant caller en amont.
+La procédure, les déclencheurs et l'outillage qui refait le benchmark sont dans
 `doc/VALIDATION.md` § 5 et `bench/LISEZMOI.md`.

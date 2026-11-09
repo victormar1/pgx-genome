@@ -1,4 +1,4 @@
-# Images, épinglées par étiquette et par empreinte. Un changement de version
+# Images, épinglées par tag et par digest. Un changement de version
 # change les résultats et impose une revalidation (doc/VALIDATION.md § 5).
 # Vérifier une image installée :
 #   docker image inspect --format '{{index .RepoDigests 0}}' <image>
@@ -12,9 +12,9 @@ pharmcat  pgkb/pharmcat:3.4.0
 optitype  quay.io/biocontainers/optitype:1.3.5--hdfd78af_3
           quay.io/biocontainers/optitype@sha256:58df597bc629ff3dccde13cf59a4de5935b971421f6b7a61dc96b50e2d75e9b1
 
-# Typage complémentaire : image construite sur place, le paquet n'étant pas
+# Typage PyPGx : image construite sur place, le paquet n'étant pas
 # distribué en conteneur par ses auteurs. Une image construite n'a pas
-# d'empreinte de dépôt ; la trace d'exécution enregistre son identifiant.
+# de digest de registre ; la trace d'exécution enregistre son identifiant.
 #   docker build -f env/pypgx.Dockerfile -t pgx-genome/pypgx:0.27.0 env
 # Sa ressource de données (PYPGX_BUNDLE, version 0.27.0) se monte à l'exécution.
 pypgx     pgx-genome/pypgx:0.27.0

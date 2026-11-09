@@ -27,12 +27,12 @@ le README n'en garde plus de copie, et ses limites sont dites d'un trait. La
 section du coût ne donne que ce qu'un ordonnanceur doit réserver et combien de
 génomes mener de front ; les mesures restent au dossier de validation.
 
-**Références corrigées.** Les trois empreintes d'images étaient tronquées à 46
+**Références corrigées.** Les trois digests d'images étaient tronqués à 46
 des 64 caractères, et l'image construite sur place n'était pas documentée dans
 `env/conteneurs.txt`. La recette Nextflow renvoyait à une section du mode
 d'emploi qui n'existe plus. Le flux de fichiers nommait la seule installation
-sur l'hôte pour armer le typage complémentaire, et décrivait la réussite
-complète comme indifférente à cet étage, même armé.
+sur l'hôte pour activer le typage PyPGx, et décrivait la réussite
+complète comme indifférente à cet étage, même activé.
 
 Aucun résultat rendu ne change.
 
@@ -53,7 +53,7 @@ et les trois limites qui engagent une plateforme.
 
 ## 0.4.3
 
-**Un typeur complémentaire inutilisable fait échouer son étage.** Il rendait
+**Un PyPGx inutilisable fait échouer son étage.** Il rendait
 ses quatre gènes « non conclusifs » en réussite complète : une installation
 cassée passait pour un génome difficile, et MT-RNR1 perdait ses recommandations
 sans un mot.
@@ -76,17 +76,17 @@ est fournie ; la préindication se lit dans le fichier d'identité ou se passe
 par `--contexte`. Sans cette correction, aucun document de patient ne pouvait
 sortir du module.
 
-**Portabilité sur une plateforme.** Le typeur complémentaire tourne dans son
+**Portabilité sur une plateforme.** PyPGx tourne dans son
 image (`PGX_IMG_PYPGX`), lancée comme les trois autres. Sous Docker, les
 conteneurs tournent sous l'identité de l'appelant. Sous Apptainer, un fichier
-`.sif` est accepté et son empreinte tracée. Un verrou posé depuis un autre hôte
-n'est jamais repris. L'appeleur CYP2D6 n'écrit plus dans `/tmp`.
+`.sif` est accepté et son hash tracé. Un verrou posé depuis un autre hôte
+n'est jamais repris. Cyrius n'écrit plus dans `/tmp`.
 
 **Qualification d'une installation.** `bench/qualification/` porte un génome
 public, son fichier de variants et le rapport de référence ; le mode d'emploi
 décrit la mise en service, étape par étape.
 
-**Documentation.** La liste des prélèvements du banc est déduite du lot
+**Documentation.** La liste des prélèvements du benchmark est déduite du lot
 (`outils/construire_banc.py`) : 256 soumis, 242 analysés. Le README est
 resserré sur l'emploi ; les preuves sont dans `doc/VALIDATION.md`, seule source.
 Les affirmations périmées sur l'ancien lot de 105 génomes, le profil de
@@ -127,8 +127,8 @@ gain de temps est d'une minute par génome ; le bénéfice tient à l'allocation
 **Contrat d'exécution corrigé.** Le code 2 était décrit comme « aucun étage n'a
 démarré », ce qui est faux depuis les refus après contrôle qualité.
 
-**Vérification.** 233 cas de test ; le découpage audité par mutation, 11 défauts
-réintroduits, aucun survivant. Le contrôle du dépôt vérifie désormais la
+**Vérification.** 233 cas de test ; mutation testing du découpage : 11
+mutants, aucun survivant. Le contrôle du dépôt vérifie désormais la
 syntaxe des scripts shell, qu'aucun test n'exécute.
 
 ## 0.3.0
@@ -138,19 +138,19 @@ syntaxe des scripts shell, qu'aucun test n'exécute.
 document change à partir de 20 %, et à 30 % un faux appel unique change un
 phénotype. Un indicateur d'ensemble est ajouté — part des hétérozygotes dont
 l'allèle mineur est trop peu soutenu — et l'échantillon est refusé au-delà de
-35 %, seuil posé sur 229 échantillons purs dont le plus haut est à 31,9 %. La
-porte arrête un mélange de 30 % et **ne détecte pas celui de 20 %** : un
+35 %, seuil posé sur 229 échantillons purs dont le plus haut est à 31,9 %. Ce
+critère arrête un mélange de 30 % et **ne détecte pas celui de 20 %** : un
 contrôle de contamination en amont reste nécessaire, et la limite est déclarée.
 
 **Non-régression établie.** 5 génomes repassés sur les mêmes entrées : 60
 couples gène × échantillon, **aucun écart** de diplotype, de phénotype ni de
 recommandation. Un alignement réduit à 1 % de ses lectures est refusé.
 `outils/comparer_rapports.py` rend cette comparaison exécutable, avec un code de
-sortie qui en fait une porte.
+sortie qui en fait un contrôle de non-régression.
 
 **Relecture des traductions outillée.** `outils/fiche_traductions.py` produit
 la fiche de relecture des 66 traductions, classée par le nombre de comptes
-rendus qui les emploient, avec une colonne de visa. Sur le banc, 51 sont rendues
+rendus qui les emploient, avec une colonne de visa. Sur le benchmark, 51 sont rendues
 et **aucun texte rendu n'est laissé sans traduction** ; les 15 entrées
 inemployées sont listées à part, et leurs causes attendues nommées.
 
@@ -158,36 +158,36 @@ inemployées sont listées à part, et leurs causes attendues nommées.
 référence, les deux positions sans vérité sont caractérisées : lues sur 243
 génomes sur 243, à 33 × et 53 × de profondeur médiane, et pour ABCG2 — seul des
 deux appelé depuis le fichier de variants — **243 génotypes sur 243 concordants
-entre deux appeleurs indépendants**, avec des hétérozygotes équilibrés. Le
+entre deux variant callers indépendants**, avec des hétérozygotes équilibrés. Le
 dossier dit aussi ce que ces mesures ne prouvent pas.
 
-**Vérification.** 219 cas de test ; l'indicateur de mélange audité par
-mutation, 8 défauts réintroduits, aucun survivant.
+**Vérification.** 219 cas de test ; mutation testing de l'indicateur de
+mélange : 8 mutants, aucun survivant.
 
 ## 0.2.0
 
 **Domaine de validité opposable.** Un génome dont la couverture médiane sur les
 positions du périmètre clinique est inférieure à 18 × est refusé : arrêt au
 sortir du contrôle qualité, code de sortie 2, aucun compte rendu. Le seuil est
-placé par la titration — 36 exécutions, 9 génomes : toute exécution sans faux
+placé par downsampling — 36 exécutions, 9 génomes : toute exécution sans faux
 appel mesure 18 × ou plus, toute exécution qui en porte neuf mesure 13 × ou
-moins. `--couverture-min 0` lève la porte. La couverture mesurée et le seuil
+moins. `--couverture-min 0` désactive ce critère. La couverture mesurée et le seuil
 appliqué figurent dans la trace et au pied du compte rendu.
 
-**Indépendance à l'appeleur de variants, mesurée sur la base entière.** 243
+**Indépendance au variant caller, mesurée sur la base entière.** 243
 génomes, 103 683 positions comparées en bases et non en indices d'allèles :
 99,924 % de concordance, et aucun écart sur un gène rendu depuis le fichier de
 variants. La transférabilité du seuil GQ, jusqu'ici mesurée sur 374 positions,
 l'est désormais sur toutes : le GQ se déduit des PL, et la déduction est
 vérifiée contre le GQ écrit avant d'être utilisée. 0,735 % des positions
-changent de décision selon l'appeleur ; aucune n'atteint le compte rendu.
+changent de décision selon le variant caller ; aucune n'atteint le compte rendu.
 Vérifié jusqu'au rendu sur 29 génomes repassés en entier des deux côtés : 232
 couples gène × génome, 6 écarts de diplotype, tous une ambiguïté d'un côté
 tranchée en l'un de ses propres membres de l'autre, et **aucun écart de
 phénotype ni de recommandation**.
 
-**Vérification.** 178 cas de test ; la porte auditée par mutation, 11 défauts
-réintroduits, aucun survivant.
+**Vérification.** 178 cas de test ; mutation testing du critère : 11
+mutants, aucun survivant.
 
 ## 0.1.0
 
@@ -199,16 +199,16 @@ BCHE, MTHFR et POR par PyPGx, autres gènes et interprétation par PharmCAT.
 
 **Validation.** 243 génomes publics ; 99,1 % de concordance sur les douze gènes
 pour lesquels une vérité existe ; 81 porteurs d'allèle HLA à risque retrouvés
-sans faux positif ; typage complémentaire concordant 243/243 avec la mesure
+sans faux positif ; typage PyPGx concordant 243/243 avec la mesure
 position par position. Répétabilité : 3 exécutions d'un même génome, 29 éléments
-comparés, 0 écart. Indépendance à l'appeleur de variants : 8 711 génotypes
+comparés, 0 écart. Indépendance au variant caller : 8 711 génotypes
 concordants sur 8 720, les 9 écarts en région paralogue déjà traitée à part.
 Limites déclarées dans `doc/VALIDATION.md`, dont l'absence de porteur de
-MT-RNR1 sur le banc — son appel positif est exercé par un cas construit.
+MT-RNR1 sur le benchmark — son appel positif est exercé par un contrôle positif synthétique.
 
-**Vérification.** 159 cas de test, audités par mutation — 47 défauts
-réintroduits, aucune mutation survivante. Contrôles d'intégrité du dépôt et
-crochets de validation des messages et de la poussée. Le catalogue généré se
+**Vérification.** 159 cas de test ; mutation testing : 47 mutants, aucun
+survivant. Contrôles d'intégrité du dépôt et hooks Git de validation des
+messages et du push. Le catalogue généré se
 régénère à l'identique.
 
 **Intégration.** Toutes les dépendances en conteneur, y compris le typeur

@@ -6,7 +6,7 @@
  * appelle le meme script avec --etage, si bien que ce qui a ete valide d'un
  * seul tenant est ce qui tourne ici, etage par etage. Ce que l'ordonnanceur
  * gagne : reserver a chaque etage ce qu'il consomme, faire tourner ensemble
- * CYP2D6, le HLA et le typage complementaire, et relancer un etage sans rejouer
+ * CYP2D6, le HLA et le typage PyPGx, et relancer un etage sans rejouer
  * les autres.
  *
  * Les coeurs et la memoire declares sont mesures, etage par etage, sur genomes
@@ -28,7 +28,7 @@
  * monte dans ses conteneurs, ou le lien pointerait vers un chemin non monte.
  *
  * Codes de retour d'un etage lance seul :
- *   0  l'etage a abouti, ou n'a rien conclu, ou etait optionnel et non arme
+ *   0  l'etage a abouti, ou n'a rien conclu, ou est optionnel et non active
  *   1  l'etage a echoue ; l'echec est inscrit, la chaine continue, et le
  *      genome sortira sans reussite complete
  *   2  le genome est refuse, a l'entree ou apres le controle qualite ; aucun
@@ -55,16 +55,16 @@ params.manifeste = null
 params.sortie    = null                       // chemin partage, absolu
 params.racine    = projectDir.parent          // la racine du depot
 params.fasta     = null
-params.cyrius    = null                       // depot de l'appeleur CYP2D6
+params.cyrius    = null                       // depot de Cyrius
 params.moteur    = 'docker'                   // ou apptainer
 // Images : vides, celles que le module epingle. Sous Apptainer, un fichier .sif
 // par image, prepare une fois (doc/MODE_EMPLOI.md, section 1.2).
 params.img_bcftools = ''
 params.img_pharmcat = ''
 params.img_optitype = ''
-// Typeur complementaire : son image et sa ressource de donnees ; tous deux
-// vides, l'etage 4b n'est pas arme. params.pypgx nomme a la place une
-// installation de l'hote.
+// PyPGx : son image et son bundle de donnees ; tous deux vides, l'etage 4b
+// n'est pas active. params.pypgx nomme a la place une installation de
+// l'hote.
 params.img_pypgx = ''
 params.bundle    = ''
 params.pypgx     = ''
@@ -160,7 +160,7 @@ process HLA {
     script: etage('hla', e, al, va, task.cpus)
 }
 
-// Typage complementaire : 3,7 coeurs en moyenne, 10,9 en pointe ; il ne prend
+// Typage PyPGx : 3,7 coeurs en moyenne, 10,9 en pointe ; il ne prend
 // pas de nombre de fils. Memoire : 0,7 Go en pointe, mais PyPGx lance Beagle
 // avec un tas de 2 Go.
 process COMPLEMENT {

@@ -14,14 +14,14 @@ dit comment la refaire.
 | **Allèles HLA à risque** | **81 porteurs sur 81 retrouvés, aucun faux positif** | 3.1 |
 | Gènes sans vérité GeT-RM | ABCG2 et POR confrontés à une puce de génotypage : 228 / 228 et 204 / 204 | 4.2 |
 | **Domaine de validité** | aucun allèle à conséquence clinique perdu jusqu'à 18 × ; neuf faux appels à 11 ×, d'où le refus sous 18 × | 3.4 |
-| Changement d'appeleur de variants | 103 683 positions, 99,924 % ; aucun écart de phénotype ni de recommandation sur 29 génomes rejoués | 3.5 |
+| Changement de variant caller | 103 683 positions, 99,924 % ; aucun écart de phénotype ni de recommandation sur 29 génomes rejoués | 3.5 |
 | Répétabilité | trois exécutions d'un même génome, aucun écart | 3.2 |
-| Code | 254 cas de test ; 82 défauts réintroduits par mutation, 82 attrapés | 3.6 |
+| Code | 254 cas de test ; 82 mutants, 82 tués | 3.6 |
 | Débit | 51 génomes par heure sur 24 cœurs | 3.10 |
 
 **Les trois limites qui engagent une plateforme** : un mélange d'échantillons de
 20 % n'est pas détecté et appelle un contrôle de contamination en amont (4.6) ;
-le seuil de qualité de génotype n'est mesuré que sur deux appeleurs, ce qui
+le seuil de qualité de génotype n'est mesuré que sur deux variant callers, ce qui
 impose de confronter celui de la plateforme (4.3) ; deux des trois variants de
 MT-RNR1 n'ont aucun porteur disponible (4.1). Les autres limites sont en § 4.
 
@@ -50,7 +50,7 @@ d'un fichier de variants **produits en amont par la plateforme**.
 | Équilibre allélique | ≥ 0,25 pour un hétérozygote, hors CYP2D6 | mesuré sur 105 génomes |
 | Parallélisme en lot | jusqu'à 6 génomes | mesuré de 2 à 6, voir 3.10 ; au-delà, rien n'est mesuré |
 | Dossier de sortie | disque local recommandé | 1 361 Mo/s contre 99 sur un disque monté ; les débits de 3.10 sont mesurés sur disque monté, donc minorants |
-| Moteur de conteneurs | `docker`, éprouvé sur tout le banc ; `apptainer`, éprouvé sur le génome de qualification, voir 4.7 | vérifié avant tout étage ; un moteur ou une image absents sont refusés, non diagnostiqués comme une donnée fautive |
+| Moteur de conteneurs | `docker`, éprouvé sur tout le benchmark ; `apptainer`, éprouvé sur le génome de qualification, voir 4.7 | vérifié avant tout étage ; un moteur ou une image absents sont refusés, non diagnostiqués comme une donnée fautive |
 | Identité du patient | fichier, par `--identite` | un argument de ligne de commande est lisible dans la table des processus |
 
 ## 3. Preuves disponibles
@@ -115,14 +115,14 @@ rendu « partiel » et signalé comme tel, jamais rabattu sur une référence.
 | **Répétabilité** | 3 exécutions indépendantes d'un même génome, **29 éléments comparés, 0 écart** |
 | Reprise d'une exécution interrompue | résultat identique ; le typage HLA est réutilisé, 201 s → 2 s |
 
-### 3.3 Typage complémentaire et contre-vérification par un second outil
+### 3.3 Typage PyPGx et contre-vérification par un second outil
 
-**Typage complémentaire.** 243 génomes. Aucune vérité externe n'existe pour ces
+**Typage PyPGx.** 243 génomes. Aucune vérité externe n'existe pour ces
 quatre gènes ; la mesure de référence est le génotype relevé position par
 position par le contrôle qualité, sur un chemin technique indépendant — l'un lit
 l'alignement et sa profondeur, l'autre le seul fichier de variants.
 
-Le fichier de variants disponible pour le banc ne couvrait que les régions de
+Le fichier de variants disponible pour le benchmark ne couvrait que les régions de
 l'interpréteur : pour les régions des quatre gènes et du complément RNPGx, les
 génotypes ont été appelés depuis l'alignement par bcftools et ajoutés au fichier
 de la plateforme, qui reste seul sur ses propres régions. Les douze gènes de
@@ -145,9 +145,9 @@ surdité sous aminoside » — sur un gène jamais lu.
 
 **L'appel positif de MT-RNR1** est éprouvé sur deux porteurs réels de
 m.1095T>C (limite 4.1) ; pour m.1555A>G, faute de porteur, il est exercé par un
-cas construit. Un fichier de variants portant `m.1555A>G` en homoplasmie
+contrôle positif synthétique. Un fichier de variants portant `m.1555A>G` en homoplasmie
 traverse la chaîne entière :
-l'étage le type, l'allèle part en appel externe, l'interpréteur rend « risque
+l'étage le type, l'allèle passe en outside call, l'interpréteur rend « risque
 augmenté de surdité sous aminoside », **onze recommandations CPIC fortes** sont
 générées, et la consigne « éviter les aminosides » figure au compte rendu avec
 les onze molécules. Cela valide la chaîne logicielle, **non la détection** :
@@ -220,7 +220,7 @@ La conséquence est vérifiée jusqu'à la conduite à tenir, et non supposée :
 À 11 ×, le compte rendu recommanderait donc de doubler la dose de tacrolimus
 chez un patient qui est en réalité métaboliseur lent. Deux génomes sur neuf.
 
-**À la couverture du banc, en revanche, le masquage n'a aucune conséquence
+**À la couverture du benchmark, en revanche, le masquage n'a aucune conséquence
 clinique.** Mesure directe : pour chaque gène du périmètre portant une position
 masquée, l'interpréteur a été relancé sur le fichier non masqué, les appels
 externes fournis des deux côtés.
@@ -259,11 +259,11 @@ Le seuil est placé par la mesure, sur les mêmes 36 exécutions :
 
 Tout seuil de 14 à 18 × sépare identiquement les deux groupes. **18 × est
 retenu** : c'est le point le plus bas réellement mesuré, et le seuil
-n'extrapole donc pas sous lui. `--couverture-min 0` lève la porte ; la
+n'extrapole donc pas sous lui. `--couverture-min 0` désactive le critère ; la
 couverture mesurée et le seuil appliqué figurent dans la trace et sur le compte
 rendu.
 
-<p align="center"><img src="figures/domaine_couverture.svg" alt="Domaine de validité en couverture : aucun faux appel jusqu'à 18 fois, neuf faux appels à 11 fois, porte de refus à 18 fois" width="720"></p>
+<p align="center"><img src="figures/domaine_couverture.svg" alt="Domaine de validité en couverture : aucun faux appel jusqu'à 18 fois, neuf faux appels à 11 fois, seuil de refus à 18 fois" width="720"></p>
 
 Hors périmètre, l'interpréteur rend dix autres gènes, mesurés mais non
 rapportés : ils accusent un faux appel à 17 × et treize à 11 ×. Ces changements
@@ -285,9 +285,9 @@ agir que dans son propre rendu : il déclare le gène « partiel » et affiche l
 proportion de positions perdues. Un gène dont une part notable des positions
 manque ne doit pas fonder une décision de posologie.
 
-### 3.5 Indépendance à l'appeleur de variants
+### 3.5 Indépendance au variant caller
 
-**243 génomes**, mêmes alignements, mêmes positions, appel par l'appeleur de
+**243 génomes**, mêmes alignements, mêmes positions, appel par le variant caller de
 la plateforme (GATK) et par bcftools. Les génotypes sont comparés en bases et
 non en indices d'allèles : les deux fichiers n'ont pas la même liste d'ALT, et
 comparer les indices fabriquerait des désaccords qui n'en sont pas.
@@ -315,7 +315,7 @@ utilisée :
 | bcftools, PL de `mpileup` contre GQ de l'appel | 4 269 | 71,98 % | **99,91 %** |
 
 Le GQ déduit n'est pas numériquement identique au GQ écrit par bcftools —
-l'appeleur y ajoute son a priori — mais il prend la même décision au seuil. La
+le variant caller y ajoute son a priori — mais il prend la même décision au seuil. La
 mesure passe ainsi de 374 à **103 683 positions**.
 
 | Plateforme | bcftools | n | part |
@@ -328,7 +328,7 @@ mesure passe ainsi de 374 à **103 683 positions**.
 **762 positions sur 103 683 changent de décision, soit 0,735 %.** Elles se
 concentrent sur CYP2B6 (477) ; SLCO1B1 (151) ; CYP2D6 (86).
 
-Une bascule ne change le rendu que si l'un des deux appeleurs lit un **variant**
+Une bascule ne change le rendu que si l'un des deux variant callers lit un **variant**
 à cette position : une position écartée est supprimée par le prétraitement et
 l'interpréteur suppose alors la référence, donc une référence retenue d'un
 côté et écartée de l'autre donne le même résultat. Le critère porte sur les
@@ -339,12 +339,12 @@ dans l'autre il en perdrait un.
 CYP2D6 et CYP4F2 — appelés hors du fichier de variants ou hors
 périmètre. Aucune n'atteint donc le compte rendu.** Sur SLCO1B1, où se
 concentrent 151 bascules, aucune ne porte un variant : `rs71581941` est une
-position où l'appeleur de la plateforme n'a aucune confiance et où l'autre lit
+position où le variant caller de la plateforme n'a aucune confiance et où l'autre lit
 une référence, ce que l'interpréteur suppose de toute façon.
 
 **Vérification sur le rendu, et non sur la seule position.** 29 génomes passés
 en entier des deux côtés, 232 couples gène × génome sur les huit gènes que
-l'appeleur peut atteindre.
+le variant caller peut atteindre.
 
 | Niveau | Identique | Différent |
 |---|---|---|
@@ -356,7 +356,7 @@ Les six écarts sont tous sur SLCO1B1 et tous de la même forme : le fichier de 
 plateforme donne une **ambiguïté** (`*1/*15;*1/*45`) là où celui de bcftools
 tranche pour **un membre de cette même ambiguïté** (`*1/*15`). Vérifié les six
 fois : aucun appel ne sort de l'ensemble proposé par l'autre côté. C'est
-`rs71581941` — sans confiance chez l'appeleur de la plateforme, donc masquée, et
+`rs71581941` — sans confiance chez le variant caller de la plateforme, donc masquée, et
 le module refuse alors de choisir ; lue avec confiance par l'autre, elle
 discrimine.
 
@@ -367,16 +367,16 @@ recommandations sont identiques dans les six cas.
 Ces six écarts n'apparaissent pas sous 29 génomes : un échantillon de 9 en donne
 72 couples sur 72 identiques. La vérification demande donc cet effectif.
 
-**Ce que la comparaison ne couvre pas.** 2 190 positions, environ 9 par génome, portent une référence différente d'un fichier à l'autre — des indels ancrés sur une autre base — et sont hors comparaison : c'est là que deux appeleurs divergent le plus. 350 positions portent plusieurs enregistrements, et c'est l'enregistrement appelé qui est retenu, comme à l'étage de contrôle.
+**Ce que la comparaison ne couvre pas.** 2 190 positions, environ 9 par génome, portent une référence différente d'un fichier à l'autre — des indels ancrés sur une autre base — et sont hors comparaison : c'est là que deux variant callers divergent le plus. 350 positions portent plusieurs enregistrements, et c'est l'enregistrement appelé qui est retenu, comme à l'étage de contrôle.
 
 ### 3.6 Vérification du code
 
 | Mesure | Résultat |
 |---|---|
 | Cas de test | 254 |
-| Audit par mutation, cumulé sur les versions | **82 défauts réintroduits, 82 suites en échec, 0 mutation survivante** |
-| Contrôles d'intégrité du dépôt | 4 fautes réintroduites, 4 attrapées |
-| Reproductibilité du catalogue généré | 3 régénérations, **même empreinte**, égale au fichier livré |
+| Mutation testing, cumulé sur les versions | **82 mutants, 82 tués, 0 survivant** |
+| Contrôles d'intégrité du dépôt | 4 mutants, 4 tués |
+| Reproductibilité du catalogue généré | 3 régénérations, **même hash**, égal à celui du fichier livré |
 
 Ces contrôles valent par ce qu'ils attrapent, et deux défauts leur doivent
 d'avoir été vus plutôt que relus : un générateur de ressource non déterministe,
@@ -385,7 +385,7 @@ produit.
 
 ### 3.7 Spécificité à un mélange d'échantillons
 
-Deux génomes du banc, choisis parce qu'ils diffèrent sur **les huit gènes**
+Deux génomes du benchmark, choisis parce qu'ils diffèrent sur **les huit gènes**
 rendus depuis le fichier de variants. Les lectures du contaminant sont injectées
 dans celles de l'hôte à fraction croissante, sous une seule identité — une
 contamination réelle précède le séquençage. Témoin : le mélange à 0 %, même
@@ -416,10 +416,10 @@ est soutenu par moins de 30 % des lectures.
 
 Le seuil est posé à **35 %** : il laisse passer les 229 échantillons purs avec
 de la marge et arrête le mélange à 30 %. Le témoin, appelé par bcftools quand le
-lot l'est par GATK, mesure 7,7 % — exactement la médiane du lot : l'appeleur ne
+lot l'est par GATK, mesure 7,7 % — exactement la médiane du lot : le variant caller ne
 déplace pas l'indicateur, et les deux mesures se comparent.
 
-**Ce que la porte ne voit pas, et qui doit être dit.** Le mélange à 20 % mesure
+**Ce que le critère ne voit pas.** Le mélange à 20 % mesure
 25,0 %, dans l'étendue des échantillons purs. Ce n'est pas un réglage à affiner :
 sur la quarantaine de positions hétérozygotes que l'étage lit, les quatre
 statistiques essayées — part déséquilibrée, fraction médiane, premier quartile,
@@ -427,7 +427,7 @@ fraction moyenne — placent toutes le mélange à 20 % à l'intérieur de la
 distribution des 229 échantillons purs. L'information n'y est pas.
 
 **La détection d'un mélange reste donc à faire en amont**, sur le génome entier,
-par l'outil de la plateforme. La porte du module arrête un mélange grossier ;
+par l'outil de la plateforme. Le critère du module arrête un mélange grossier ;
 elle ne remplace pas ce contrôle, et le déclarer autrement donnerait une fausse
 assurance.
 
@@ -450,8 +450,8 @@ pas » n'est pas une mesure.
 | Déclaration de la mémoire par étage | 3 | 36 | **0** |
 | Conteneurs sous l'identité de l'appelant, typeur dans son image, verrou par hôte | 3 | 36 | **0** |
 
-**Témoin négatif.** Un alignement réduit à 1 % de ses lectures est refusé par la
-porte de couverture, sans compte rendu : un échantillon presque vide ne ressort
+**Témoin négatif.** Un alignement réduit à 1 % de ses lectures est refusé par le
+critère de couverture, sans compte rendu : un échantillon presque vide ne ressort
 pas avec une réserve, il ressort refusé.
 
 ### 3.9 Exécution étage par étage
@@ -463,7 +463,7 @@ même code que l'exécution complète ; il est éprouvé sur génomes réels.
 | Épreuve | Résultat |
 |---|---|
 | Exécution complète, contre le lot | **0 écart** sur 12 couples gène × génome |
-| Étage par étage, CYP2D6, HLA et typage complémentaire en parallèle | **0 écart**, réussite complète |
+| Étage par étage, CYP2D6, HLA et typage PyPGx en parallèle | **0 écart**, réussite complète |
 | Recette Nextflow, deux génomes | **0 écart** sur 24 couples |
 | Recette Nextflow, lots de dix génomes, à froid et déjà lus | **0 écart** sur 240 couples |
 | Recette Nextflow, génome de qualification, typeur en image, sous Docker et sous Apptainer | **0 écart** sur 12 couples, dans les deux cas |
@@ -471,7 +471,7 @@ même code que l'exécution complète ; il est éprouvé sur génomes réels.
 | Verrou posé depuis un autre hôte | jamais repris, code 3 ; repris sur le même hôte si son processus est mort |
 | Recette Nextflow, alignement tronqué | refusé, sorti de la chaîne, porté au bilan |
 | Table d'états écrite par trois étages simultanés | aucune ligne entrelacée |
-| Audit par mutation | 11 défauts réintroduits, aucun survivant |
+| Mutation testing | 11 mutants, aucun survivant |
 
 Sur un génome seul, le gain de temps est modeste : les trois étages
 indépendants sont bornés par le typage HLA, et le trio passe de 269 à 212
@@ -480,8 +480,8 @@ de lot ; voir 3.10.
 
 ### 3.10 Débit et mémoire
 
-Mesuré sur ce banc — vingt-quatre cœurs, disque dur monté sous WSL2 — sur des
-lots de dix génomes. À froid : des génomes qu'aucun essai n'avait lus. Déjà
+Mesuré sur une machine de vingt-quatre cœurs, disque dur monté sous WSL2, sur
+des lots de dix génomes. À froid : des génomes qu'aucun essai n'avait lus. Déjà
 lus : les mêmes dix génomes pour tous les modes, ce qui retire le cache disque
 de la comparaison.
 
@@ -497,7 +497,7 @@ lot de référence : **0 écart sur 720 couples** gène × génome.
 
 Un génome coûte 351 secondes de processeur pour 270 secondes de durée, soit 1,3
 cœur en moyenne ; le typage HLA en occupe 1,1 pendant 145 secondes. Le débit
-tient donc au nombre de génomes menés de front, et ce banc est borné par son
+tient donc au nombre de génomes menés de front, et cette machine est bornée par son
 disque : à froid, la recette n'occupe que 5,8 cœurs sur 24.
 
 **Le nombre de fils du typage HLA se règle, et quatre suffisent.** La
@@ -517,7 +517,7 @@ avec une marge de moitié au moins, ou la borne que l'outil se fixe lui-même :
 | contrôle qualité | 0,1 Go | 1 Go | |
 | CYP2D6 | 0,65 Go | 1 Go | |
 | HLA | 1,9 Go | 3 Go | typage identique sous 3 Go, sur les deux génomes les plus gourmands |
-| typage complémentaire | 0,7 Go | 3 Go | PyPGx lance Beagle avec un tas de 2 Go |
+| typage PyPGx | 0,7 Go | 3 Go | PyPGx lance Beagle avec un tas de 2 Go |
 | interprétation | 1,6 Go | 2 Go | PharmCAT rend le même avis sous 1 Go, et échoue sous 512 Mo |
 
 Ainsi déclarée, la recette rend sur ces trois génomes les mêmes 36 couples que
@@ -540,16 +540,16 @@ puis passés en entier dans le module sur leur alignement 30× :
 
 Les deux sont homoplasmiques. **m.1555A>G et m.1494C>T n'ont aucun porteur
 disponible** : la phase 3 n'en compte aucun sur 2 504 individus, et leur appel
-positif n'est exercé que par un cas construit (`outils/cas_construit.py`), qui
+positif n'est exercé que par un contrôle positif synthétique (`outils/cas_construit.py`), qui
 valide la chaîne logicielle et non la détection. Un porteur hétéroplasmique n'a
-pas été rencontré. Les génotypes mitochondriaux du banc viennent d'un appel
-bcftools diploïde (§ 3.3) ; un appeleur mitochondrial de plateforme, qui écrit
+pas été rencontré. Les génotypes mitochondriaux du benchmark viennent d'un appel
+bcftools diploïde (§ 3.3) ; un variant caller mitochondrial de plateforme, qui écrit
 une fraction d'hétéroplasmie, est à confronter au génome de qualification.
 
 **4.2 POR et ABCG2 n'ont pas de vérité GeT-RM ; ils sont confrontés à une
 puce.** GeT-RM couvre 41 gènes, et ni l'un ni l'autre. Leur position décisive est
 confrontée aux génotypes de la puce Illumina Omni 2.5 du 1000 Genomes : une
-technologie indépendante du séquençage et de tout appeleur de variants, sur les
+technologie indépendante du séquençage et de tout variant caller, sur les
 mêmes individus.
 
 | | ABCG2 `rs2231142` | POR `rs1057868` |
@@ -557,9 +557,9 @@ mêmes individus.
 | Génomes du lot génotypés sur la puce | 228 | 204 |
 | **Concordants avec la puce** | **228 / 228** | **204 / 204** |
 | Répartition 0 / 1 / 2 allèles alternatifs | 176 / 44 / 8 | 89 / 98 / 17 |
-| Ce que le module rend et qui est comparé | génotype du contrôle qualité, celui que l'interpréteur reçoit | diplotype du typage complémentaire ; `*28` et `*36` portent la position |
+| Ce que le module rend et qui est comparé | génotype du contrôle qualité, celui que l'interpréteur reçoit | diplotype du typage PyPGx ; `*28` et `*36` portent la position |
 | Profondeur médiane, GQ médian | 33 ×, 96 | 53 ×, 127 |
-| Deux appeleurs de séquençage | 243 / 243 concordants (§ 3.5) | hors du fichier de variants |
+| Deux variant callers | 243 / 243 concordants (§ 3.5) | hors du fichier de variants |
 
 Quinze génomes du lot ne figurent pas sur la puce, et 24 n'y ont pas de génotype
 à la position de POR. Pour ABCG2, la table CPIC ne retient que cette position :
@@ -570,22 +570,22 @@ nommé sans interprétation.
 pas sur un diplotype complet : un allèle de POR défini par une autre position
 que `rs1057868` n'est pas vérifié ici.
 
-**4.3 Le seuil GQ ≥ 20 est mesuré sur deux appeleurs, pas sur tous.** Le GQ n'a
-pas la même échelle d'un appeleur à l'autre : plafond 99 pour GATK, 127 pour
+**4.3 Le seuil GQ ≥ 20 est mesuré sur deux variant callers, pas sur tous.** Le GQ n'a
+pas la même échelle d'un variant caller à l'autre : plafond 99 pour GATK, 127 pour
 bcftools. Sur 103 683 positions et 243 génomes, aucun écart de décision
 n'atteint le compte rendu (§ 3.5). **La réserve porte sur les familles non
 mesurées** — DRAGEN et DeepVariant — et sur les positions dont la référence
 s'écrit autrement, hors comparaison.
 
-Trois positions méritent une vérification sur l'appeleur de la plateforme
-d'accueil, parce que leur décision change déjà entre les deux appeleurs
+Trois positions méritent une vérification sur le variant caller de la plateforme
+d'accueil, parce que leur décision change déjà entre les deux variant callers
 mesurés : `rs186335453` et `rs36060847` (CYP2B6, hors périmètre clinique) et
 `rs71581941` (SLCO1B1, 62 % des génomes). Aucune ne porte de variant sur ce
-banc, et c'est pourquoi aucune n'y a de conséquence ; sur un autre appeleur,
+benchmark, et c'est pourquoi aucune n'y a de conséquence ; sur un autre variant caller,
 cela se vérifie plutôt que de se supposer.
 
 **4.4 Le second champ des allèles HLA vacille sur A\*02 et B\*27.** Les neuf
-écarts du banc, tous « un allèle sur deux », le premier champ — celui qui porte
+écarts du benchmark, tous « un allèle sur deux », le premier champ — celui qui porte
 le risque — restant résolu :
 
 | Prélèvement | Gène | Module | Vérité Sanger | Allèle discordant |
@@ -625,8 +625,8 @@ sous Docker.
 
 | Épreuve sous Apptainer | Résultat |
 |---|---|
-| Quatre images en fichiers `.sif` | **0 écart** sur 12 couples ; l'empreinte de chaque fichier est tracée |
-| Trois images tirées du dépôt, typeur en `.sif` | **0 écart** ; la trace ne porte que l'étiquette |
+| Quatre images en fichiers `.sif` | **0 écart** sur 12 couples ; le hash de chaque fichier est tracé |
+| Trois images tirées du dépôt, typeur en `.sif` | **0 écart** ; la trace ne porte que le tag |
 | Fichier `.sif` absent | refusé au démarrage, code 2 |
 | Typeur complémentaire inutilisable | étage 4b en échec, réussite complète fausse, code 1 |
 
@@ -640,31 +640,31 @@ ordonnanceur à la tâche.
 ## 5. Protocole de revalidation
 
 Toute version des outils et des tables est figée dans `provenance.json` par
-empreinte immuable, non par étiquette : un compte rendu ancien est rejouable à
+digest, non par tag : un compte rendu ancien est rejouable à
 l'identique, tables cliniques comprises.
 
 ### 5.1 Déclencheurs
 
 | Changement | Revalidation |
 |---|---|
-| Version d'une image (interpréteur, HLA, bcftools, typeur complémentaire) | complète |
+| Version d'une image (interpréteur, HLA, bcftools, PyPGx) | complète |
 | Tables cliniques CPIC embarquées | complète |
-| Dépôt de l'appeleur CYP2D6, ressource de données du typeur complémentaire | complète |
+| Dépôt de Cyrius, bundle de données de PyPGx | complète |
 | Une ressource de `ressources/` | complète |
 | Un seuil par défaut | complète |
 | Code d'un étage | suite de tests, puis non-régression (3.8) |
-| Appeleur de variants en amont, ou plateforme d'accueil | **concordance inter-appeleur et seuil de qualité**, section 3.5 ; génome de qualification, `doc/MODE_EMPLOI.md` § 1 |
+| Variant caller en amont, ou plateforme d'accueil | **concordance entre variant callers et seuil de qualité**, section 3.5 ; génome de qualification, `doc/MODE_EMPLOI.md` § 1 |
 
 ### 5.2 Procédure
 
 1. `python -m unittest discover -s tests` et `python outils/verifier_depot.py`
-   doivent passer. Le crochet `pre-push` les impose.
-2. Rejouer le banc complet (`bench/preparer_banc.sh`, valeurs attendues dans
+   doivent passer. Le hook `pre-push` les impose.
+2. Rejouer le benchmark complet (`bench/preparer_banc.sh`, valeurs attendues dans
    `bench/LISEZMOI.md`) et comparer les diplotypes gène par gène à
    l'exécution précédente, par `outils/comparer_rapports.py`. Un écart n'est pas
    un échec : c'est un élément à instruire, dont la matérialité clinique se juge
    au cas par cas.
-3. Consigner dans le dossier technique : les empreintes d'images, le nombre de
+3. Consigner dans le dossier technique : les digests d'images, le nombre de
    diplotypes comparés, le nombre et la nature des écarts.
 4. Si un écart touche une recommandation forte ou modérée, la décision de
    diffuser la nouvelle version appartient au biologiste responsable.
@@ -673,12 +673,12 @@ l'identique, tables cliniques comprises.
 
 | Outil | Rôle |
 |---|---|
-| `tests/` | 254 cas, audités par mutation |
+| `tests/` | 254 cas, vérifiés par mutation testing |
 | `outils/verifier_depot.py` | intégrité des figures, cohérence du périmètre et des comptes annoncés, syntaxe des scripts, reproductibilité des ressources générées |
 | `outils/cas_construit.py` | exercice d'un allèle absent de la cohorte |
 | `outils/fiche_traductions.py` | fiche de relecture des traductions, classée par usage, avec les entrées inemployées à part |
 | `outils/comparer_rapports.py` | compare deux exécutions — diplotype, phénotype, recommandations, rapport manquant — et rend un code de sortie non nul au premier écart |
-| `outils/construire_banc.py` | reconstruit la liste des prélèvements du banc depuis le lot et les tables de vérité |
-| `bench/preparer_banc.sh`, `bench/fiche_performance.py`, `bench/confronter_puce.sh` | refont le banc depuis les données publiques et le confrontent aux vérités ; voir `bench/LISEZMOI.md` |
+| `outils/construire_banc.py` | reconstruit la liste des prélèvements du benchmark depuis le lot et les tables de vérité |
+| `bench/preparer_banc.sh`, `bench/fiche_performance.py`, `bench/confronter_puce.sh` | refont le benchmark depuis les données publiques et le confrontent aux vérités ; voir `bench/LISEZMOI.md` |
 | `bench/qualification/` | un génome public, son fichier de variants et son rapport de référence, pour qualifier une installation |
-| `provenance.json` | empreintes des entrées, des images, des ressources, et seuils employés |
+| `provenance.json` | hash des entrées et des ressources, digests des images, seuils employés |

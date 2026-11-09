@@ -32,7 +32,7 @@ génome :
 |---|---|
 | `sortie/CR_<ECH>.pdf` | le compte rendu en français, médicaments concernés en tête |
 | `sortie/<ECH>.report.json` | l'avis complet, structuré, exploitable par une machine |
-| `sortie/provenance.json` | la trace d'exécution : entrées, empreintes, versions, seuils, état de chaque étage |
+| `sortie/provenance.json` | la trace d'exécution : hash des entrées, digests des images, versions, seuils, état de chaque étage |
 
 Exemple, contexte « néphropathies » : HG00699, génome public, porteur de
 HLA-B\*58:01 et de CYP3A5 \*1/\*3.
@@ -62,7 +62,7 @@ S'y ajoutent les 18 positions de classe 1 et 2 du core panel que l'interpréteur
 ne connaît pas (BCHE, MTHFR, GGCX, TYMS, NAT2, VKORC1, cluster CYP2C…) :
 mesurées et rendues en génotype, jamais interprétées.
 
-<p align="center"><img src="doc/figures/flux_fichiers.svg" alt="Flux de fichiers : CRAM, FASTA, VCF et ressources passent la recevabilité, puis filtre, tranche, contrôle qualité, CYP2D6 par Cyrius, HLA par OptiType, appels externes, interprétation PharmCAT, compte rendu et provenance" width="724"></p>
+<p align="center"><img src="doc/figures/flux_fichiers.svg" alt="Flux de fichiers : CRAM, FASTA, VCF et ressources passent la recevabilité, puis filtre, tranche, contrôle qualité, CYP2D6 par Cyrius, HLA par OptiType, outside calls, interprétation PharmCAT, compte rendu et provenance" width="724"></p>
 
 ## Validation
 
@@ -79,7 +79,7 @@ protocole de revalidation sont dans `doc/VALIDATION.md`.
 | ABCG2 et POR, absents de GeT-RM, contre une puce de génotypage | **228 / 228** et **204 / 204** concordants | 4.2 |
 | MT-RNR1, porteurs réels de m.1095T>C | **2 sur 2** rendus à risque, « éviter les aminosides » au compte rendu | 4.1 |
 | Domaine de validité en couverture | aucun allèle à conséquence clinique perdu jusqu'à 18 × ; neuf faux appels à 11 × | 3.4 |
-| Indépendance à l'appeleur de variants | 103 683 positions, 99,924 % ; aucun écart de phénotype ni de recommandation sur 29 génomes | 3.5 |
+| Indépendance au variant caller | 103 683 positions, 99,924 % ; aucun écart de phénotype ni de recommandation sur 29 génomes | 3.5 |
 | Mélange d'échantillons | refusé à 30 %, **non détecté à 20 %** : un contrôle de contamination reste nécessaire en amont | 3.7 |
 | Débit, 24 cœurs | 51 génomes par heure par la recette Nextflow, 39 par le lot à six | 3.10 |
 
@@ -87,7 +87,7 @@ protocole de revalidation sont dans `doc/VALIDATION.md`.
 
 Les neuf écarts portent tous sur le second champ d'un allèle HLA, sans
 conséquence de prescription. Pour MT-RNR1, m.1555A>G et m.1494C>T n'ont aucun
-porteur disponible : leur appel positif n'est exercé que par un cas construit.
+porteur disponible : leur appel positif n'est exercé que par un contrôle positif synthétique.
 
 `bench/` porte l'outillage qui refait ces mesures depuis les données publiques.
 Une plateforme peut les reproduire chez elle, et doit le faire après tout
@@ -106,7 +106,7 @@ cd pgx-genome
 pip install -r env/requirements.txt
 ```
 
-Les quatre conteneurs sont épinglés par étiquette et par empreinte dans
+Les quatre conteneurs sont épinglés par tag et par digest dans
 `env/conteneurs.txt` ; un changement de version change les résultats et doit être
 remesuré. La procédure complète — images, Cyrius, variables d'environnement, puis
 qualification de l'installation sur un génome public — est dans
@@ -175,10 +175,10 @@ nécessaire.
 ```
 bin/            les neuf scripts du pipeline
 ressources/     les ressources figées, lues à l'exécution (dont les traductions CPIC)
-outils/         les générateurs de ressources, les contrôles, les crochets
-tests/          254 cas, audités par mutation
-doc/            mode d'emploi, flux de fichiers, dossier de validation, figures
-env/            dépendances Python, empreintes des conteneurs, image PyPGx
+outils/         les générateurs de ressources, les contrôles, les hooks
+tests/          254 cas, vérifiés par mutation testing
+doc/            mode d'emploi, flux de fichiers, dossier de validation, glossaire, figures
+env/            dépendances Python, digests des conteneurs, image PyPGx
 exemples/       un manifeste type, une recette Nextflow
 bench/          l'outillage qui refait la validation, ses vérités, le génome de qualification
 ```
@@ -186,7 +186,8 @@ bench/          l'outillage qui refait la validation, ses vérités, le génome 
 `doc/MODE_EMPLOI.md` est le manuel : mise en service, exploitation, puis étage
 par étage avec la justification de chaque garde-fou. `doc/FLUX_FICHIERS.md` suit
 les fichiers un à un. `doc/VALIDATION.md` rassemble les preuves, les limites à
-déclarer et le protocole de revalidation.
+déclarer et le protocole de revalidation. `doc/GLOSSAIRE.md` définit le
+vocabulaire du module.
 
 ## Licence
 

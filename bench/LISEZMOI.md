@@ -1,4 +1,4 @@
-# Banc de validation
+# Benchmark de validation
 
 De quoi refaire, à partir des données publiques, les mesures qui fondent les
 chiffres de `doc/VALIDATION.md` § 3.1 et limite 4.2. C'est la revalidation
@@ -15,7 +15,7 @@ complète du protocole (§ 5).
 | `resultats_bench.csv` | la fiche condensée, une ligne par gène |
 | `qualification/` | le génome de qualification d'une installation, voir son `LISEZMOI.md` |
 
-## Rejouer le banc
+## Rejouer le benchmark
 
 ```bash
 export PGX_CYRIUS=/opt/Cyrius PGX_IMG_PYPGX=pgx-genome/pypgx:0.27.0 PYPGX_BUNDLE=/opt/pypgx-bundle
@@ -30,7 +30,7 @@ bench/preparer_banc.sh --donnees /disque/banc --fasta /chemin/GRCh38_full_analys
 | `fiche` | quelques minutes |
 
 Chaque étape reprend où la précédente s'est arrêtée. `--genomes` restreint le
-banc à une liste ; `--etapes` choisit les étapes.
+benchmark à une liste ; `--etapes` choisit les étapes.
 
 ## Ce qui doit en sortir
 
@@ -44,9 +44,9 @@ banc à une liste ; `--etapes` choisit les étapes.
 Un écart à ces valeurs après un changement est un élément à instruire, gène par
 gène, avec `fiche/ecarts.tsv`.
 
-**Reproductibilité éprouvée** sur deux génomes du banc, des fichiers de
+**Reproductibilité éprouvée** sur deux génomes du benchmark, des fichiers de
 variants au rendu : 24 couples gène × génome identiques au lot de validation,
-typage complémentaire identique, ABCG2 et POR concordants avec la puce. Les
+typage PyPGx identique, ABCG2 et POR concordants avec la puce. Les
 fichiers de variants reconstruits diffèrent de ceux de la validation par trois à
 sept indels dans des répétitions (polyT, VNTR), que bcftools appelle selon la
 référence employée ; aucun n'atteint un rendu.
