@@ -180,6 +180,13 @@ class Garanties(unittest.TestCase):
         self.assertNotIn("apres-le-signal", r.stdout)
         self.assertEqual(r.returncode, 143)
 
+    def test_la_signature_de_reprise_porte_la_version_du_module(self):
+        # Sans elle, --reprise reutiliserait apres une mise a jour les
+        # intermediaires produits par la version precedente.
+        m = re.search(r'^SIGNATURE="(.*)"$', self.s, re.M)
+        self.assertIsNotNone(m)
+        self.assertIn('version=$(cat "$RACINE/VERSION"', m.group(1))
+
     def test_la_recevabilite_purge_les_livrables_precedents(self):
         # Un etage en echec laisserait sinon le compte rendu ou la trace d'une
         # autre execution dans le dossier de sortie.

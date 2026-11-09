@@ -426,7 +426,7 @@ empreinte() {
 # millisecondes.
 EMPREINTE_RES=$(find "$RES" -type f -print0 2>/dev/null | sort -z \
   | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -c1-16)
-SIGNATURE="$(empreinte "$CRAM")|$(empreinte "$VCF")|$(empreinte "$FASTA")|gq=$GQ|prof=$PROF|couv=$COUV_MIN|mel=$MELANGE_MAX|filtre=${IGNORER_FILTRE:-respecte}|res=$EMPREINTE_RES"
+SIGNATURE="$(empreinte "$CRAM")|$(empreinte "$VCF")|$(empreinte "$FASTA")|gq=$GQ|prof=$PROF|couv=$COUV_MIN|mel=$MELANGE_MAX|filtre=${IGNORER_FILTRE:-respecte}|res=$EMPREINTE_RES|version=$(cat "$RACINE/VERSION" 2>/dev/null || echo inconnue)"
 SIG_FICHIER="$T/signature.txt"
 # La recevabilite ouvre le dossier : elle seule le purge et remet la trace a
 # zero. Un etage lance seul le reprend la ou il en est, a condition qu'il porte
