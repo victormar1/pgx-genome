@@ -516,7 +516,7 @@ monté sous WSL2. Un génome prend 270 secondes et coûte 351 secondes de
 processeur, soit **1,3 cœur en moyenne**. Il laisse 364 Mo sur disque en médiane
 et 477 au plus sur dix, dont trois quarts de lectures du complexe HLA.
 
-<p align="center"><img src="figures/cout_par_etage.svg" alt="Coût par étage, médiane par génome sur 243 génomes : HLA 170 s, contrôle qualité 71 s, CYP2D6 39 s, tranche 19 s, typage PyPGx 17 s, interprétation 6 s, les autres sous 5 s" width="720"></p>
+<p align="center"><img src="figures/cout_par_etage.svg" alt="Coût par étage d'un génome, chaque étage lancé seul : HLA 145 s, contrôle qualité 65 s, CYP2D6 17 s, tranche 15 s, typage PyPGx 14 s, les autres sous 6 s ; 269 s au total" width="720"></p>
 
 Le typage HLA est l'étage long, devant le contrôle qualité et CYP2D6. À froid, la
 tranche et CYP2D6 s'allongent : ce sont les deux qui lisent l'alignement, CYP2D6
