@@ -58,7 +58,9 @@ def etat(rep, gene):
 
 
 def conduites(rep):
-    """Les recommandations fortes et moderees, par medicament.
+    """Les recommandations fortes et moderees, par medicament, avec leur force :
+    une consigne qui passe de forte a moderee change le compte rendu, meme a
+    texte egal.
 
     Elles ne sont pas attribuees a un gene : une recommandation qui porte sur
     deux genes change de cle quand l'un devient indetermine, et l'attribuer
@@ -70,7 +72,8 @@ def conduites(rep):
             for a in gl.get("annotations") or []:
                 if a.get("classification") in ("Strong", "Moderate"):
                     out.setdefault(nom, set()).add(
-                        (a.get("drugRecommendation") or "").strip())
+                        (a.get("classification"),
+                         (a.get("drugRecommendation") or "").strip()))
     return out
 
 
@@ -80,6 +83,15 @@ def inclus(avant, apres):
     a = {x for x in avant.split(";") if x}
     b = {x for x in apres.split(";") if x}
     return len(a) > 1 and len(b) == 1 and b <= a
+
+
+def rendus_sans_reference(avant, apres):
+    """Les genomes que la reference n'a pas rendus et que l'execution comparee
+    rend : un refus ou un echec qui se leve change le comportement du module.
+    Un genome absent de la reference reste ignore, comme dans compare."""
+    connus = set(echantillons(avant))
+    return [e for e in echantillons(apres)
+            if e in connus and not rapport(avant, e) and rapport(apres, e)]
 
 
 def compare(avant, apres, perimetre):
@@ -131,7 +143,8 @@ def main():
     perimetre = sorted(lire(chemin).get("genes", {}))
 
     communs, genes, ecarts, cond, sans = compare(a.avant, a.apres, perimetre)
-    if not communs and not sans:
+    leves = rendus_sans_reference(a.avant, a.apres)
+    if not communs and not sans and not leves:
         print("aucun echantillon commun aux deux dossiers", file=sys.stderr)
         return 2
 
@@ -143,13 +156,15 @@ def main():
     print("echantillons dont les recommandations changent : %d" % len(cond))
     print("echantillons repasses sans rapport : %d%s"
           % (len(sans), " (" + ", ".join(sans) + ")" if sans else ""))
+    print("echantillons rendus sans rapport de reference : %d%s"
+          % (len(leves), " (" + ", ".join(leves) + ")" if leves else ""))
     for x in ecarts:
         print("  %s %s : %s -> %s%s"
               % (x["echantillon"], x["gene"], x["avant"] or "-",
                  x["apres"] or "-",
                  "  (ambiguite tranchee)" if x["ambiguite_tranchee"] else ""))
     for x in cond:
-        print("  %s : apparus %s ; disparus %s ; texte change %s"
+        print("  %s : apparus %s ; disparus %s ; texte ou force change %s"
               % (x["echantillon"], ", ".join(x["apparus"]) or "aucun",
                  ", ".join(x["disparus"]) or "aucun",
                  ", ".join(x["texte_change"]) or "aucun"))
@@ -157,9 +172,10 @@ def main():
         with open(a.json, "w", encoding="utf-8", newline="\n") as fh:
             json.dump({"echantillons": communs, "couples": genes,
                        "ecarts": ecarts, "recommandations": cond,
-                       "sans_rapport": sans}, fh,
+                       "sans_rapport": sans,
+                       "rendus_sans_reference": leves}, fh,
                       ensure_ascii=False, indent=1)
-    return 1 if (ecarts or cond or sans) else 0
+    return 1 if (ecarts or cond or sans or leves) else 0
 
 
 if __name__ == "__main__":

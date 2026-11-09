@@ -180,7 +180,7 @@ génotypes, en amont.
 bin/            les neuf scripts du pipeline
 ressources/     les ressources figées, lues à l'exécution (dont les traductions CPIC)
 outils/         les générateurs de ressources, les contrôles, les hooks
-tests/          264 cas, vérifiés par mutation testing
+tests/          267 cas, vérifiés par mutation testing
 doc/            mode d'emploi, flux de fichiers, dossier de validation, glossaire, figures
 env/            dépendances Python, digests des conteneurs, image PyPGx
 exemples/       un manifeste type, une recette Nextflow

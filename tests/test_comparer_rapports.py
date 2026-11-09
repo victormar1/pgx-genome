@@ -6,6 +6,7 @@ s'il manque un ecart, la revalidation conclura a tort que rien n'a bouge. Les
 cas qui comptent sont donc ceux ou il doit voir une difference, et celui ou il
 doit la qualifier plutot que la compter comme un desaccord.
 """
+import copy
 import io
 import json
 import os
@@ -150,6 +151,44 @@ class Dossiers(unittest.TestCase):
         self.ecris("apres", "E1", r)
         _, genes, _, _, _ = self.compare(perimetre=("CYP2C19", "POR"))
         self.assertEqual(genes, 1)
+
+    def test_un_refus_leve_est_un_ecart(self):
+        # Refuse ou en echec dans la reference, rendu dans l'execution comparee :
+        # le comportement du module a change, ce n'est pas un absent.
+        os.makedirs(os.path.join(self.racine, "avant", "E1", "sortie"))
+        self.ecris("apres", "E1", rapport({"CYP2C19": ("*1/*1", "Normal")}))
+        self.assertEqual(c.rendus_sans_reference(
+            os.path.join(self.racine, "avant"),
+            os.path.join(self.racine, "apres")), ["E1"])
+
+    def test_un_refus_leve_fait_echouer_la_porte(self):
+        self.ecris("avant", "E2", rapport({"CYP2C19": ("*1/*1", "Normal")}))
+        self.ecris("apres", "E2", rapport({"CYP2C19": ("*1/*1", "Normal")}))
+        os.makedirs(os.path.join(self.racine, "avant", "E1", "sortie"))
+        self.ecris("apres", "E1", rapport({"CYP2C19": ("*1/*1", "Normal")}))
+        argv = ["comparer_rapports.py",
+                "--avant", os.path.join(self.racine, "avant"),
+                "--apres", os.path.join(self.racine, "apres"),
+                "--perimetre", self.perimetre(("CYP2C19",))]
+        with mock.patch.object(sys, "argv", argv), \
+                mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            code = c.main()
+        self.assertEqual(code, 1)
+        self.assertIn("E1", out.getvalue())
+
+    def test_une_force_de_recommandation_qui_change_est_un_ecart(self):
+        # Meme texte, force differente : le compte rendu change, et c'est le cas
+        # d'une montee de version de l'interpreteur, celui qu'une revalidation vise.
+        avant = rapport({"CYP2C19": ("*1/*2", "Intermediate")},
+                        [("clopidogrel", "autre antiagregant")])
+        apres = copy.deepcopy(avant)
+        a = apres["drugs"]["CPIC Guideline Annotation"]["clopidogrel"]
+        a["guidelines"][0]["annotations"][0]["classification"] = "Moderate"
+        self.ecris("avant", "E1", avant)
+        self.ecris("apres", "E1", apres)
+        _, _, ecarts, cond, _ = self.compare()
+        self.assertEqual(ecarts, [])
+        self.assertEqual(cond[0]["texte_change"], ["clopidogrel"])
 
 
 class Inclus(unittest.TestCase):
