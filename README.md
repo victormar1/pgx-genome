@@ -1,5 +1,7 @@
 # pgx-genome
 
+[![CI](https://github.com/victormar1/pgx-genome/actions/workflows/ci.yml/badge.svg)](https://github.com/victormar1/pgx-genome/actions/workflows/ci.yml)
+
 Un avis pharmacogénétique tiré d'un génome **déjà séquencé** : ni nouveau
 prélèvement, ni nouvelle course, ni réalignement. Le module se branche en aval
 du pipeline de séquençage de la plateforme et rend, pour treize gènes du panel
@@ -176,11 +178,12 @@ nécessaire.
 bin/            les neuf scripts du pipeline
 ressources/     les ressources figées, lues à l'exécution (dont les traductions CPIC)
 outils/         les générateurs de ressources, les contrôles, les hooks
-tests/          256 cas, vérifiés par mutation testing
+tests/          257 cas, vérifiés par mutation testing
 doc/            mode d'emploi, flux de fichiers, dossier de validation, glossaire, figures
 env/            dépendances Python, digests des conteneurs, image PyPGx
 exemples/       un manifeste type, une recette Nextflow
 bench/          l'outillage qui refait la validation, ses vérités, le génome de qualification
+.github/        la CI : tests, contrôles du dépôt, messages de commit
 ```
 
 `doc/MODE_EMPLOI.md` est le manuel : mise en service, exploitation, puis étage

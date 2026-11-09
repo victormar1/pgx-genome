@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Valide un message de commit contre les conventions de CONTRIBUTING.md.
 
-Appele par le hook commit-msg, il refuse le commit plutot que de laisser
-entrer dans l'historique une faute qu'il faudrait reecrire ensuite.
+Appele par le hook commit-msg et par la CI, il refuse le commit plutot que de
+laisser entrer dans l'historique une faute qu'il faudrait reecrire ensuite.
 
 Les longueurs sont comptees en caracteres et non en octets : un accent en UTF-8
 pese deux octets, et un controle qui compte des octets declare trop longs des
@@ -20,7 +20,8 @@ SUJET_VISE = 50
 CO_AUTEUR_IA = "Co-authored-by: Claude <noreply@anthropic.com>"
 
 DOMAINES = ("pipeline", "typage", "qc", "rendu", "appels", "provenance",
-            "ressources", "outils", "doc", "figures", "env", "bench", "tests")
+            "ressources", "outils", "doc", "figures", "env", "bench", "tests",
+            "ci")
 
 INTERDITS = [
     (re.compile(r"[A-Z]:\\"), "chemin Windows d'un poste"),

@@ -1,6 +1,7 @@
 #!/bin/sh
 # Controles avant tout push : tests du module, controles du depot, et
-# validation des messages de commit qui partent.
+# validation des messages de commit qui partent. La CI
+# (.github/workflows/ci.yml) rejoue les memes controles a distance.
 #
 # Active par : git config core.hooksPath outils/crochets
 # Contournable par : git push --no-verify   (a n'utiliser qu'en connaissance)

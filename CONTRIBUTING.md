@@ -11,16 +11,16 @@ git config core.hooksPath outils/crochets   # une fois par copie de travail
 
 | Contrôle | Quand | Ce qu'il refuse |
 |---|---|---|
-| `outils/valider_message.py` | hook `commit-msg`, à chaque commit | sujet hors format, corps au-delà de 72 caractères, motif interdit, casse ou forme d'un trailer |
-| `python -m unittest discover -s tests` | hook `pre-push` | régression sur un garde-fou : contrôle qualité, typage PyPGx, outside calls, rendu, trace, découpage en étages, outils |
-| `outils/verifier_depot.py` | hook `pre-push` | SVG non conforme XML, nombre de gènes ou de tests incohérent avec la documentation, chemin de poste, script shell invalide, ressource générée périmée |
+| `outils/valider_message.py` | hook `commit-msg` ; CI, sur tout l'historique | sujet hors format, corps au-delà de 72 caractères, motif interdit, casse ou forme d'un trailer |
+| `python -m unittest discover -s tests` | hook `pre-push` ; CI | régression sur un garde-fou : contrôle qualité, typage PyPGx, outside calls, rendu, trace, découpage en étages, outils |
+| `outils/verifier_depot.py` | hook `pre-push` ; CI | SVG non conforme XML, nombre de gènes ou de tests incohérent avec la documentation, chemin de poste, script shell invalide, ressource générée périmée |
 
-Le hook `pre-push` tient lieu d'intégration continue, sur le poste.
-`git push --no-verify` le contourne, en connaissance.
+La CI (`.github/workflows/ci.yml`) rejoue ces contrôles à chaque push et à
+chaque pull request. `git push --no-verify` contourne le hook local, pas la CI.
 
 Les tests valent ce que vaut leur capacité à échouer. Chaque garde-fou ajouté
 est vérifié par mutation testing : le défaut qu'il empêche est réintroduit, et
-sa suite doit échouer. Cumul sur les versions : 84 mutants, 84 tués, aucun
+sa suite doit échouer. Cumul sur les versions : 85 mutants, 85 tués, aucun
 survivant (`doc/VALIDATION.md`, § 3.6).
 
 ## Messages de commit
@@ -40,7 +40,7 @@ français, là où le préfixe de domaine est neutre en langue.
 | Ponctuation | pas de point final |
 
 **Domaines** : `pipeline`, `typage`, `qc`, `rendu`, `appels`, `provenance`,
-`ressources`, `outils`, `tests`, `doc`, `figures`, `env`, `bench`.
+`ressources`, `outils`, `tests`, `doc`, `figures`, `env`, `bench`, `ci`.
 
 **Corps** — séparé du sujet par une ligne vide, replié à 72 colonnes, de deux à
 six lignes. Il dit ce qui n'allait pas, ce qui change, et le chiffre qui le

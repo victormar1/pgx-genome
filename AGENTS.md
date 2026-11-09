@@ -18,6 +18,8 @@ python -m unittest discover -s tests
 python outils/verifier_depot.py
 ```
 
+La CI rejoue les deux et valide les messages de commit de tout l'historique.
+
 ## Règles
 
 - Un commit, un changement logique, au format de `CONTRIBUTING.md` ; le hook

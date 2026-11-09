@@ -98,6 +98,9 @@ class ValidateurDeMessage(unittest.TestCase):
             "doc: ajoute une note\n\nCorps.\n\n"
             "Co-authored-by: Marie Curie <marie@exemple.invalide>\n"), [])
 
+    def test_le_domaine_ci_est_reconnu(self):
+        self.assertEqual(V.verifie("ci: ajoute une note\n"), [])
+
     def test_pas_de_ligne_vide_apres_le_sujet(self):
         f = V.verifie("doc: ajoute une note\nCorps colle.\n")
         self.assertTrue(any("ligne vide" in x for x in f))
