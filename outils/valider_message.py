@@ -24,7 +24,7 @@ DOMAINES = ("pipeline", "typage", "qc", "rendu", "appels", "provenance",
             "ci")
 
 INTERDITS = [
-    (re.compile(r"[A-Z]:\\"), "chemin Windows d'un poste"),
+    (re.compile(r"\b[A-Za-z]:[\\/]"), "chemin Windows d'un poste"),
     (re.compile(r"/mnt/[a-z]/"), "chemin monte d'un poste"),
     (re.compile(r"\b0[0-9]_[a-z_]+/"), "arborescence de travail"),
     (re.compile(r"\b(HG|NA)[0-9]{5}\b"), "identifiant d'echantillon"),
@@ -92,8 +92,9 @@ def verifie(texte):
 
     for l in lignes:
         l = l.rstrip()
+        # Reconnu a son adresse : un co-auteur humain prenomme Claude reste libre.
         if (re.match(r"^co-authored-by:", l, re.I)
-                and re.search(r"claude|anthropic", l, re.I)
+                and re.search(r"@anthropic\.com", l, re.I)
                 and l != CO_AUTEUR_IA):
             fautes.append("trailer d'assistance « %s » : forme attendue « %s »"
                           % (l, CO_AUTEUR_IA))

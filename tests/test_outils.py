@@ -101,6 +101,17 @@ class ValidateurDeMessage(unittest.TestCase):
     def test_le_domaine_ci_est_reconnu(self):
         self.assertEqual(V.verifie("ci: ajoute une note\n"), [])
 
+    def test_un_co_auteur_humain_prenomme_claude_reste_libre(self):
+        # Le trailer d'assistance se reconnait a son adresse, pas au prenom.
+        self.assertEqual(V.verifie(
+            "doc: ajoute une note\n\nCorps.\n\n"
+            "Co-authored-by: Claude Dupont <claude@exemple.invalide>\n"), [])
+
+    def test_un_chemin_windows_en_minuscule_ou_a_barre_oblique(self):
+        for chemin in ("c:" + chr(92) + "Users", "D:" + "/" + "Victor"):
+            f = V.verifie("doc: ajoute une note\n\nVoir " + chemin + " ici.\n")
+            self.assertTrue(any("Windows" in x for x in f), chemin)
+
     def test_pas_de_ligne_vide_apres_le_sujet(self):
         f = V.verifie("doc: ajoute une note\nCorps colle.\n")
         self.assertTrue(any("ligne vide" in x for x in f))
