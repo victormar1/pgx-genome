@@ -173,8 +173,12 @@ prendre() {  # $1 dossier de verrou
   date -Iseconds > "$1/depuis"
   VERROUS+=("$1")
 }
-nettoyer() { local v; for v in "${VERROUS[@]}"; do rm -rf "$v"; done; }
-trap nettoyer EXIT INT TERM
+nettoyer() { local v; for v in "${VERROUS[@]}"; do rm -rf "$v"; done; VERROUS=(); }
+# Un signal arrete l'execution. Sans exit, bash reprendrait apres le nettoyage,
+# sans verrou, et une seconde execution pourrait demarrer sur le meme dossier.
+trap nettoyer EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 refus_verrou() {  # $1 message
   echo "$1" >&2
   exit 3

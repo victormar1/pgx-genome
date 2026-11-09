@@ -10,6 +10,8 @@ ou sans moteur de conteneurs.
 import io
 import os
 import re
+import shutil
+import subprocess
 import unittest
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -164,6 +166,19 @@ class Garanties(unittest.TestCase):
         suite = bloc[j:bloc.index("\nelse\n", j)]
         self.assertIn("identites divergentes acceptees", suite)
         self.assertNotIn("identites concordantes", suite)
+
+    def test_un_signal_arrete_l_execution(self):
+        # Sans exit dans le piege, bash reprend apres le nettoyage : l'execution
+        # continue sans verrou, et une seconde peut demarrer sur le meme dossier.
+        if not shutil.which("bash"):
+            self.skipTest("bash absent")
+        pieges = re.findall(r"^trap .*$", self.s, re.M)
+        self.assertTrue(pieges)
+        script = ("nettoyer() { :; }\n" + "\n".join(pieges)
+                  + "\nkill -TERM $$\necho apres-le-signal\n")
+        r = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+        self.assertNotIn("apres-le-signal", r.stdout)
+        self.assertEqual(r.returncode, 143)
 
 
 if __name__ == "__main__":
