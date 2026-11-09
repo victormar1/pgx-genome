@@ -628,7 +628,7 @@ sous Docker.
 | Quatre images en fichiers `.sif` | **0 écart** sur 12 couples ; le hash de chaque fichier est tracé |
 | Trois images tirées du dépôt, typeur en `.sif` | **0 écart** ; la trace ne porte que le tag |
 | Fichier `.sif` absent | refusé au démarrage, code 2 |
-| Typeur complémentaire inutilisable | étage 4b en échec, réussite complète fausse, code 1 |
+| PyPGx inutilisable | étage 4b en échec, réussite complète fausse, code 1 |
 
 **La conversion d'une image en `.sif` demande un dossier temporaire sur disque
 local** : sur un disque monté, celle de l'interpréteur prend cinq heures et

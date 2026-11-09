@@ -33,8 +33,9 @@ La **référence GRCh38** indexée qui a servi à l'alignement ne se télécharg
 c'est celle de la plateforme, et elle doit être la même. Le reste s'installe.
 
 ```bash
-git clone <url-de-ce-depot> pgx-genome
+git clone https://github.com/victormar1/pgx-genome.git
 cd pgx-genome
+git checkout "$(git describe --tags --abbrev=0)"   # la dernière release
 pip install -r env/requirements.txt
 
 git clone https://github.com/Illumina/Cyrius.git /opt/Cyrius
@@ -67,7 +68,9 @@ docker build -f env/pypgx.Dockerfile -t pgx-genome/pypgx:0.27.0 env
 
 La quatrième se construit sur place : ses auteurs ne la distribuent pas en
 conteneur. Sous Docker, les conteneurs tournent sous l'identité de l'appelant,
-pour que les sorties lui appartiennent.
+pour que les sorties lui appartiennent. Ils reçoivent son UID et son groupe
+principal, pas ses groupes secondaires : les entrées doivent être lisibles par
+l'un des deux.
 
 Sous Apptainer, `PGX_IMG_*` nomme soit une image de dépôt, tirée à l'exécution,
 ce qui demande le réseau sur chaque nœud, soit un fichier `.sif` local, dont
@@ -88,6 +91,9 @@ export PGX_IMG_BCFTOOLS=$PWD/bcftools.sif PGX_IMG_PHARMCAT=$PWD/pharmcat.sif
 export PGX_IMG_OPTITYPE=$PWD/optitype.sif PGX_IMG_PYPGX=$PWD/pypgx.sif
 ```
 
+L'image PyPGx se construit avec Docker. Sur un site sans Docker, la construire
+et la convertir sur une machine de préparation, puis copier le `.sif`.
+
 ### 1.3 Qualifier l'installation
 
 Dans l'ordre, chaque étape ayant un résultat attendu.
@@ -95,7 +101,7 @@ Dans l'ordre, chaque étape ayant un résultat attendu.
 | Étape | Commande | Attendu |
 |---|---|---|
 | 1. Installer | § 1.1 et 1.2 ci-dessus | `bin/pgx_genome.sh --version` rend la version |
-| 2. Contrôler les images | `docker image inspect --format '{{index .RepoDigests 0}}' <image>` | les digests de `env/conteneurs.txt` |
+| 2. Contrôler les trois images tirées | `docker image inspect --format '{{index .RepoDigests 0}}' <image>` | les digests de `env/conteneurs.txt` ; l'image PyPGx, construite sur place, n'en a pas |
 | 3. Passer les contrôles du dépôt | `python3 -m unittest discover -s tests` puis `python3 outils/verifier_depot.py` | tous passent |
 | 4. Rejouer le génome de qualification | voir ci-dessous | **0 écart** |
 | 5. Confronter le variant caller de la plateforme | sur ses propres génomes | voir § 10 ; à faire avant tout usage clinique |

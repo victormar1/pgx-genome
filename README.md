@@ -103,8 +103,9 @@ dans le dépôt : la référence GRCh38 indexée qui a servi à l'alignement, le
 Cyrius épinglé, et la ressource de données de PyPGx.
 
 ```bash
-git clone <url-de-ce-depot> pgx-genome
+git clone https://github.com/victormar1/pgx-genome.git
 cd pgx-genome
+git checkout "$(git describe --tags --abbrev=0)"   # la dernière release
 pip install -r env/requirements.txt
 ```
 
@@ -129,8 +130,8 @@ bin/pgx_genome.sh \
 ```
 
 Le fichier d'identité porte `patient`, `naissance` et `contexte` (la
-préindication). Il passe par un chemin, jamais par un argument, qui serait
-lisible dans la table des processus. Sans identité, le document porte la mention
+préindication). Son contenu passe par un fichier, jamais en argument : un
+argument est lisible dans la table des processus. Sans identité, le document porte la mention
 « prototype ».
 
 Un lot, avec tableau de bord :

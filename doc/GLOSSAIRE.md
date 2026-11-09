@@ -16,14 +16,14 @@ du domaine.
 | Outside calls (`appels`) | génotypes établis hors du VCF (CYP2D6 par Cyrius, HLA par OptiType, MT-RNR1 par PyPGx), transmis à PharmCAT par son option `-po` | outside calls |
 | Interpréteur | PharmCAT : traduit les génotypes en diplotypes, phénotypes et recommandations CPIC | interpreter |
 | Trace d'exécution (`provenance.json`) | hash des entrées, digests des images, versions, seuils et état de chaque étage | provenance |
-| Ordonnanceur | ce qui répartit les étages sur les machines : Nextflow, gestionnaire de grappe | scheduler |
+| Ordonnanceur | ce qui répartit les étages sur les machines : un gestionnaire de workflow comme Nextflow, ou de grappe comme Slurm | workflow manager, scheduler |
 
 ## Résultats
 
 | Terme | Sens | En anglais |
 |---|---|---|
 | Périmètre clinique | les gènes rendus au compte rendu, fixés par `ressources/perimetre_rnpgx.json` | clinical scope |
-| Complément RNPGx | positions du panel RNPGx absentes de la table de PharmCAT, mesurées à part et rendues sans interprétation | — |
+| Complément RNPGx | positions du panel RNPGx absentes de la table de PharmCAT, mesurées à part et rendues sans interprétation | RNPGx supplementary positions |
 | Non conclusif | gène dont une position définissante n'est pas lue ou pas qualifiée : aucun diplotype n'est rendu | no-call |
 | Partiel | gène rendu alors qu'une partie de ses positions manque ; la proportion lue figure au compte rendu | partial call |
 | Critère d'acceptation | seuil qui refuse le génome au sortir du contrôle qualité, sans compte rendu : couverture médiane, part d'hétérozygotes déséquilibrés | acceptance criterion, QC gate |
@@ -46,7 +46,7 @@ du domaine.
 | Terme | Sens | En anglais |
 |---|---|---|
 | Mutation testing | réintroduire volontairement un défaut, le mutant, pour vérifier qu'un test échoue ; un mutant détecté est dit tué | mutation testing |
-| Hook | script Git lancé au commit (`commit-msg`) ou au push (`pre-push`), rangé dans `outils/crochets/` | Git hook |
+| Hook | script Git lancé au commit (`commit-msg`) ou au push (`pre-push`), rangé dans `outils/crochets/` et activé par `git config core.hooksPath outils/crochets` | Git hook |
 | CI | GitHub Actions rejoue tests, contrôles du dépôt et validation des messages à chaque push sur `main` et à chaque pull request | continuous integration |
-| Digest | identifiant sha256 d'une image de conteneur ; contrairement à un tag, il ne peut pas être repointé | image digest |
-| Trailer | ligne de fin d'un message de commit, au format `Jeton: valeur` | trailer |
+| Digest | identifiant sha256 du manifeste d'une image de conteneur ; contrairement à un tag, il ne peut pas être repointé | image digest |
+| Trailer | ligne de fin d'un message de commit, au format `Jeton: valeur` | commit trailer |
