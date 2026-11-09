@@ -8,6 +8,15 @@ incrémente au moins le rang mineur et déclenche la revalidation décrite dans
 La version du module figure dans `provenance.json` et au pied du compte rendu.
 Elle ne vaut aucune déclaration de conformité.
 
+## 0.5.4
+
+**Figures à jour.** La figure du coût par étage reprend la mesure du tableau
+qu'elle illustre, 269 s par génome dont 145 s de typage HLA, au lieu d'une
+mesure de la 0.1.0. Les autres figures passent au vocabulaire du glossaire et à
+la typographie française ; aucun chiffre n'y change.
+
+Aucun résultat rendu ne change.
+
 ## 0.5.3
 
 **Vocabulaire du domaine.** La documentation emploie les termes du métier —
