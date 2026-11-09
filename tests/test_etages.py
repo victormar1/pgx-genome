@@ -180,6 +180,21 @@ class Garanties(unittest.TestCase):
         self.assertNotIn("apres-le-signal", r.stdout)
         self.assertEqual(r.returncode, 143)
 
+    def test_la_recevabilite_purge_les_livrables_precedents(self):
+        # Un etage en echec laisserait sinon le compte rendu ou la trace d'une
+        # autre execution dans le dossier de sortie.
+        i = self.s.index("if a_faire recevabilite; then")
+        bloc = self.s[i:self.s.index("\nelse\n", i)]
+        self.assertIn('rm -rf "$SORTIE/sortie"; mkdir -p "$SORTIE/sortie"', bloc)
+
+    def test_une_trace_perimee_ne_decide_pas_du_code_de_retour(self):
+        # Si la trace ne s'ecrit pas, le code de retour ne doit pas se lire dans
+        # celle d'une execution anterieure.
+        i = self.s.index("REUSSI=$(python3")
+        avant = self.s[self.s.rindex("if a_faire provenance; then", 0, i):i]
+        j = avant.index('rm -f "$SORTIE/sortie/provenance.json"')
+        self.assertLess(j, avant.index("bin/provenance.py"))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

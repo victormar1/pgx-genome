@@ -443,6 +443,10 @@ if a_faire recevabilite; then
     rm -rf "$T"; mkdir -p "$T"
   fi
   rm -f "$ARRET"
+  # Les livrables d'une execution precedente ne survivent pas a celle-ci : un
+  # etage en echec laisserait sinon le compte rendu ou la trace d'une autre
+  # execution, et le code de retour se lirait dans une trace perimee.
+  rm -rf "$SORTIE/sortie"; mkdir -p "$SORTIE/sortie"
   printf '%s' "$SIGNATURE" > "$SIG_FICHIER"
   : > "$JOURNAL"
   printf 'etage\tetat\tsecondes\tdetail\n' > "$ETATS"
@@ -941,6 +945,8 @@ if a_faire provenance; then
 # Lancee seule, la trace ne connait pas la couverture mesuree par l'etage 2b :
 # elle la relit.
 [ "$DECOUPE" = 1 ] && [ -z "${COUV:-}" ] && lire_verdict
+# Une trace qui ne s'ecrit pas vaut echec : jamais celle d'une execution anterieure.
+rm -f "$SORTIE/sortie/provenance.json"
 python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
   --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
   --gq "$GQ" --profondeur "$PROF" --couverture-min "$COUV_MIN" \
