@@ -15,6 +15,10 @@ import sys
 LARGEUR = 72
 SUJET_VISE = 50
 
+# Les commits rediges avec un assistant le declarent sous une seule forme : un
+# nom de modele change a chaque version et rendrait l'historique disparate.
+CO_AUTEUR_IA = "Co-authored-by: Claude <noreply@anthropic.com>"
+
 DOMAINES = ("pipeline", "typage", "qc", "rendu", "appels", "provenance",
             "ressources", "outils", "doc", "figures", "env", "bench", "tests")
 
@@ -65,14 +69,14 @@ def verifie(texte):
         fautes.append("pas de ligne vide entre le sujet et le corps")
 
     for i, l in enumerate(lignes[2:], start=3):
-        # Une ligne de fin, une URL ou un chemin ne se replient pas.
+        # Un trailer, une URL ou un chemin ne se replient pas.
         if re.match(r"^[A-Z][A-Za-z-]+: ", l) or "://" in l:
             continue
         if len(l.rstrip()) > LARGEUR:
             fautes.append("ligne %d du corps : %d caracteres, %d au maximum"
                           % (i, len(l.rstrip()), LARGEUR))
 
-    # Casse des lignes de fin : le projet Git ne met en majuscule que
+    # Casse des trailers : le projet Git ne met en majuscule que
     # l'initiale du jeton, et « Co-Authored-By: » est la forme fautive la plus
     # repandue parce que c'est celle qu'insere l'outillage.
     for l in lignes:
@@ -82,8 +86,16 @@ def verifie(texte):
         jeton = m.group(1)
         attendu = jeton[:1].upper() + jeton[1:].lower()
         if jeton != attendu and "-" in jeton:
-            fautes.append("ligne de fin « %s: » — seule l'initiale se met en "
+            fautes.append("trailer « %s: » — seule l'initiale se met en "
                           "majuscule, donc « %s: »" % (jeton, attendu))
+
+    for l in lignes:
+        l = l.rstrip()
+        if (re.match(r"^co-authored-by:", l, re.I)
+                and re.search(r"claude|anthropic", l, re.I)
+                and l != CO_AUTEUR_IA):
+            fautes.append("trailer d'assistance « %s » : forme attendue « %s »"
+                          % (l, CO_AUTEUR_IA))
 
     entier = "\n".join(lignes)
     for motif, quoi in INTERDITS:

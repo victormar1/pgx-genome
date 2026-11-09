@@ -80,6 +80,24 @@ class ValidateurDeMessage(unittest.TestCase):
         self.assertEqual(V.verifie("doc: ajoute une note\n\nCorps.\n\n"
                                    "Co-authored-by: Machin <x@y.z>\n"), [])
 
+    def test_trailer_d_assistance_sous_sa_seule_forme(self):
+        # Un nom de modele change a chaque version : une forme unique garde
+        # l'historique homogene.
+        debut = "doc: ajoute une note\n\nCorps.\n\n"
+        self.assertEqual(V.verifie(debut + V.CO_AUTEUR_IA + "\n"), [])
+        for variante in (
+                "Co-authored-by: Claude Opus 5 <noreply@anthropic.com>",
+                "Co-authored-by: Claude Fable 5.1 <noreply@anthropic.com>",
+                "Co-authored-by: claude <noreply@anthropic.com>",
+                "Co-authored-by: Claude <claude@anthropic.com>"):
+            f = V.verifie(debut + variante + "\n")
+            self.assertTrue(any("assistance" in x for x in f), variante)
+
+    def test_un_co_auteur_humain_reste_libre(self):
+        self.assertEqual(V.verifie(
+            "doc: ajoute une note\n\nCorps.\n\n"
+            "Co-authored-by: Marie Curie <marie@exemple.invalide>\n"), [])
+
     def test_pas_de_ligne_vide_apres_le_sujet(self):
         f = V.verifie("doc: ajoute une note\nCorps colle.\n")
         self.assertTrue(any("ligne vide" in x for x in f))
