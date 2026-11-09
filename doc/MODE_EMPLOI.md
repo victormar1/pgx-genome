@@ -130,8 +130,9 @@ Le module **refuse** à l'entrée, sans lancer aucun étage :
 
 - un fichier de variants portant plus d'un échantillon ;
 - un fichier de variants qui ne déclare pas `AD`, les lectures par allèle ;
-- un identifiant demandé qui ne concorde ni avec le nom porté par le fichier de
-  variants, ni avec le champ `SM` de l'alignement ;
+- trois noms deux à deux différents : l'identifiant demandé, celui du fichier de
+  variants et le champ `SM` de l'alignement. Une divergence entre les deux
+  derniers est acceptée si la demande nomme l'un d'eux, et elle est tracée ;
 - un alignement tronqué, c'est-à-dire dont le marqueur de fin manque ;
 - un alignement dont les contigs visés sont absents, ou dont l'un d'eux n'a pas
   la longueur que lui donne la référence fournie ;

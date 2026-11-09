@@ -170,7 +170,9 @@ structure ne sont lus que pour CYP2D6. POR, BCHE et MTHFR sortent en allèle
 nommé, sans phénotype ni recommandation, l'interpréteur n'ayant pas de table pour
 eux. Et un mélange de deux échantillons à 20 % n'est pas détecté, alors qu'il
 change le document rendu : un contrôle de contamination en amont reste
-nécessaire.
+nécessaire. La concordance d'identité compare des noms : une inversion
+d'échantillons entre l'alignement et le fichier de variants se détecte par les
+génotypes, en amont.
 
 ## Structure du dépôt
 
@@ -178,7 +180,7 @@ nécessaire.
 bin/            les neuf scripts du pipeline
 ressources/     les ressources figées, lues à l'exécution (dont les traductions CPIC)
 outils/         les générateurs de ressources, les contrôles, les hooks
-tests/          259 cas, vérifiés par mutation testing
+tests/          260 cas, vérifiés par mutation testing
 doc/            mode d'emploi, flux de fichiers, dossier de validation, glossaire, figures
 env/            dépendances Python, digests des conteneurs, image PyPGx
 exemples/       un manifeste type, une recette Nextflow

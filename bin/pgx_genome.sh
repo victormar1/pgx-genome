@@ -511,6 +511,13 @@ elif ! samtools view -c ${FASTA:+--reference "$FASTA"} "$CRAM" "$REGION_TEST" >/
   dire "0. recevabilite : ECHEC, acces aleatoire impossible (index absent ou illisible)"
   etat recevabilite ECHEC $(( $(date +%s)-t0 )) "index de l alignement absent ou illisible"
   RECEVABLE=0
+elif [ -n "$SM_CRAM" ] && [ "$SM_CRAM" != "$NOMS_VCF" ]; then
+  # Le champ SM d'un alignement est parfois un identifiant interne : la
+  # divergence est acceptee quand la demande nomme l'un des deux, mais elle
+  # est dite et tracee, jamais presentee comme une concordance.
+  dire "0. recevabilite : un echantillon, identites divergentes acceptees (alignement $SM_CRAM, VCF $NOMS_VCF, demande $ECH), assemblage conforme"
+  etat recevabilite OK $(( $(date +%s)-t0 )) "identites divergentes acceptees : VCF=$NOMS_VCF alignement=$SM_CRAM demande=$ECH"
+  RECEVABLE=1
 else
   dire "0. recevabilite : un echantillon, identites concordantes ($NOMS_VCF), assemblage conforme"
   etat recevabilite OK $(( $(date +%s)-t0 )) "VCF=$NOMS_VCF alignement=$SM_CRAM"

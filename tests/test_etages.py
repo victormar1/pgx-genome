@@ -155,6 +155,16 @@ class Garanties(unittest.TestCase):
         self.assertIn("set -uo pipefail", self.s)
         self.assertNotRegex(self.s, r"\|\s*grep -q")
 
+    def test_des_identites_divergentes_ne_sont_pas_dites_concordantes(self):
+        # Le champ SM d'un alignement peut etre un identifiant interne : la
+        # divergence est acceptee, mais elle est dite et tracee comme telle.
+        i = self.s.index("NOMS_VCF=$(BCF query -l")
+        bloc = self.s[i:self.s.index("\nfi\n", i)]
+        j = bloc.index('[ "$SM_CRAM" != "$NOMS_VCF" ]; then')
+        suite = bloc[j:bloc.index("\nelse\n", j)]
+        self.assertIn("identites divergentes acceptees", suite)
+        self.assertNotIn("identites concordantes", suite)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
