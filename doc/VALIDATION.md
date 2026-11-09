@@ -16,7 +16,7 @@ dit comment la refaire.
 | **Domaine de validité** | aucun allèle à conséquence clinique perdu jusqu'à 18 × ; neuf faux appels à 11 ×, d'où le refus sous 18 × | 3.4 |
 | Changement de variant caller | 103 683 positions, 99,924 % ; aucun écart de phénotype ni de recommandation sur 29 génomes rejoués | 3.5 |
 | Répétabilité | trois exécutions d'un même génome, aucun écart | 3.2 |
-| Code | 268 cas de test ; 96 mutants, 96 tués | 3.6 |
+| Code | 269 cas de test ; 97 mutants, 97 tués | 3.6 |
 | Débit | 51 génomes par heure sur 24 cœurs | 3.10 |
 
 **Les trois limites qui engagent une plateforme** : un mélange d'échantillons de
@@ -373,8 +373,8 @@ Ces six écarts n'apparaissent pas sous 29 génomes : un échantillon de 9 en do
 
 | Mesure | Résultat |
 |---|---|
-| Cas de test | 268 |
-| Mutation testing, cumulé sur les versions | **96 mutants, 96 tués, 0 survivant** |
+| Cas de test | 269 |
+| Mutation testing, cumulé sur les versions | **97 mutants, 97 tués, 0 survivant** |
 | Contrôles d'intégrité du dépôt | 4 mutants, 4 tués |
 | Reproductibilité du catalogue généré | 3 régénérations, **même hash**, égal à celui du fichier livré |
 
@@ -681,7 +681,7 @@ l'identique, tables cliniques comprises.
 
 | Outil | Rôle |
 |---|---|
-| `tests/` | 268 cas, vérifiés par mutation testing |
+| `tests/` | 269 cas, vérifiés par mutation testing |
 | `outils/verifier_depot.py` | intégrité des figures, cohérence du périmètre et des comptes annoncés, syntaxe des scripts, reproductibilité des ressources générées |
 | `outils/cas_construit.py` | exercice d'un allèle absent de la cohorte |
 | `outils/fiche_traductions.py` | fiche de relecture des traductions, classée par usage, avec les entrées inemployées à part |

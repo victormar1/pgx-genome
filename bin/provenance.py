@@ -165,6 +165,10 @@ def main():
             "empreinte_variants": sha256(a.vcf),
             "reference": os.path.abspath(a.fasta) if a.fasta else "",
             "empreinte_reference": sha256(a.fasta, limite=64 << 20) if a.fasta else "",
+            # Le hash du FASTA s'arrete a 64 Mo, communs a deux GRCh38 avec ou sans
+            # sequences decoy ; l'index, lui, decrit tous les contigs et leur longueur.
+            "empreinte_index_reference": sha256(a.fasta + ".fai")
+            if a.fasta and os.path.isfile(a.fasta + ".fai") else "",
         },
         "module": version_module(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),

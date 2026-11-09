@@ -110,7 +110,7 @@ class ReussiteComplete(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.d, ignore_errors=True)
 
-    def trace(self, etats):
+    def trace(self, etats, fasta=None):
         chemin = os.path.join(self.d, "travail", "etats.tsv")
         with io.open(chemin, "w", encoding="utf-8", newline="\n") as fh:
             fh.write("etage\tetat\tsecondes\tdetail\n")
@@ -121,7 +121,8 @@ class ReussiteComplete(unittest.TestCase):
              "--sortie", self.d, "--echantillon", "ECH",
              "--cram", self.entrees["cram"], "--vcf", self.entrees["vcf"],
              "--ressources", os.path.join(RACINE, "ressources"),
-             "--gq", "20", "--profondeur", "10"],
+             "--gq", "20", "--profondeur", "10"]
+            + (["--fasta", fasta] if fasta else []),
             capture_output=True)
         p_json = os.path.join(self.d, "sortie", "provenance.json")
         if not os.path.exists(p_json):
@@ -192,9 +193,8 @@ class ReussiteComplete(unittest.TestCase):
         self.assertFalse(d["reussite_complete"])
 
     def test_la_trace_porte_la_version_du_module(self):
-        # Le module tracait la version de chacune de ses dependances et pas la
-        # sienne. C'est la premiere chose qu'un auditeur demande d'un compte
-        # rendu : quelle version du logiciel l'a produit.
+        # C'est la premiere chose qu'un auditeur demande d'un compte rendu :
+        # quelle version du logiciel l'a produit.
         d = self.trace([(e, "OK") for e in REQUIS])
         self.assertIn("module", d)
         self.assertTrue(d["module"].get("version"),
@@ -207,6 +207,18 @@ class ReussiteComplete(unittest.TestCase):
         self.assertIn("10", texte)          # profondeur
         self.assertTrue(any("sha256" in k or "empreinte" in k
                             for k in json.dumps(d).split('"')), d.keys())
+
+    def test_la_trace_porte_l_index_complet_de_la_reference(self):
+        # Le hash du FASTA s'arrete a 64 Mo, communs a deux GRCh38 avec ou sans
+        # sequences decoy ; l'index, entier, decrit tous les contigs.
+        fasta = os.path.join(self.d, "ref.fa")
+        with open(fasta, "wb") as fh:
+            fh.write(b">chr1\nACGT\n")
+        with open(fasta + ".fai", "wb") as fh:
+            fh.write(b"chr1\t4\t6\t4\t5\n")
+        d = self.trace([(e, "OK") for e in REQUIS], fasta=fasta)
+        self.assertEqual(d["entrees"]["empreinte_index_reference"],
+                         hashlib.sha256(b"chr1\t4\t6\t4\t5\n").hexdigest())
 
 
 if __name__ == "__main__":

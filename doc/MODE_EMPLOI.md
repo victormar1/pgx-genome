@@ -308,7 +308,9 @@ dossiers `.verrou*` du dossier de sortie.
 **Traçabilité.** Le hash enregistré pour l'alignement porte sur ses 512
 premiers mégaoctets : lire trente gigaoctets pour tracer une exécution coûterait
 plus cher que l'analyse. Ceux du fichier de variants et des ressources portent
-sur la totalité. Les conteneurs sont tracés par leur digest, pas par leur tag.
+sur la totalité ; celui de la référence, sur ses 64 premiers mégaoctets,
+complété par celui de son index `.fai`, qui décrit tous ses contigs. Les
+conteneurs sont tracés par leur digest, pas par leur tag.
 
 ## 5. Les deux refus mesurés
 
