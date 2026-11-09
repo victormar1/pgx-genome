@@ -47,6 +47,6 @@ du domaine.
 |---|---|---|
 | Mutation testing | réintroduire volontairement un défaut, le mutant, pour vérifier qu'un test échoue ; un mutant détecté est dit tué | mutation testing |
 | Hook | script Git lancé au commit (`commit-msg`) ou au push (`pre-push`), rangé dans `outils/crochets/` | Git hook |
-| CI | GitHub Actions rejoue tests, contrôles du dépôt et validation des messages à chaque push | continuous integration |
+| CI | GitHub Actions rejoue tests, contrôles du dépôt et validation des messages à chaque push sur `main` et à chaque pull request | continuous integration |
 | Digest | identifiant sha256 d'une image de conteneur ; contrairement à un tag, il ne peut pas être repointé | image digest |
 | Trailer | ligne de fin d'un message de commit, au format `Jeton: valeur` | trailer |

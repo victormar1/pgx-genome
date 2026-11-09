@@ -15,8 +15,8 @@ git config core.hooksPath outils/crochets   # une fois par copie de travail
 | `python -m unittest discover -s tests` | hook `pre-push` ; CI | régression sur un garde-fou : contrôle qualité, typage PyPGx, outside calls, rendu, trace, découpage en étages, outils |
 | `outils/verifier_depot.py` | hook `pre-push` ; CI | SVG non conforme XML, nombre de gènes ou de tests incohérent avec la documentation, chemin de poste, script shell invalide, ressource générée périmée |
 
-La CI (`.github/workflows/ci.yml`) rejoue ces contrôles à chaque push et à
-chaque pull request. `git push --no-verify` contourne le hook local, pas la CI.
+La CI (`.github/workflows/ci.yml`) rejoue ces contrôles à chaque push sur `main`
+et à chaque pull request. `git push --no-verify` contourne le hook local, pas la CI.
 
 Les tests valent ce que vaut leur capacité à échouer. Chaque garde-fou ajouté
 est vérifié par mutation testing : le défaut qu'il empêche est réintroduit, et
