@@ -25,7 +25,7 @@ import os
 import sys
 
 # La cle de la table est un texte normalise : espaces reduits et entites HTML
-# decodees. Comparer des chaines brutes faisait annoncer comme non traduits des
+# decodees. Comparer des chaines brutes ferait annoncer comme non traduits des
 # textes que le compte rendu rend bel et bien en francais. On emploie donc la
 # fonction du module, et non une seconde copie de la regle.
 sys.path.insert(0, os.path.join(

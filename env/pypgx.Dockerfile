@@ -1,9 +1,8 @@
-# Image du typeur complementaire (etage 4b).
+# Image de PyPGx, pour le typage complementaire (etage 4b).
 #
-# PyPGx etait la seule dependance du module a vivre sur l'hote : une
-# installation Python a maintenir sur chaque noeud, que les plateformes
-# refusent a juste titre. Les trois autres outils sont des images epinglees par
-# empreinte ; celui-ci le devient.
+# Comme les trois autres outils, PyPGx tourne en conteneur : aucune
+# installation Python a maintenir sur chaque noeud. Ses auteurs ne publient
+# pas d'image ; celle-ci se construit sur place.
 #
 # Deux contraintes dictent le contenu :
 #   - python 3.10, et non 3.12 : sur 3.12 le typeur echoue sur un appel pandas

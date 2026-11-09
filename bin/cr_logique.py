@@ -6,11 +6,10 @@ diplotype se lit en francais, quelles recommandations sont restituees et
 laquelle l'emporte quand plusieurs portent sur le meme medicament. La mise en
 page reste dans `compte_rendu.py`.
 
-La separation existe pour une seule raison : rien de tout cela n'etait
-verifiable. Le module de rendu lit ses arguments et ses ressources a l'import,
-donc aucune de ses fonctions ne pouvait etre appelee par un test — et c'est
-pourtant ici qu'on avait deja perdu quatre conduites a tenir sur neuf, dont la
-codeine et le tramadol.
+La separation rend cette logique testable : le module de rendu lit ses
+arguments et ses ressources a l'import, et aucune de ses fonctions ne peut
+etre appelee par un test. C'est ici qu'une recommandation peut disparaitre du
+document ; c'est donc ici que portent les tests.
 """
 import html
 import re

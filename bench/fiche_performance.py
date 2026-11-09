@@ -211,9 +211,9 @@ def main():
             rendu_par_gene[x["gene"]] += 1
 
     complet = [s for s, d in echantillons.items() if d["reussite_complete"]]
-    # Un genome refuse a l entree n est pas un genome en echec : le module a
-    # constate que l alignement n etait pas dans son domaine et s est arrete
-    # avant de rien produire. C est le garde-fou qui a joue.
+    # Un genome refuse a l entree n est pas un genome en echec : le module
+    # constate que l alignement n est pas dans son domaine et s arrete avant
+    # de rien produire. C est le garde-fou qui joue.
     refuses = [{"echantillon": s,
                 "motif": d.get("etages", {}).get("recevabilite", {}).get("detail", "")}
                for s, d in sorted(echantillons.items())

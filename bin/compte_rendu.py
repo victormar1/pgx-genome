@@ -287,10 +287,9 @@ h.append(tableau(rows, [17, 32, 45, 76], {i: FOND_G for i in range(2, len(rows),
 # haut avec son phenotype et sa recommandation, le citer deux fois n'apporte
 # rien.
 #
-# Pour les autres, les positions restent. L'etage 4b lit desormais les deux
-# haplotypes et ne tait plus rien, mais le genotype mesure position par position
-# ne depend d'aucun typeur : il reste la source qui fait foi, et c'est lui qui
-# avait revele le silence du typeur sur rs1799807.
+# Pour les autres, les positions restent. L'etage 4b lit les deux haplotypes,
+# mais le genotype mesure position par position ne depend d'aucun typeur : il
+# reste la source qui fait foi.
 _TYPES_OK = {r["gene"] for r in TYPAGE
              if r.get("statut") == "rendu" and r.get("phenotype")}
 COMPLEMENT = [x for x in COMPLEMENT if x["gene"] not in _TYPES_OK]

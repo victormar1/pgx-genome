@@ -51,7 +51,7 @@ class ValidateurDeMessage(unittest.TestCase):
 
     def test_la_longueur_se_compte_en_caracteres_et_non_en_octets(self):
         # Un accent pese deux octets en UTF-8. Un controle qui compte des
-        # octets declarait trop longs des sujets qui ne le sont pas.
+        # octets declarerait trop longs des sujets qui ne le sont pas.
         sujet = "doc: " + "é" * 60       # 65 caracteres, 125 octets
         self.assertEqual(len(sujet), 65)
         self.assertEqual(V.verifie(sujet + "\n"), [])
@@ -100,7 +100,7 @@ class ValidateurDeMessage(unittest.TestCase):
             "Mesure sur " + "HG" + "00188.",
             "Mesure sur " + "NA" + "12878.",
             "Finalement corrige.",
-            "Traductions a valider par un pharmacologue.",
+            "Seuil a valider par le laboratoire.",
             "TODO : revoir ce point.",
         ]
         for corps in cas:

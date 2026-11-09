@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 """Tests de la logique du compte rendu.
 
-C'est la partie qui decide ce que le clinicien lit. Elle a deja perdu quatre
-conduites a tenir sur neuf, dont la codeine et le tramadol, et elle n'etait pas
-verifiable : le module de rendu lit ses arguments a l'import.
+C'est la partie qui decide ce que le clinicien lit : une recommandation qui
+disparait ici disparait du document, sans erreur.
 """
 import os
 import sys
@@ -198,8 +197,8 @@ class Perimetre(unittest.TestCase):
 class Denominateur(unittest.TestCase):
     """Le « N genes rendus sur M » porte en tete du compte rendu.
 
-    M etait ecrit en dur. Le perimetre est passe a treize genes sans que ce
-    nombre bouge, et chaque document annoncait un denominateur faux.
+    M se compte sur le perimetre : ecrit en dur, il ne suivrait pas un gene
+    ajoute au perimetre, et le document annoncerait un compte faux.
     """
 
     RAPPORT = {"genes": {"TPMT": gene(labels=["*1/*1"]),

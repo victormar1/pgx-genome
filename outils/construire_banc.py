@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Reconstruit la liste des prelevements du banc depuis le lot de validation.
+"""Reconstruit la liste des prelevements du benchmark depuis le lot de
+validation.
 
-Une liste tenue a la main finit par ne plus correspondre au lot : elle comptait
-244 prelevements quand le lot en portait 256. Ici, chaque dossier du lot donne
-une ligne, et son statut vient de sa trace d'execution ; les colonnes de verite
-disent si le prelevement figure dans la table GeT-RM et dans le typage HLA de
-reference.
+Une liste tenue a la main finit par ne plus correspondre au lot. Ici, chaque
+dossier du lot donne une ligne, et son statut vient de sa trace d'execution ;
+les colonnes de verite disent si le prelevement figure dans la table GeT-RM
+et dans le typage HLA de reference.
 
 Usage :
     construire_banc.py --lot DOSSIER --getrm verite.tsv --hla verite_hla.tsv \

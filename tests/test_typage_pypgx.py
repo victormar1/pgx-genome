@@ -65,8 +65,8 @@ class GenotypeComplet(unittest.TestCase):
 
     def test_ordre_stable_quel_que_soit_le_rang_des_colonnes(self):
         # PyPGx n'attribue pas Haplotype1 au meme chromosome d'un genome a
-        # l'autre : le meme porteur sortait « *1/*28 » ici et « *28/*1 » la, et
-        # plus rien n'etait comparable entre patients ni entre versions.
+        # l'autre : sans tri, le meme porteur sortirait « *1/*28 » ici et
+        # « *28/*1 » la, et rien ne serait comparable entre patients.
         a = t.genotype_complet(ligne("*1;", "*28;"))
         b = t.genotype_complet(ligne("*28;", "*1;"))
         self.assertEqual(a, b)
@@ -77,10 +77,8 @@ class GenotypeComplet(unittest.TestCase):
 
 class GenotypePanel(unittest.TestCase):
     def test_rend_toujours_trois_valeurs(self):
-        # Une version de cette fonction rendait deux valeurs sur le chemin
-        # normal et trois sur les chemins d'erreur : l'etage levait alors une
-        # ValueError sur tout genome valide, et vingt-huit genomes d'un lot ont
-        # ete perdus avant qu'on le voie.
+        # L'appelant deballe trois valeurs : un chemin qui n'en rendrait que
+        # deux leverait une ValueError sur tout genome valide.
         for cas in (ligne("rs1803274;", "Reference;"),
                     ligne("inconnu;", "Reference;"),
                     ligne("", "")):
@@ -107,8 +105,8 @@ class GenotypePanel(unittest.TestCase):
         self.assertEqual(g, "*1/*1")
 
     def test_refuse_un_catalogue_incomplet(self):
-        # Sans refus, le rendu retombait sur le genotype complet de PyPGx comme
-        # s'il avait ete restreint au perimetre clinique.
+        # Sans refus, le rendu retomberait sur le genotype complet de PyPGx
+        # comme s'il etait restreint au perimetre clinique.
         for manque in ("positions_panel", "alleles_positions", "allele_reference"):
             info = dict(BCHE)
             del info[manque]
@@ -241,8 +239,8 @@ class LectureDesEntrees(unittest.TestCase):
 
 class TypeurEnPanne(unittest.TestCase):
     """Un typeur qui ne tourne pas est une panne de l'installation : l'etage doit
-    echouer. Rendu en « non conclusif », il passait en reussite complete, et
-    MT-RNR1 perdait ses recommandations sans un mot."""
+    echouer. Rendu en « non conclusif », il passerait en reussite complete, et
+    MT-RNR1 perdrait ses recommandations sans un mot."""
 
     def test_un_typeur_qui_ne_tourne_pas_fait_echouer_l_etage(self):
         d = tempfile.mkdtemp()

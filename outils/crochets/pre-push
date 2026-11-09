@@ -1,7 +1,6 @@
 #!/bin/sh
-# Porte locale avant toute poussee : tests du module, controles du depot, et
-# relecture des messages de commit qui partent. Ce depot n'a pas d'integration
-# continue distante ; cette porte en tient le role, sur le poste.
+# Controles avant tout push : tests du module, controles du depot, et
+# validation des messages de commit qui partent.
 #
 # Active par : git config core.hooksPath outils/crochets
 # Contournable par : git push --no-verify   (a n'utiliser qu'en connaissance)
@@ -13,9 +12,9 @@ cd "$R"
 # ressources ; sous Git bash, python suffit pour le reste.
 #
 # Un interpreteur present n'est pas un interpreteur utilisable : sous Windows,
-# command -v trouve un lanceur du magasin d'applications qui existe et refuse
-# de s'executer. La porte tombait alors sur un refus de permission, sans avoir
-# verifie quoi que ce soit. On l'essaie donc avant de le retenir.
+# command -v trouve un lanceur du Microsoft Store qui existe et refuse de
+# s'executer : le hook echouerait sans avoir rien verifie. On l'essaie donc
+# avant de le retenir.
 PY=python
 if command -v python3 >/dev/null 2>&1 && python3 -c "" >/dev/null 2>&1; then
   PY=python3
@@ -49,4 +48,4 @@ while read -r locale_ref locale_sha distante_ref distante_sha; do
   echo "  $n message(s) conformes"
 done
 
-echo "--- porte franchie ---"
+echo "--- controles passes ---"

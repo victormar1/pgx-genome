@@ -120,8 +120,8 @@ class Garanties(unittest.TestCase):
         self.assertRegex(self.s, r"etat\(\) \{ inscrire")
 
     def test_une_image_designee_par_un_chemin_doit_exister(self):
-        # Un .sif absent devenait un nom de depot invalide, et la recevabilite
-        # concluait a un fichier de variants sans echantillon.
+        # Un .sif absent deviendrait un nom de depot invalide, et la
+        # recevabilite conclurait a un fichier de variants sans echantillon.
         self.assertIn('[ -f "$i" ] || { echo "pgx_genome : image introuvable', self.s)
 
     def test_une_lecture_du_vcf_en_echec_n_est_pas_un_vcf_vide(self):

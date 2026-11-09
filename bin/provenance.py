@@ -141,8 +141,8 @@ def main():
     # SANS_RESULTAT : l etage a tourne jusqu au bout et n a rien conclu. Un
     # CYP2D6 que l outil ne resout pas n est pas une defaillance du module, et
     # le compte rendu rend alors le gene non analyse.
-    # IGNORE : l etage est optionnel et n etait pas arme sur cette plateforme.
-    # Le typage complementaire est dans ce cas quand PGX_PYPGX n est pas defini.
+    # IGNORE : l etage est optionnel et n est pas active sur cette plateforme ;
+    # c est le cas du typage complementaire sans PGX_IMG_PYPGX ni PGX_PYPGX.
     echecs = [e for e, v in etats.items()
               if v["etat"] not in ("OK", "SANS_RESULTAT", "IGNORE")]
     sans = [e for e, v in etats.items() if v["etat"] == "SANS_RESULTAT"]

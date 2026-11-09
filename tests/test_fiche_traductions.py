@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 """Tests de la fiche de relecture des traductions.
 
-La fiche sert a faire valider les traductions par un pharmacologue : si elle
-annonce comme non traduit un texte que le compte rendu rend en francais, la
-relecture part sur une fausse piste. C'est arrive deux fois a l'ecriture de
-l'outil — une fois en comptant des medicaments que le compte rendu ne restitue
-pas, une fois en comparant des chaines brutes la ou la table est indexee sur un
-texte normalise. Les deux cas sont tenus ici.
+La fiche sert a relire les traductions : si elle annonce comme non traduit un
+texte que le compte rendu rend en francais, la relecture part sur une fausse
+piste. Deux causes sont tenues ici : compter des medicaments que le compte
+rendu ne restitue pas, et comparer des chaines brutes la ou la table est
+indexee sur un texte normalise.
 """
 import json
 import os
@@ -101,9 +100,8 @@ class Fiche(unittest.TestCase):
         self.assertEqual(absents, ["Z"])
 
     def test_un_texte_normalise_n_est_pas_signale_comme_absent(self):
-        # Le defaut qui annoncait quatorze textes non traduits : la cle de la
-        # table portait des entites HTML, le rapport aussi, et la comparaison
-        # brute ne les rapprochait pas.
+        # La cle de la table et le rapport portent des entites HTML : une
+        # comparaison brute ne les rapprocherait pas.
         table = {"traductions": {"Limit dose to &lt;20mg": {"fr": "a", "type": ""}}}
         u = {"Limit dose to <20mg": {"echantillons": {1}, "medicaments": set(),
                                      "genes": set(), "classes": set()}}

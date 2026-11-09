@@ -11,7 +11,7 @@
 # signale. Chaque etage teste son code de retour, inscrit son etat, et refuse de
 # se rabattre sur une entree de secours. Le code de retour du module ne vaut zero
 # que si tous les etages requis ont abouti. Le typage complementaire est le seul
-# etage optionnel : non arme, il s'inscrit IGNORE et ne pese pas sur le resultat.
+# etage optionnel : non active, il s'inscrit IGNORE et ne pese pas sur le resultat.
 #
 # Options :
 #   --echantillon ID   identifiant du prelevement    (defaut : nom de l'alignement)
@@ -289,7 +289,7 @@ conteneur() {   # $1 dossier de travail  $2 image  $3... commande
 BCF() { conteneur "$D_SORTIE" "$IMG_BCF" bcftools "$@"; }
 
 # Le moteur se verifie ici, avant tout etage. Sans ce controle, un moteur
-# inconnu ou absent faisait echouer la recevabilite sur « le fichier de
+# inconnu ou absent ferait echouer la recevabilite sur « le fichier de
 # variants porte 0 echantillons » : un message qui envoie chercher la faute
 # dans les donnees du patient alors qu'elle est dans la configuration.
 case "$MOTEUR" in
@@ -303,8 +303,8 @@ if ! command -v "$MOTEUR" >/dev/null 2>&1; then
   exit 2
 fi
 # Une image designee par un chemin doit exister. Sans ce controle, un fichier
-# .sif absent devenait un nom de depot invalide, et l'etage 0 concluait que le
-# fichier de variants ne portait aucun echantillon.
+# .sif absent deviendrait un nom de depot invalide, et l'etage 0 conclurait que
+# le fichier de variants ne porte aucun echantillon.
 for i in "$IMG_BCF" "$IMG_PHARMCAT" "$IMG_OPTITYPE" ${IMG_PYPGX:+"$IMG_PYPGX"}; do
   case "$i" in
     /*|./*|../*|*.sif)
@@ -410,9 +410,9 @@ empreinte() {
     "$(head -c 1048576 "$f" | sha256sum | cut -c1-32)"
 }
 # La reference fait partie des entrees : la tranche, la profondeur et tout ce
-# qui en decoule changent avec elle. Son absence de la signature laissait une
-# reprise reutiliser le travail de la veille apres un changement de reference,
-# et un alignement decode avec la mauvaise reference ne leve rien. Les
+# qui en decoule changent avec elle. Hors de la signature, elle laisserait une
+# reprise reutiliser un travail fait avec une autre reference, et un alignement
+# decode avec la mauvaise reference ne leve rien. Les
 # ressources y entrent aussi : une position ajoutee au perimetre change la
 # tranche sans toucher aux entrees. Le seuil d'equilibre allelique n'y
 # figure pas : il n'est pas reglable en ligne de commande, et l'etage de

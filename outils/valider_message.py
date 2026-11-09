@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 """Valide un message de commit contre les conventions de CONTRIBUTING.md.
 
-Appele par le crochet commit-msg, il refuse le commit plutot que de laisser
-passer une faute qu'il faudra reecrire ensuite : les seize premiers commits de
-ce depot ont ete reecrits pour une ligne d'attribution, et six autres pour des
-corps replies a soixante-dix-huit colonnes.
+Appele par le hook commit-msg, il refuse le commit plutot que de laisser
+entrer dans l'historique une faute qu'il faudrait reecrire ensuite.
 
 Les longueurs sont comptees en caracteres et non en octets : un accent en UTF-8
 pese deux octets, et un controle qui compte des octets declare trop longs des

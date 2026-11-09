@@ -167,11 +167,10 @@ def haplotypes(ligne):
     haplotype, et le choix suit l'ordre de la table interne, pas la gravite.
 
     Sur BCHE, un porteur de rs1803274 et rs1799807 sur le meme chromosome
-    ressortait « Reference/rs1803274 » : l'allele atypique — celui de l'apnee
-    prolongee a la succinylcholine — disparaissait du genotype alors qu'il
-    figurait encore, une colonne plus loin, dans l'haplotype. Quatre porteurs
-    sur deux cent quarante-trois etaient ainsi tus, tous dans le meme sens.
-    On lit donc les haplotypes, jamais le genotype tout fait."""
+    ressort « Reference/rs1803274 » dans la colonne Genotype : l'allele
+    atypique — celui de l'apnee prolongee a la succinylcholine — en disparait
+    alors qu'il figure, une colonne plus loin, dans l'haplotype. On lit donc
+    les haplotypes, jamais le genotype tout fait."""
     return [[x.strip() for x in (ligne.get(c) or "").split(";") if x.strip()]
             for c in ("Haplotype1", "Haplotype2")]
 
@@ -182,7 +181,7 @@ def genotype_complet(ligne):
 
     L'ordre est fixe par tri, et non par le rang des colonnes : PyPGx n'attribue
     pas Haplotype1 au meme chromosome d'un genome a l'autre, et le meme porteur
-    sortait « *1/*28 » ici et « *28/*1 » la. Deux genomes identiques doivent
+    sortirait « *1/*28 » ici et « *28/*1 » la. Deux genomes identiques doivent
     rendre la meme chaine, sinon rien n'est comparable — ni entre patients, ni
     d'une version du pipeline a la suivante."""
     h = haplotypes(ligne)
@@ -200,8 +199,8 @@ def genotype_panel(ligne, info):
     rs4846051/... » sur trois genomes sur quatre — exact, illisible, et sans un
     seul element actionnable de plus.
 
-    La restriction n'est pas l'ecrasement que l'on corrige : elle suit le
-    perimetre clinique deja retenu pour tout le produit, elle est la meme pour
+    La restriction n'est pas une perte d'information : elle suit le
+    perimetre clinique retenu pour tout le produit, elle est la meme pour
     tous les genomes, et le nombre d'alleles mis de cote est rendu a cote. Sur
     BCHE elle ne retire rien : les deux positions sont au panel, de classe 1."""
     pan = set(info.get("positions_panel") or [])
@@ -315,9 +314,9 @@ def main():
         dossier, err = lance(pypgx_cmd, gene, a.variants, os.path.join(travail, gene))
         if err:
             # Le typeur n'a pas tourne : une panne de l'installation, pas une
-            # limite de la donnee. Rendue en « non conclusif », elle faisait
+            # limite de la donnee. Rendue en « non conclusif », elle ferait
             # passer un typeur casse pour un genome difficile, en reussite
-            # complete, et MT-RNR1 perdait ses recommandations sans un mot.
+            # complete, et MT-RNR1 perdrait ses recommandations sans un mot.
             ligne.update({"statut": "echec", "motif": "PyPGx : " + err})
             pannes += 1
             resultats.append(ligne)

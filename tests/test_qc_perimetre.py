@@ -3,9 +3,8 @@
 lue, identique a la reference » de « position non sequencee » : ses regles sont
 celles qui empechent un faux genotype de reference de sortir.
 
-Chaque test porte en commentaire le defaut qu'il empeche de revenir ; plusieurs
-viennent d'un audit position par position qui avait releve cent quarante et un
-ecarts, dont de faux CYP4F2*17 dans une region ou trois genes se ressemblent.
+Chaque test porte en commentaire le defaut qu'il empeche, par exemple un faux
+CYP4F2*17 dans une region ou trois genes se ressemblent.
 """
 import gzip
 import io

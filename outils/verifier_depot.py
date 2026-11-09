@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 """Controles d'integrite du depot. Rend 0 si tout passe, 1 sinon.
 
-Chaque controle correspond a une faute deja publiee : un SVG non conforme au
-XML qu'aucune plateforme n'affichait, un nombre de genes qui differait entre le
-perimetre et la documentation, des chemins d'une arborescence de travail restes
-dans la doc, et une ressource generee qui aurait pu dater d'une version
-anterieure du typeur.
+Chaque controle vise une faute qui passerait sinon inapercue : un SVG non
+conforme au XML, qu'aucun navigateur n'affiche ; un nombre de genes ou de tests
+qui differe entre le code et la documentation ; un chemin de poste dans un
+fichier suivi ; une ressource generee qui ne se regenere plus a l'identique.
 
 Usage : python outils/verifier_depot.py [--regenerer]
 """
@@ -198,10 +197,9 @@ def controle_ressources(regenerer):
 def controle_compilation():
     """Tout fichier Python du depot doit compiler.
 
-    Un script qui n'est pas importable — il lit ses arguments a l'import —
-    echappe aux tests : une faute de syntaxe y est passee inapercue alors que
-    cent cinquante-neuf cas etaient au vert. La compilation ne depend pas de
-    l'importabilite."""
+    Un script qui lit ses arguments a l'import n'est pas importable par un
+    test : une faute de syntaxe y passerait sous une suite au vert. La
+    compilation, elle, ne depend pas de l'importabilite."""
     print("\nCompilation des fichiers Python")
     mauvais = []
     for rel in suivis():
