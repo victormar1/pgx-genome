@@ -487,6 +487,14 @@ elif [ "$NB_VCF" != "1" ]; then
   dire "0. recevabilite : ECHEC, le fichier de variants porte $NB_VCF echantillons"
   etat recevabilite ECHEC $(( $(date +%s)-t0 )) "$NB_VCF echantillons dans le VCF"
   RECEVABLE=0
+elif [ "$(BCF view -h "$D_VCF/$(basename "$VCF")" 2>>"$JOURNAL" | grep -c '^##FORMAT=<ID=AD,')" = 0 ]; then
+  # Sans lectures par allele, l'equilibre allelique de chaque heterozygote et le
+  # critere de melange ne se mesurent pas : le controle qualite les sauterait.
+  # grep -c lit tout l'en-tete : sous pipefail, grep -q fermerait le tuyau, et
+  # bcftools, tue par SIGPIPE, ferait refuser un VCF conforme.
+  dire "0. recevabilite : ECHEC, le fichier de variants ne declare pas AD (lectures par allele)"
+  etat recevabilite ECHEC $(( $(date +%s)-t0 )) "VCF sans AD"
+  RECEVABLE=0
 elif [ -n "$SM_CRAM" ] && [ "$SM_CRAM" != "$NOMS_VCF" ] && [ "$SM_CRAM" != "$ECH" ] && [ "$NOMS_VCF" != "$ECH" ]; then
   dire "0. recevabilite : ECHEC, identites divergentes (VCF $NOMS_VCF, alignement $SM_CRAM, demande $ECH)"
   etat recevabilite ECHEC $(( $(date +%s)-t0 )) "VCF=$NOMS_VCF alignement=$SM_CRAM demande=$ECH"

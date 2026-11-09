@@ -120,7 +120,7 @@ sous Apptainer rejoue cette qualification sous ce moteur.
 | Entrée | Format | Contrainte |
 |---|---|---|
 | Alignement | CRAM ou BAM indexé | GRCh38, le même que celui du rendu diagnostique |
-| Variants | VCF d'un seul échantillon | GRCh38, avec `GT`, `GQ` et `DP` ; couvrant le génome entier, contig mitochondrial compris |
+| Variants | VCF d'un seul échantillon | GRCh38, avec `GT`, `GQ` et `AD` ; couvrant le génome entier, contig mitochondrial compris |
 | Référence | FASTA indexé | celle qui a servi à l'alignement, obligatoire pour un CRAM |
 
 Une région absente du fichier de variants rend ses gènes non conclusifs, jamais
@@ -129,6 +129,7 @@ Une région absente du fichier de variants rend ses gènes non conclusifs, jamai
 Le module **refuse** à l'entrée, sans lancer aucun étage :
 
 - un fichier de variants portant plus d'un échantillon ;
+- un fichier de variants qui ne déclare pas `AD`, les lectures par allèle ;
 - un identifiant demandé qui ne concorde ni avec le nom porté par le fichier de
   variants, ni avec le champ `SM` de l'alignement ;
 - un alignement tronqué, c'est-à-dire dont le marqueur de fin manque ;
@@ -155,6 +156,11 @@ ou illisible est **écartée**, pas acceptée : le module préfère déclarer qu
 pas mesuré plutôt que de laisser passer une mesure qu'il ne peut pas juger. Sans
 `GQ` nulle part, le périmètre se réduit aux positions identiques à la référence,
 et le compte rendu le dit.
+
+**Le champ `AD` non plus.** Sans lectures par allèle, ni l'équilibre allélique
+d'un hétérozygote ni la part d'hétérozygotes déséquilibrés ne se mesurent : le
+contrôle qualité les sauterait sans le dire. Un fichier de variants qui ne
+déclare pas `AD` est refusé à l'entrée.
 
 **Un gVCF est accepté**, ses blocs de référence ignorés : le module va chercher
 la profondeur dans l'alignement, ce qui est une mesure directe plutôt qu'une
@@ -332,7 +338,7 @@ Neuf étages requis, plus un optionnel, le typage PyPGx (4b), activé par
 `PGX_IMG_PYPGX` ou `PGX_PYPGX`. Non activé, il est ignoré et ne pèse pas sur
 `reussite_complete` ; activé, son échec compte comme celui d'un autre étage.
 
-**0. Recevabilité.** Les cinq contrôles de la section 2. Aucun étage ne démarre si
+**0. Recevabilité.** Les six contrôles de la section 2. Aucun étage ne démarre si
 l'un d'eux échoue.
 
 **1. Filtre.** Restreint le fichier de variants aux régions qui portent les 1 226

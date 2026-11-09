@@ -8,7 +8,7 @@ du domaine.
 | Terme | Sens | En anglais |
 |---|---|---|
 | Étage | étape du pipeline, lançable seule par `--etage` ; neuf sont requis, le 4b est optionnel | stage |
-| Recevabilité (`recevabilite`) | contrôle des entrées avant tout calcul : VCF mono-échantillon, identité concordante, CRAM non tronqué, référence conforme ; au sens de la recevabilité d'un échantillon en biologie médicale | input validation |
+| Recevabilité (`recevabilite`) | contrôle des entrées avant tout calcul : VCF mono-échantillon déclarant `AD`, identité concordante, CRAM non tronqué, référence conforme ; au sens de la recevabilité d'un échantillon en biologie médicale | input validation |
 | Tranche (`tranche`, `tranche.bam`) | extraction de l'alignement restreinte aux régions du panel et au complexe HLA, en une seule lecture du CRAM | targeted extraction, sub-BAM |
 | Contrôle qualité (`qc`) | mesure profondeur et qualité position par position, écarte ce qui ne passe pas les seuils et établit le périmètre | QC |
 | Typage complémentaire (`pypgx`, étage 4b) | typage par PyPGx de MT-RNR1, BCHE, MTHFR et POR ; nom de la section correspondante du compte rendu | PyPGx typing |

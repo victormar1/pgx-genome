@@ -152,7 +152,7 @@ déclare les cœurs et la mémoire mesurés. Les options complètes sont dans
 | Entrée | Contrainte |
 |---|---|
 | Alignement | CRAM ou BAM indexé, GRCh38, le même que celui du rendu diagnostique |
-| Variants | VCF d'un seul échantillon, GRCh38, avec `GT`, `GQ`, `DP` |
+| Variants | VCF d'un seul échantillon, GRCh38, avec `GT`, `GQ` et `AD` |
 | Référence | FASTA indexé, celle de l'alignement, obligatoire pour un CRAM |
 
 | Code | Signification |
@@ -178,7 +178,7 @@ nécessaire.
 bin/            les neuf scripts du pipeline
 ressources/     les ressources figées, lues à l'exécution (dont les traductions CPIC)
 outils/         les générateurs de ressources, les contrôles, les hooks
-tests/          257 cas, vérifiés par mutation testing
+tests/          259 cas, vérifiés par mutation testing
 doc/            mode d'emploi, flux de fichiers, dossier de validation, glossaire, figures
 env/            dépendances Python, digests des conteneurs, image PyPGx
 exemples/       un manifeste type, une recette Nextflow

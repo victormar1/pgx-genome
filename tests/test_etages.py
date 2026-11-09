@@ -138,6 +138,23 @@ class Garanties(unittest.TestCase):
         self.assertIn('--identite "$IDENTITE"', bloc)
         self.assertIn('--contexte "$CONTEXTE"', bloc)
 
+    def test_un_vcf_sans_ad_est_refuse_a_l_entree(self):
+        # Sans lectures par allele, l'equilibre allelique de chaque heterozygote
+        # et le critere de melange ne se mesureraient pas : le controle qualite
+        # les sauterait sans le dire.
+        i = self.s.index("NOMS_VCF=$(BCF query -l")
+        bloc = self.s[i:self.s.index("\nfi\n", i)]
+        j = bloc.find("grep -c '^##FORMAT=<ID=AD,'")
+        self.assertGreater(j, 0, "la recevabilite ne verifie plus AD")
+        self.assertIn("RECEVABLE=0", bloc[j:bloc.index("\nel", j)])
+
+    def test_aucun_grep_q_derriere_un_tuyau(self):
+        # Le script tourne sous pipefail : grep -q ferme le tuyau des la premiere
+        # correspondance, la commande en amont meurt de SIGPIPE, et le tuyau
+        # entier passe pour un echec. Un VCF conforme serait ainsi refuse.
+        self.assertIn("set -uo pipefail", self.s)
+        self.assertNotRegex(self.s, r"\|\s*grep -q")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
