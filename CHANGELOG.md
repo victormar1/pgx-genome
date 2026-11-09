@@ -8,6 +8,23 @@ incrémente au moins le rang mineur et déclenche la revalidation décrite dans
 La version du module figure dans `provenance.json` et au pied du compte rendu.
 Elle ne vaut aucune déclaration de conformité.
 
+## 0.5.3
+
+**Vocabulaire du domaine.** La documentation emploie les termes du métier —
+variant caller, outside calls, critère d'acceptation, mutation testing, digest —
+et `doc/GLOSSAIRE.md` définit ceux du module. Les commentaires de code disent la
+règle et ce qu'elle empêche, sans récit d'incident.
+
+**Intégration continue.** GitHub Actions rejoue à chaque push les tests, les
+contrôles du dépôt et la validation des messages de tout l'historique, sous
+Python 3.8 et 3.13.
+
+**Assistance par IA déclarée sous une forme unique.** Le validateur impose un
+trailer sans nom de modèle ; `AGENTS.md` porte les consignes des assistants et
+`CLAUDE.md` l'importe.
+
+Aucun résultat rendu ne change. 257 cas de test ; 85 mutants, 85 tués.
+
 ## 0.5.2
 
 **Le dénominateur du compte rendu se lit dans le périmètre.** Le document
