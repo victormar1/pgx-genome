@@ -16,19 +16,19 @@
   <circle cx="408.8" cy="138.0" r="5.5" fill="#1B9E77"/>
   <text x="419.1" y="126.0" font-size="11" fill="#5F726B" text-anchor="middle">24 à 28 ×</text>
   <text x="624" y="143.0" font-size="12" font-weight="600" fill="#1B9E77">1 faux appel</text>
-  <text x="140" y="157.0" font-size="10.5" fill="#5F726B" text-anchor="end">second champ HLA-B, sans consequence</text>
+  <text x="140" y="157.0" font-size="10.5" fill="#5F726B" text-anchor="end">second champ HLA-B, sans conséquence</text>
   <text x="140" y="185.0" font-size="12.5" font-weight="700" fill="#17332B" text-anchor="end">50 %</text>
   <line x1="336.9" y1="180.0" x2="367.7" y2="180.0" stroke="#1B9E77" stroke-width="7" stroke-linecap="round" opacity="0.30"/>
   <circle cx="336.9" cy="180.0" r="5.5" fill="#1B9E77"/>
   <text x="352.3" y="168.0" font-size="11" fill="#5F726B" text-anchor="middle">18 à 21 ×</text>
   <text x="624" y="185.0" font-size="12" font-weight="600" fill="#1B9E77">1 faux appel</text>
-  <text x="140" y="199.0" font-size="10.5" fill="#5F726B" text-anchor="end">le meme</text>
+  <text x="140" y="199.0" font-size="10.5" fill="#5F726B" text-anchor="end">le même</text>
   <text x="140" y="227.0" font-size="12.5" font-weight="700" fill="#17332B" text-anchor="end">33 %</text>
   <line x1="265.0" y1="222.0" x2="285.5" y2="222.0" stroke="#B5563C" stroke-width="7" stroke-linecap="round" opacity="0.30"/>
   <circle cx="275.3" cy="222.0" r="5.5" fill="#B5563C"/>
   <text x="275.3" y="210.0" font-size="11" fill="#5F726B" text-anchor="middle">11 à 13 ×</text>
   <text x="624" y="227.0" font-size="12" font-weight="700" fill="#B5563C">9 faux appels</text>
-  <text x="140" y="241.0" font-size="10.5" fill="#5F726B" text-anchor="end">dont une dose de tacrolimus doublee</text>
+  <text x="140" y="241.0" font-size="10.5" fill="#5F726B" text-anchor="end">dont une dose de tacrolimus doublée</text>
   <line x1="152.0" y1="248" x2="604.0" y2="248" stroke="#E2E6E3"/>
   <line x1="152.0" y1="248" x2="152.0" y2="253" stroke="#E2E6E3"/>
   <text x="152.0" y="266" font-size="10.5" fill="#5F726B" text-anchor="middle">0</text>
