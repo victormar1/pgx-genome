@@ -34,6 +34,8 @@ du domaine.
 | Terme | Sens | En anglais |
 |---|---|---|
 | Benchmark | génomes publics du 1000 Genomes confrontés à GeT-RM, au typage HLA Sanger et à une puce de génotypage (`bench/`) | benchmark |
+| Benchmark orthogonal | génomes du HPRC hors cohorte de réglage, confrontés à leurs assemblages en lecture longue (`bench/orthogonale/`) | orthogonal benchmark |
+| Bras | une exécution du benchmark orthogonal sur les mêmes alignements, avec le VCF d'un variant caller donné | arm |
 | Génome de qualification | génome public livré avec son rapport de référence ; une installation est qualifiée quand elle le reproduit sans écart | installation qualification |
 | Variant caller | outil qui produit le VCF en amont du module, par exemple GATK ou bcftools | variant caller |
 | Downsampling | réduction aléatoire des lectures d'un alignement, pour mesurer le comportement du module à couverture réduite | downsampling |

@@ -1,0 +1,46 @@
+# Methode de verite du benchmark orthogonal.
+# Verification, depuis ce dossier : sha256sum -c methode.sha256
+#
+# ---- scripts et ressources
+7c1c4f3933664f897162e4bff73a222d56cfd0089d7a36d8b29c175de062a52d *./bilan_construction.py
+07a485f6fcec27d61e48405485eb8be5b6baacb21014f931a2b7f8e114ec187e *./chemins.py
+023fa26e66fffce49d96a26f0e701e129687578f73c8942cbc8918ead1cd0dfd *./comparer_phenotypes.py
+e176c7935595519541ce9aa370ab5f5ecf078fd846511a29919f62222d5e6bb8 *./confronter.py
+fe60591da87695828a9540d7f20280fbe439c3fa2e892c7cf2524e62285ba498 *./construire_verite.sh
+bde680d07a1d2b19c7aacb140f90ba05ca2684056c2347313761fb9612e2fa1e *./extraire_haplotype.py
+2f020614d4f4775e0aa72446674da7142cba26a8b945bb59d36561a673d819b9 *./extraire_hla.py
+4ff04d12703bc3a22ad9ed73bfd258a164eb99b1c6932ecb8936513b48de87c3 *./installer.sh
+62babcb86c431ddcd0a149af235aadf6b7b73740a7bd3c922c44566804dac270 *./lancer_extraction.sh
+f283121a2688bcfbd6f88d367c65e0abb2877d3a27edb318760970730f7385e9 *./manifeste.py
+3a33412b8f8ab9db33a2db9bf45c80444e6f976d98ef241fb2cf4df3f601dc00 *./mesurer.py
+52b49332650574c45dcd9d9e1086dc649f720a1d52091cd6911dd09aae5adcf3 *./pharmcat_verite.sh
+4618e89d152521ccffcc190ceafd64ac67c7bde9231d43acc0cd7e88317981fc *./puce_assemblage.py
+c42e8fb069c6ef3fadd6bee0cb4e20291304ea435ac0f0ac77b69b826962f8fe *./recuperer_cram.sh
+00ddcf9ce523cb543a347a78fa5b2e6c6c3deaf85a60f0445432bd252c4492dd *./ressources/loci.bed
+51ba06314e6a230af6164061e74b72cc4b23c9fb2a785c83d3ab2338a53bab8c *./typer_haplotypes.sh
+a63ef684662644da16a132a6ae5bf31400d34af833fd3d710d788871a82627b1 *./vcf_dragen.sh
+de3ac5a3b25b42318734cb70e0008cc7a5777e90b0c31099ce26c1a8fdf2ae53 *./vcf_verite.py
+902fdb1a024ff9b0b35f5f49c87882f0913f148606d286f5ba4c5fc872aa5f91 *./verite_cyp2d6.py
+b0fef6a56262dbf8ea62a9b607d0d86b2a42e417601fd534b481cbf4358e1171 *../verites/activite_cyp2d6.json
+3dab1c61776534626f09d6594c02034c60c5c735f70908e41b4ff36d03dd28fa *../confronter_puce.py
+b41bb9181aab27b16bfa16a01f554896a7ea6c82fe2181e4aa8c35a751c015cb *../preparer_banc.sh
+ba8e177769d72a064def913777ddc2eaf5376a09bfad579f5d1472a0ec160f63 *../comparer.py
+552c940e3fd115f9ed3a80e6bf31b06ab55d4f3237a264dd3aa99dca9d41d6f2 *../../ressources/pharmcat_positions.bed
+5b7ddf93631f0f96536dce1d03c44011a1ba0af574485b3bd0194b0847f65eb5 *../../ressources/rnpgx_complement.bed
+3131583f8eb4b9edb3cb67fb141c734fc339f89d93fd42ff6745e3acb1413402 *../../ressources/pypgx_regions.bed
+63f49b9004b6a5ca921deebe8ec59f8e45f6990543e07b7890c0d6201f5e69fc *../../ressources/pharmcat_positions.vcf
+3b1de62ff5c8a21653968d950cc0efa3b3f2bb6a787adc66a6c774db42a30c72 *../../ressources/rnpgx_complement.vcf
+c847ba84686849c60f34d7481fbfc1ddda2c1725fc9c98785d4d23bfbcf781f2 *../../ressources/perimetre_rnpgx.json
+#
+# ---- outils tiers, versions exactes
+# deCYPher 54a0f9d0150518d7a50c6fdd553dd5b6e3dff257
+# Immuannot 31362c370123f6706a04ffdda6a3bf0c108328e0, donnees Data-2024Feb02
+# minimap2 2.24-r1122 ; k8 V8 3.16.4 ; pysam 0.22.1 ; samtools compile localement
+# pharmcat pgkb/pharmcat@sha256:bc498d55c33094002bd7e14221a6b3fcd7243a587675369bc1a5ecf6ac0e5319 (3.4.0)
+# assemblages HPRC R2 v1.0.1 ; alignements winnowmap GRCh38_no_alt v1.1
+# puce Illumina Omni 2.5, 1000 Genomes, ALL.chip.omni_broad_sanger_combined.20140818
+#
+# ---- pilotes des deux bras
+ca7467bb650b579e9dd34659738499aa3d36d15185e9dd1d75d60fea4d7796f3 *./lancer_bras.sh
+780f87ed3d88bb8a46b5485cdac82c5f439d538f2f10fcb7057fb960bccbc6f3 *./recuperer_cram_plages.sh
+2ac11af8bacaa9a07d7ddddd500e99f712be4d8fcd08f74b87604598a533cae0 *./lancer_bras_recouvert.sh
