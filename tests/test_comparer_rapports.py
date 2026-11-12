@@ -191,6 +191,77 @@ class Dossiers(unittest.TestCase):
         self.assertEqual(cond[0]["texte_change"], ["clopidogrel"])
 
 
+class TypageComplementaire(unittest.TestCase):
+    """Les quatre genes du typage complementaire ne passent pas par le rapport
+    de l'interpreteur : sans cette lecture, un changement qui les touche sort
+    « 0 ecart » de la non-regression."""
+
+    # Les memes dossiers que plus haut, sans rejouer leurs tests.
+    setUp, tearDown = Dossiers.setUp, Dossiers.tearDown
+    ecris, perimetre = Dossiers.ecris, Dossiers.perimetre
+
+    ENTETE = "gene\tclasse_rnpgx\tstatut\tgenotype\tmotif\n"
+
+    def typage(self, cote, ech, lignes):
+        self.ecris(cote, ech, rapport({"CYP2C19": ("*1/*1", "Normal")}))
+        d = os.path.join(self.racine, cote, ech, "travail")
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "pypgx.tsv"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(self.ENTETE)
+            for gene, statut, genotype in lignes:
+                fh.write("%s\t2\t%s\t%s\t\n" % (gene, statut, genotype))
+
+    def compare_typage(self):
+        return c.compare_typage(os.path.join(self.racine, "avant"),
+                                os.path.join(self.racine, "apres"), ["E1"])
+
+    def test_deux_typages_identiques(self):
+        lignes = [("MTHFR", "rendu", "Reference/rs1801133"), ("POR", "rendu", "*1/*28")]
+        self.typage("avant", "E1", lignes)
+        self.typage("apres", "E1", lignes)
+        self.assertEqual(self.compare_typage(), (2, [], []))
+
+    def test_un_gene_devenu_non_conclusif_est_un_ecart(self):
+        self.typage("avant", "E1", [("MTHFR", "rendu", "Reference/rs1801133")])
+        self.typage("apres", "E1", [("MTHFR", "non conclusif", "")])
+        n, ecarts, _ = self.compare_typage()
+        self.assertEqual(n, 1)
+        self.assertEqual([(x["gene"], x["avant"], x["apres"]) for x in ecarts],
+                         [("MTHFR", "rendu Reference/rs1801133", "non conclusif")])
+
+    def test_un_genotype_qui_change_est_un_ecart(self):
+        self.typage("avant", "E1", [("POR", "rendu", "*1/*28")])
+        self.typage("apres", "E1", [("POR", "rendu", "*28/*28")])
+        self.assertEqual(len(self.compare_typage()[1]), 1)
+
+    def test_un_gene_qui_disparait_du_typage_est_un_ecart(self):
+        self.typage("avant", "E1", [("POR", "rendu", "*1/*28"), ("BCHE", "rendu", "Reference/Reference")])
+        self.typage("apres", "E1", [("POR", "rendu", "*1/*28")])
+        n, ecarts, _ = self.compare_typage()
+        self.assertEqual((n, ecarts[0]["gene"], ecarts[0]["apres"]), (2, "BCHE", "absent"))
+
+    def test_un_typage_present_d_un_seul_cote_est_dit_et_non_compare(self):
+        # L'etage est optionnel : une installation sans typeur n'est pas en
+        # ecart, mais la comparaison ne doit pas pretendre l'avoir faite.
+        self.typage("avant", "E1", [("POR", "rendu", "*1/*28")])
+        self.ecris("apres", "E1", rapport({"CYP2C19": ("*1/*1", "Normal")}))
+        self.assertEqual(self.compare_typage(), (0, [], ["E1"]))
+
+    def test_la_porte_echoue_sur_un_ecart_de_typage(self):
+        self.typage("avant", "E1", [("MTHFR", "rendu", "Reference/rs1801133")])
+        self.typage("apres", "E1", [("MTHFR", "non conclusif", "")])
+        argv = ["comparer_rapports.py",
+                "--avant", os.path.join(self.racine, "avant"),
+                "--apres", os.path.join(self.racine, "apres"),
+                "--perimetre", self.perimetre(("CYP2C19",))]
+        with mock.patch.object(sys, "argv", argv), \
+                mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            code = c.main()
+        self.assertEqual(code, 1)
+        self.assertIn("typage complementaire : 1 couples compares, 1 ecarts", out.getvalue())
+        self.assertIn("E1 MTHFR : rendu Reference/rs1801133 -> non conclusif", out.getvalue())
+
+
 class Inclus(unittest.TestCase):
     def test_appel_unique_dans_l_ambiguite(self):
         self.assertTrue(c.inclus("*1/*2;*1/*3", "*1/*2"))

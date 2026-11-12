@@ -11,6 +11,7 @@ quand elle rend le même rapport.
 | Variants | `HG00699.vcf.gz`, appels de la plateforme NYGC (GATK) sur les régions de l'interpréteur, complétés par des appels bcftools sur les régions du typage PyPGx (`doc/VALIDATION.md`, § 3.3), restreints aux régions utiles et au contig mitochondrial ; rend le même rapport que le fichier complet |
 | Référence | `GRCh38_full_analysis_set_plus_decoy_hla.fa`, celle de l'alignement |
 | Rapport de référence | `HG00699/sortie/HG00699.report.json`, produit par ce module avec les images de `env/conteneurs.txt` |
+| Typage PyPGx de référence | `HG00699/travail/pypgx.tsv`, comparé quand l'installation active l'étage 4b |
 
 ```bash
 bin/pgx_genome.sh --cram /chemin/HG00699.final.cram --vcf bench/qualification/HG00699.vcf.gz \

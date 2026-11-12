@@ -1,0 +1,5 @@
+gene	classe_rnpgx	statut	genotype	genotype_complet	genotype_pypgx	alleles_hors_panel	phenotype	allele_externe	heteroplasmie	fraction	positions_lues	positions_attendues	motif
+BCHE	1	rendu	Reference/Reference	Reference/Reference	Reference/Reference	0			False		2	2	
+MT-RNR1	1	rendu	Reference/Reference	Reference/Reference	Reference/Reference	0	Normal Risk of Aminoglycoside-Induced Hearing Loss	Reference	False		23	23	
+MTHFR	2	rendu	Reference/rs1801133	rs1801133+rs4846051/rs4846051	rs1801133/rs4846051	2			False		8	8	
+POR	2	rendu	*1/*28	*1/*28	*1/*28	0			False		46	46	

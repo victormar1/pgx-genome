@@ -5,6 +5,10 @@ Le protocole de revalidation demande de rejouer des genomes apres un changement
 et de verifier que rien n'a bouge. Sans outil, cette verification se fait a
 l'oeil sur des fichiers de plusieurs milliers de lignes, et un ecart s'y perd.
 
+Le typage complementaire (POR, BCHE, MTHFR, MT-RNR1) ne passe pas par le rapport
+de l'interpreteur : il est compare a part, dans travail/pypgx.tsv, quand les
+deux executions l'ont produit.
+
 Trois niveaux, du nom vers la conduite a tenir, parce qu'ils ne se valent pas :
 
   - le diplotype : un nom peut changer sans consequence, par exemple quand une
@@ -21,6 +25,7 @@ module. Le code de retour vaut 0 si rien n'a change, 1 sinon : l'outil peut
 servir de porte.
 """
 import argparse
+import csv
 import json
 import os
 import sys
@@ -128,6 +133,38 @@ def compare(avant, apres, perimetre):
     return communs, genes, ecarts, conduites_ecarts, sans_rapport
 
 
+def typage(dossier, ech):
+    """Le typage complementaire d'un genome, {gene: "statut genotype"}, ou None
+    si l'etage n'a rien ecrit."""
+    p = os.path.join(dossier, ech, "travail", "pypgx.tsv")
+    if not os.path.isfile(p):
+        return None
+    with open(p, encoding="utf-8") as fh:
+        return {r["gene"]: ("%s %s" % (r.get("statut", ""), r.get("genotype", ""))).strip()
+                for r in csv.DictReader(fh, delimiter="\t")}
+
+
+def compare_typage(avant, apres, communs):
+    """(couples compares, ecarts, genomes types d'un seul cote).
+
+    L'etage est optionnel : un genome type d'un seul cote n'est pas un ecart,
+    mais il est nomme, pour que la comparaison ne passe pas pour faite."""
+    n, ecarts, d_un_cote = 0, [], []
+    for e in communs:
+        a, b = typage(avant, e), typage(apres, e)
+        if a is None and b is None:
+            continue
+        if a is None or b is None:
+            d_un_cote.append(e)
+            continue
+        for g in sorted(set(a) | set(b)):
+            n += 1
+            if a.get(g) != b.get(g):
+                ecarts.append({"echantillon": e, "gene": g,
+                               "avant": a.get(g, "absent"), "apres": b.get(g, "absent")})
+    return n, ecarts, d_un_cote
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("--avant", required=True)
@@ -144,6 +181,7 @@ def main():
 
     communs, genes, ecarts, cond, sans = compare(a.avant, a.apres, perimetre)
     leves = rendus_sans_reference(a.avant, a.apres)
+    n_typ, ecarts_typ, typ_un_cote = compare_typage(a.avant, a.apres, communs)
     if not communs and not sans and not leves:
         print("aucun echantillon commun aux deux dossiers", file=sys.stderr)
         return 2
@@ -158,6 +196,12 @@ def main():
           % (len(sans), " (" + ", ".join(sans) + ")" if sans else ""))
     print("echantillons rendus sans rapport de reference : %d%s"
           % (len(leves), " (" + ", ".join(leves) + ")" if leves else ""))
+    print("typage complementaire : %d couples compares, %d ecarts%s"
+          % (n_typ, len(ecarts_typ),
+             " ; produit d'un seul cote, non compare : " + ", ".join(typ_un_cote)
+             if typ_un_cote else ""))
+    for x in ecarts_typ:
+        print("  %s %s : %s -> %s" % (x["echantillon"], x["gene"], x["avant"], x["apres"]))
     for x in ecarts:
         print("  %s %s : %s -> %s%s"
               % (x["echantillon"], x["gene"], x["avant"] or "-",
@@ -173,9 +217,11 @@ def main():
             json.dump({"echantillons": communs, "couples": genes,
                        "ecarts": ecarts, "recommandations": cond,
                        "sans_rapport": sans,
-                       "rendus_sans_reference": leves}, fh,
+                       "rendus_sans_reference": leves,
+                       "typage_complementaire": {"couples": n_typ, "ecarts": ecarts_typ,
+                                                 "d_un_seul_cote": typ_un_cote}}, fh,
                       ensure_ascii=False, indent=1)
-    return 1 if (ecarts or cond or sans or leves) else 0
+    return 1 if (ecarts or cond or sans or leves or ecarts_typ) else 0
 
 
 if __name__ == "__main__":
