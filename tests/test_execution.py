@@ -36,6 +36,9 @@ def executable():
     return ""
 
 
+TABLES = ["HG00699.annotations.tsv", "HG00699.genotypes.tsv"]
+
+
 @unittest.skipIf(executable(), executable())
 class Execution(unittest.TestCase):
     def setUp(self):
@@ -101,7 +104,8 @@ class Execution(unittest.TestCase):
         t = self.trace()
         self.assertTrue(t["reussite_complete"])
         self.assertEqual(t["etages_en_echec"], [])
-        self.assertEqual(self.livrables(), ["CR_HG00699.pdf", "HG00699.report.json", "provenance.json"])
+        self.assertEqual(self.livrables(), ["CR_HG00699.pdf"] + TABLES + [
+            "HG00699.report.json", "HG00699.variants.tsv", "provenance.json"])
         with open(os.path.join(self.sortie, "travail", "appels_externes.tsv"),
                   encoding="utf-8") as fh:
             genes = [l.split("\t")[0] for l in fh if l.strip()]
@@ -258,6 +262,27 @@ class Execution(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn("CR_HG00699.pdf", self.livrables())
 
+    def test_sans_les_tables_le_compte_rendu_ne_sort_pas_seul(self):
+        # Le document annonce des resultats « disponibles au format
+        # structure » : il ne sort pas sans eux, et ceux d'avant ne restent pas.
+        self.assertEqual(self.lancer().returncode, 0)
+        os.remove(os.path.join(self.sortie, "travail", "qc_positions.tsv"))
+        r = self.lancer("--etage", "rendu")
+        self.assertNotEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(self.livrables(), ["HG00699.report.json", "provenance.json"])
+        with open(os.path.join(self.sortie, "travail", "etats.tsv"),
+                  encoding="utf-8") as fh:
+            self.assertIn("rendu	ECHEC", fh.read().split("rendu	OK")[-1])
+
+    def test_un_rendu_qui_echoue_ne_laisse_pas_ceux_d_avant(self):
+        self.assertEqual(self.lancer().returncode, 0)
+        ident = os.path.join(self.d, "identite.json")
+        with open(ident, "w", encoding="utf-8") as fh:
+            fh.write("{}")
+        r = self.lancer("--etage", "rendu", "--identite", ident)
+        self.assertNotEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(self.livrables(), ["HG00699.report.json", "provenance.json"])
+
     def test_aucun_appel_externe_n_est_pas_un_echec_des_appels(self):
         # Cyrius ne conclut pas et le typage HLA echoue : il n'y a aucune ligne
         # a transmettre, et c'est le typage HLA qui a failli, pas cet etage.
@@ -342,7 +367,8 @@ class Execution(unittest.TestCase):
             fh.write("rendu\tOK\tillisible\tligne abimee\n")
         r = self.lancer("--etage", "provenance")
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
-        self.assertEqual(self.livrables(), ["CR_HG00699.pdf", "HG00699.report.json"])
+        self.assertEqual(self.livrables(), ["CR_HG00699.pdf"] + TABLES + [
+            "HG00699.report.json", "HG00699.variants.tsv"])
 
     def test_un_etage_seul_refuse_d_autres_entrees(self):
         self.lancer()

@@ -918,6 +918,10 @@ fi
 # --------------------------------------------------------------- 7. rendu
 if a_faire rendu; then
 entamer rendu
+# Le document et les tables sortent ensemble ou pas du tout : ceux d'un rendu
+# anterieur ne survivent pas a un rendu qui echoue.
+LIVRES="CR_$ECH.pdf $ECH.genotypes.tsv $ECH.variants.tsv $ECH.annotations.tsv"
+for f in $LIVRES; do rm -f "$SORTIE/sortie/$f"; done
 if [ -s "$RAP" ] && [ -s "$T/perimetre.json" ]; then
   # L'identite, si elle a ete fournie, passe par un chemin de fichier et non
   # par sa valeur : un nom en argument serait lisible dans la table des
@@ -928,7 +932,15 @@ if [ -s "$RAP" ] && [ -s "$T/perimetre.json" ]; then
        --couverture-min "$COUV_MIN" \
        ${IDENTITE:+--identite "$IDENTITE"} ${CONTEXTE:+--contexte "$CONTEXTE"} >>"$JOURNAL" 2>&1 \
      && [ -s "$SORTIE/sortie/CR_$ECH.pdf" ]; then
-    clore OK "$SORTIE/sortie/CR_$ECH.pdf" "CR_$ECH.pdf"
+    # Les tables lisent la meme logique que le document : genotype, variants
+    # et annotation, separes, pour qui reprend les resultats sans le PDF.
+    if python3 "$RACINE/bin/resultats.py" --rapport "$RAP" --perimetre "$T/perimetre.json" \
+         --sortie "$SORTIE/sortie" --echantillon "$ECH" >>"$JOURNAL" 2>&1; then
+      clore OK "$SORTIE/sortie/CR_$ECH.pdf" "CR_$ECH.pdf"
+    else
+      for f in $LIVRES; do rm -f "$SORTIE/sortie/$f"; done
+      clore ECHEC "ECHEC" "resultats.py"
+    fi
   else
     clore ECHEC "ECHEC" "compte_rendu.py"
   fi
