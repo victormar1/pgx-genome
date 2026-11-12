@@ -12,7 +12,10 @@ resultat normal :
   - une qualite de genotype absente ou illisible ecarte la position, elle ne la
     laisse pas passer ;
   - un genotype partiellement appele est traite comme non appele ;
-  - plusieurs enregistrements a la meme position sont tous conserves ;
+  - plusieurs enregistrements a la meme position sont tous juges, et un seul
+    ecarte suffit a ecarter la position ;
+  - la profondeur est celle de l alignement, jamais celle que declare le
+    fichier de variants ;
   - l etage echoue si le fichier porte plus d un echantillon ;
   - un site rejete par le filtrage de l appelant est ecarte, sauf demande
     explicite par --ignorer-filtre ;
@@ -63,6 +66,9 @@ def lire_positions(chemin, complement=False):
 
 
 def lire_profondeur(chemin):
+    """samtools depth -a : contig, position, profondeur. Une profondeur
+    illisible leve une erreur : la sauter ferait d une position mesuree une
+    position inconnue, et l etage doit echouer plutot que le taire."""
     prof = {}
     if not chemin or not os.path.exists(chemin):
         return prof
@@ -155,6 +161,20 @@ def hors_domaine(meta, minimum):
     return c is not None and c < minimum
 
 
+def verdict(meta):
+    """Ce que l orchestration relit de l etage, en neuf champs jamais vides :
+    couverture retenue, hors domaine, part de melange, melange suspect,
+    positions retenues, positions visees, genes complets, genes, positions
+    sans qualite. Un champ vide decalerait les suivants a la lecture."""
+    genes = meta.get("genes", {})
+    champs = [couverture_retenue(meta), int(bool(meta.get("couverture_hors_domaine"))),
+              meta.get("melange_part"), int(bool(meta.get("melange_suspect"))),
+              meta["positions_retenues"], meta["positions_visees"],
+              sum(1 for v in genes.values() if v["statut"] == "complet"), len(genes),
+              meta.get("positions_sans_GQ", 0)]
+    return ["-" if c is None else str(c) for c in champs]
+
+
 def ouvrir(chemin):
     return gzip.open(chemin, "rt", encoding="utf-8") if chemin.endswith(".gz") \
         else open(chemin, encoding="utf-8")
@@ -241,6 +261,81 @@ def appele(gt):
     return "." not in gt.replace("|", "/").split("/")
 
 
+# Les statuts qui valent mesure : la position compte comme retenue.
+RETENUS = ("mesuree", "reference, lue", "couverture seule")
+
+
+def choisir(groupe):
+    """L enregistrement le plus informatif d une position : celui qui porte un
+    genotype appele, sinon le premier."""
+    for c in groupe:
+        if appele(genotype(c)[0]):
+            return c
+    return groupe[0] if groupe else None
+
+
+def classer(info, champs, lu, gq_min, prof_min, ignorer_filtre=False, equilibre=True):
+    """Le statut d un enregistrement, ou d une position sans enregistrement.
+
+    `lu` est la profondeur de l alignement, None si elle n a pas ete mesuree :
+    celle que declare le fichier de variants ne la remplace pas. `equilibre`
+    se leve pour un gene haploide, ou une fraction allelique est une
+    heteroplasmie et non un defaut.
+    """
+    gt, gq, dp = genotype(champs) if champs else (None, None, None)
+    if info.get("type") == "vntr" or gt is None:
+        # Un VNTR ne se genotype pas en lectures courtes : on mesure sa
+        # couverture et on s arrete la. Le pretendre appele serait un resultat
+        # invente.
+        if lu is None:
+            return "profondeur inconnue"
+        if lu < prof_min:
+            return "non lue"
+        return "couverture seule" if info.get("type") == "vntr" else "reference, lue"
+    if not appele(gt):
+        return "non appelee"
+    if gq is None:
+        return "qualite non mesurable"
+    if gq < gq_min:
+        return "qualite insuffisante"
+    if lu is None:
+        return "profondeur inconnue"
+    if lu < prof_min:
+        return "profondeur insuffisante"
+    filtre = (champs[6] if len(champs) > 6 else "") or ""
+    if not ignorer_filtre and filtre not in (".", "PASS", ""):
+        return "site filtre"
+    # la profondeur de l appel est celle sur laquelle le genotype a ete
+    # calcule ; l alignement peut en porter davantage que l appelant n a lu
+    ad = lectures_alleliques(champs)
+    dp_appel = sum(ad) if ad else dp
+    if dp_appel is not None and dp_appel < prof_min:
+        return "profondeur d appel insuffisante"
+    if equilibre and not any(g in SANS_EQUILIBRE for g in info["genes"]):
+        part = part_minimale(gt, ad)
+        if part is not None and part < EQUILIBRE_MIN:
+            return "desequilibre allelique"
+    return "mesuree"
+
+
+def juger(info, groupe, lu, gq_min, prof_min, ignorer_filtre=False, equilibre=True):
+    """Le statut d une position, l enregistrement qui le porte, et s il faut
+    masquer ses genotypes.
+
+    Tous les enregistrements sont juges et le premier ecarte donne son statut a
+    la position : l interpreteur les lit tous, un seul douteux suffit a fausser
+    son appel. Une position ecartee ne lui laisse aucun genotype appele, y
+    compris ceux de ses enregistrements qui, seuls, auraient ete retenus.
+    """
+    for c in groupe:
+        statut = classer(info, c, lu, gq_min, prof_min, ignorer_filtre, equilibre)
+        if statut not in RETENUS:
+            return statut, c, (info.get("type") != "vntr"
+                               and any(appele(genotype(x)[0]) for x in groupe))
+    c = choisir(groupe)
+    return classer(info, c, lu, gq_min, prof_min, ignorer_filtre, equilibre), c, False
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--vcf", required=True)
@@ -282,7 +377,10 @@ def main():
         if doublons:
             print("positions complementaires deja suivies, ignorees : %d" % len(doublons))
     clinique = set()
-    if a.clinique and os.path.exists(a.clinique):
+    if a.clinique:
+        if not os.path.exists(a.clinique):
+            print("perimetre clinique introuvable :", a.clinique, file=sys.stderr)
+            return 1
         with open(a.clinique, encoding="utf-8") as fh:
             clinique = set(json.load(fh).get("genes", {}))
     prof = lire_profondeur(a.profondeur)
@@ -305,67 +403,12 @@ def main():
         info = attendu[cle]
         groupe = lignes.get(cle, [])
         lu = prof.get(cle)
-        # on retient l enregistrement le plus informatif : celui qui porte un
-        # genotype appele, sinon le premier
-        champs = None
-        for c in groupe:
-            gt, _, _ = genotype(c)
-            if appele(gt):
-                champs = c
-                break
-        if champs is None and groupe:
-            champs = groupe[0]
+        statut, champs, masquer = juger(info, groupe, lu, a.gq, a.prof_min, a.ignorer_filtre)
         gt, gq, dp = genotype(champs) if champs else (None, None, None)
-        profondeur = lu if lu is not None else dp
-        filtre = (champs[6] if champs and len(champs) > 6 else "") or ""
-        ad = lectures_alleliques(champs)
-        # la profondeur de l appel est celle sur laquelle le genotype a ete
-        # calcule ; l alignement peut en porter davantage que l appelant n a lu
-        dp_appel = sum(ad) if ad else dp
-        gene_sans_equilibre = any(g in SANS_EQUILIBRE for g in info["genes"])
-        part = None if gene_sans_equilibre else (
-            part_minimale(gt, ad) if gt and appele(gt) else None)
-
-        if info.get("type") == "vntr":
-            # Un VNTR ne se genotype pas en lectures courtes : on mesure sa couverture
-            # et on s'arrete la. Le pretendre appele serait un resultat invente.
-            statut = ("couverture seule" if profondeur is not None and profondeur >= a.prof_min
-                      else ("non lue" if profondeur is not None else "profondeur inconnue"))
-        elif gt is None:
-            if profondeur is not None and profondeur >= a.prof_min:
-                statut = "reference, lue"
-            elif profondeur is not None:
-                statut = "non lue"
-            else:
-                statut = "profondeur inconnue"
-        elif not appele(gt):
-            statut = "non appelee"
-        elif gq is None:
-            statut = "qualite non mesurable"
-            sans_gq += 1
+        if masquer:
             a_masquer.add(cle)
-        elif gq < a.gq:
-            statut = "qualite insuffisante"
-            a_masquer.add(cle)
-        elif profondeur is None:
-            statut = "profondeur inconnue"
-            a_masquer.add(cle)
-        elif profondeur < a.prof_min:
-            statut = "profondeur insuffisante"
-            a_masquer.add(cle)
-        elif not a.ignorer_filtre and filtre not in (".", "PASS", ""):
-            statut = "site filtre"
-            a_masquer.add(cle)
-        elif dp_appel is not None and dp_appel < a.prof_min:
-            statut = "profondeur d appel insuffisante"
-            a_masquer.add(cle)
-        elif part is not None and part < EQUILIBRE_MIN:
-            statut = "desequilibre allelique"
-            a_masquer.add(cle)
-        else:
-            statut = "mesuree"
-
-        retenue = statut in ("mesuree", "reference, lue", "couverture seule")
+        sans_gq += statut == "qualite non mesurable"
+        retenue = statut in RETENUS
         lignes_qc.append({
             "chrom": cle[0], "pos": cle[1], "rsid": info["rsid"],
             "ref": info["ref"], "alt": info["alt"], "genes": ",".join(info["genes"]),
@@ -376,6 +419,10 @@ def main():
             "statut": statut, "retenue": "oui" if retenue else "non",
             "source": "RNPGx" if info.get("complement") else "PharmCAT",
             "classe_rnpgx": info.get("classe") or "",
+            # De quoi rejouer la decision a d autres seuils sans relire le
+            # fichier de variants : c est l enregistrement qui a decide.
+            "filtre": champs[6] if champs and len(champs) > 6 else "",
+            "lectures_alleliques": ",".join(map(str, lectures_alleliques(champs) or [])),
         })
         if info.get("complement"):
             genotype_rendu = ("non génotypé (VNTR)" if info.get("type") == "vntr"
@@ -385,7 +432,7 @@ def main():
                 "chrom": cle[0], "pos": cle[1], "classe": info.get("classe"),
                 "type": info.get("type"), "interpreteur": info.get("interpreteur"),
                 "genotype": genotype_rendu, "statut": statut,
-                "profondeur": "" if profondeur is None else profondeur, "note": info.get("note", ""),
+                "profondeur": "" if lu is None else lu, "note": info.get("note", ""),
             })
         # Le statut d'un gene ne compte que les positions dont l'interpreteur se sert.
         # Une position complementaire ratee ne doit pas faire passer le gene en
@@ -441,7 +488,7 @@ def main():
         "complement_rnpgx": sorted(complement_qc, key=lambda x: (x["gene"], x["pos"])),
         "complement_rnpgx_resume": {
             "positions": len(complement_qc),
-            "retenues": sum(1 for x in complement_qc if x["statut"] in ("mesuree", "reference, lue", "couverture seule")),
+            "retenues": sum(1 for x in complement_qc if x["statut"] in RETENUS),
             "classe_1": sum(1 for x in complement_qc if x["classe"] == 1),
             "classe_2": sum(1 for x in complement_qc if x["classe"] == 2),
         } if complement_qc else None,
@@ -457,6 +504,8 @@ def main():
     meta["couverture_hors_domaine"] = hors_domaine(meta, a.couv_min)
     with open(os.path.join(a.sortie, "perimetre.json"), "w", encoding="utf-8") as fh:
         json.dump(meta, fh, ensure_ascii=False, indent=1)
+    with open(os.path.join(a.sortie, "verdict.tsv"), "w", newline="\n", encoding="utf-8") as fh:
+        fh.write("\t".join(verdict(meta)) + "\n")
 
     # VCF qualifie : tous les enregistrements sont reecrits, GT seul.
     # Certains champs de format font echouer le pretraitement sans message clair,

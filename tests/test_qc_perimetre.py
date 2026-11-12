@@ -228,6 +228,18 @@ class LireProfondeur(unittest.TestCase):
         self.assertEqual(q.lire_profondeur(None), {})
         self.assertEqual(q.lire_profondeur("/absent/xyz.txt"), {})
 
+    def test_une_profondeur_illisible_est_une_erreur(self):
+        # Le typage complementaire lit la profondeur par cette meme fonction :
+        # une ligne abimee ne doit pas devenir une position « non mesuree ».
+        f = tempfile.mktemp(suffix=".txt")
+        with open(f, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("chr1\t100\t30\nchr1\t101\tNaN\n")
+        try:
+            with self.assertRaises(ValueError):
+                q.lire_profondeur(f)
+        finally:
+            os.unlink(f)
+
 
 class Seuils(unittest.TestCase):
     def test_les_seuils_du_module_sont_ceux_documentes(self):
@@ -334,6 +346,32 @@ class CouvertureMesuree(unittest.TestCase):
         finally:
             sys.argv = argv
             shutil.rmtree(d, ignore_errors=True)
+
+    def test_un_perimetre_clinique_introuvable_arrete_l_etage(self):
+        # Demande et absent, il laissait le perimetre clinique vide : la porte
+        # de couverture jugeait alors tous les genes, et le compte rendu en
+        # rendait vingt-trois au lieu de treize.
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = lambda n: os.path.join(d, n)
+        with open(p("positions.vcf"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+                     "chr10\t100\trs1\tC\tT\t.\tPASS\tPX=CYP2C19\n")
+        with open(p("ech.vcf"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tECH\n")
+        with open(p("profondeur.txt"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("chr10\t100\t30\n")
+        base = ["qc_perimetre.py", "--vcf", p("ech.vcf"), "--profondeur", p("profondeur.txt"),
+                "--positions", p("positions.vcf"), "--sortie", d]
+        for argv, code in ((base, 0), (base + ["--perimetre-clinique", p("absent.json")], 1)):
+            ancien, sys.argv = sys.argv, argv
+            sortie, erreur = io.StringIO(), io.StringIO()
+            a_out, a_err, sys.stdout, sys.stderr = sys.stdout, sys.stderr, sortie, erreur
+            try:
+                self.assertEqual(q.main(), code)
+            finally:
+                sys.argv, sys.stdout, sys.stderr = ancien, a_out, a_err
+        self.assertIn("perimetre clinique introuvable", erreur.getvalue())
 
     def test_la_mediane_clinique_ignore_les_autres_genes(self):
         m = self.execute([30, 40, 4, 6])
@@ -457,6 +495,270 @@ class SuspectMelange(unittest.TestCase):
         self.assertAlmostEqual(q.MELANGE_PART, 0.30)
         self.assertEqual(q.MELANGE_LECTURES, 10)
         self.assertEqual(q.MELANGE_HETEROZYGOTES_MIN, 20)
+
+class Choix(unittest.TestCase):
+    def test_sans_enregistrement(self):
+        self.assertIsNone(q.choisir([]))
+
+    def test_le_genotype_appele_l_emporte_sur_le_premier(self):
+        vide, plein = champs("./."), champs("0/1", gq=99)
+        self.assertIs(q.choisir([vide, plein]), plein)
+
+    def test_sinon_le_premier(self):
+        a, b = champs("./."), champs("./.")
+        self.assertIs(q.choisir([a, b]), a)
+
+
+def filtre(c, valeur):
+    c = list(c)
+    c[6] = valeur
+    return c
+
+
+class Classement(unittest.TestCase):
+    """La decision par position : c'est elle qui laisse passer ou masque un
+    genotype avant l'interpreteur. Chaque borne est tenue des deux cotes."""
+
+    SNV = {"genes": ["CYP2C19"], "type": "snv"}
+    D6 = {"genes": ["CYP2D6"], "type": "snv"}
+    VNTR = {"genes": ["TYMS"], "type": "vntr"}
+    BON = dict(gq=99, ad="15,15")
+
+    CAS = [
+        # (nom, info, champs, profondeur lue, ignorer le filtre, attendu)
+        ("reference lue", SNV, None, 30, False, ("reference, lue", False)),
+        ("reference au seuil", SNV, None, 10, False, ("reference, lue", False)),
+        ("reference sous le seuil", SNV, None, 9, False, ("non lue", False)),
+        ("reference sans profondeur", SNV, None, None, False,
+         ("profondeur inconnue", False)),
+        ("non appelee", SNV, champs("./.", gq=99), 30, False, ("non appelee", False)),
+        ("a moitie appelee", SNV, champs("0/.", gq=99), 30, False,
+         ("non appelee", False)),
+        ("sans qualite", SNV, champs("0/1", ad="15,15"), 30, False,
+         ("qualite non mesurable", True)),
+        ("qualite sous le seuil", SNV, champs("0/1", gq=19, ad="15,15"), 30, False,
+         ("qualite insuffisante", True)),
+        ("qualite au seuil", SNV, champs("0/1", gq=20, ad="15,15"), 30, False,
+         ("mesuree", False)),
+        ("appelee sans profondeur", SNV, champs("0/1", gq=99), None, False,
+         ("profondeur inconnue", True)),
+        ("profondeur sous le seuil", SNV, champs("0/1", **BON), 9, False,
+         ("profondeur insuffisante", True)),
+        ("profondeur au seuil", SNV, champs("0/1", **BON), 10, False,
+         ("mesuree", False)),
+        ("site filtre", SNV, filtre(champs("0/1", **BON), "LowQual"), 30, False,
+         ("site filtre", True)),
+        ("site filtre, filtre ignore", SNV, filtre(champs("0/1", **BON), "LowQual"),
+         30, True, ("mesuree", False)),
+        ("filtre absent", SNV, filtre(champs("0/1", **BON), "."), 30, False,
+         ("mesuree", False)),
+        ("la qualite se juge avant le filtre", SNV,
+         filtre(champs("0/1", gq=5, ad="15,15"), "LowQual"), 30, False,
+         ("qualite insuffisante", True)),
+        ("appel sur neuf lectures", SNV, champs("0/1", gq=99, ad="5,4"), 30, False,
+         ("profondeur d appel insuffisante", True)),
+        ("appel sur dix lectures", SNV, champs("0/1", gq=99, ad="5,5"), 30, False,
+         ("mesuree", False)),
+        ("sans AD, DP de l'appel a neuf", SNV, champs("0/1", gq=99, dp=9), 30, False,
+         ("profondeur d appel insuffisante", True)),
+        ("allele mineur a 24 %", SNV, champs("0/1", gq=99, ad="76,24"), 30, False,
+         ("desequilibre allelique", True)),
+        ("allele mineur a 25 %", SNV, champs("0/1", gq=99, ad="75,25"), 30, False,
+         ("mesuree", False)),
+        ("CYP2D6 exempte d'equilibre", D6, champs("0/1", gq=99, ad="76,24"), 30, False,
+         ("mesuree", False)),
+        ("homozygote sans equilibre a juger", SNV, champs("1/1", gq=99, ad="0,30"),
+         30, False, ("mesuree", False)),
+        ("VNTR couvert", VNTR, None, 10, False, ("couverture seule", False)),
+        ("VNTR sous le seuil", VNTR, None, 9, False, ("non lue", False)),
+        ("VNTR sans profondeur", VNTR, None, None, False,
+         ("profondeur inconnue", False)),
+        ("VNTR : le genotype n'est pas juge", VNTR, champs("0/1", gq=3, ad="2,1"),
+         30, False, ("couverture seule", False)),
+        # La profondeur que declare le fichier de variants ne remplace pas
+        # celle de l'alignement : un DP confortable sur une position que
+        # l'alignement n'a pas mesuree ferait passer une position non verifiee.
+        ("le DP du fichier ne vaut pas mesure", SNV,
+         champs("0/1", gq=99, dp=40, ad="20,20"), None, False,
+         ("profondeur inconnue", True)),
+        ("VNTR sous le seuil, genotype present", VNTR, champs("0/1", gq=99, ad="15,15"),
+         9, False, ("non lue", False)),
+    ]
+
+    def test_chaque_statut_et_chaque_borne(self):
+        for nom, info, c, lu, ignorer, attendu in self.CAS:
+            with self.subTest(nom):
+                self.assertEqual(q.classer(info, c, lu, 20, 10, ignorer), attendu[0])
+                statut, porteur, masquer = q.juger(info, [c] if c else [], lu, 20, 10, ignorer)
+                self.assertEqual((statut, masquer), attendu)
+                self.assertIs(porteur, c)
+
+    def test_un_gene_haploide_n_a_pas_d_equilibre_a_tenir(self):
+        # Sur l'ADN mitochondrial, un allele a 10 % est une heteroplasmie.
+        c = champs("0/1", gq=99, ad="90,10")
+        self.assertEqual(q.classer(self.SNV, c, 100, 20, 10), "desequilibre allelique")
+        self.assertEqual(q.classer(self.SNV, c, 100, 20, 10, equilibre=False), "mesuree")
+
+    def test_les_statuts_retenus(self):
+        self.assertEqual(q.RETENUS, ("mesuree", "reference, lue", "couverture seule"))
+
+
+class PlusieursEnregistrements(unittest.TestCase):
+    """L'interpreteur lit tous les enregistrements d'une position : un seul
+    douteux suffit a fausser son appel, et c'est donc le pire qui decide."""
+
+    SNV = {"genes": ["CYP2C19"], "type": "snv"}
+    BON = champs("0/1", gq=99, ad="15,15")
+
+    def juge(self, *groupe, **options):
+        return q.juger(self.SNV, list(groupe), 30, 20, 10, **options)
+
+    def test_un_enregistrement_sans_genotype_ne_cache_pas_celui_qui_en_porte(self):
+        # Huit colonnes : un site sans echantillon, qui se lit comme une
+        # reference. Le statut de la position est celui du genotype appele.
+        self.assertEqual(self.juge(self.BON[:8], self.BON), ("mesuree", self.BON, False))
+
+    def test_deux_bons_enregistrements(self):
+        autre = champs("0/1", gq=80, ad="12,14", alt="G")
+        self.assertEqual(self.juge(self.BON, autre), ("mesuree", self.BON, False))
+
+    def test_un_douteux_ecarte_la_position_quel_que_soit_son_rang(self):
+        douteux = champs("0/1", gq=5, ad="15,15", alt="G")
+        for groupe in ((self.BON, douteux), (douteux, self.BON)):
+            statut, porteur, masquer = self.juge(*groupe)
+            self.assertEqual(statut, "qualite insuffisante")
+            self.assertIs(porteur, douteux)
+            self.assertTrue(masquer)
+
+    def test_un_non_appele_ecarte_la_position_et_masque_l_autre(self):
+        # Le genotype appele ne doit pas atteindre l'interpreteur seul : il lui
+        # ferait rendre un appel sur la moitie de ce que porte la position.
+        vide = champs("./.", alt="G")
+        statut, porteur, masquer = self.juge(self.BON, vide)
+        self.assertEqual(statut, "non appelee")
+        self.assertIs(porteur, vide)
+        self.assertTrue(masquer)
+
+    def test_rien_a_masquer_quand_rien_n_est_appele(self):
+        self.assertEqual(self.juge(champs("./."), champs("./."))[2], False)
+
+    def test_le_premier_ecarte_donne_le_statut(self):
+        a = champs("0/1", gq=5, ad="15,15")
+        b = champs("0/1", gq=99, ad="3,3", alt="G")
+        self.assertEqual(self.juge(a, b)[0], "qualite insuffisante")
+        self.assertEqual(self.juge(b, a)[0], "profondeur d appel insuffisante")
+
+    def test_le_filtre_ignore_vaut_pour_chaque_enregistrement(self):
+        filtre_ = filtre(champs("0/1", gq=99, ad="15,15", alt="G"), "LowQual")
+        self.assertEqual(self.juge(self.BON, filtre_)[0], "site filtre")
+        self.assertEqual(self.juge(self.BON, filtre_, ignorer_filtre=True)[0], "mesuree")
+
+
+class Verdict(unittest.TestCase):
+    """La ligne que l'orchestration relit pour refuser un genome."""
+
+    META = {"couverture_mediane": 40, "couverture_mediane_clinique": 12,
+            "couverture_hors_domaine": True, "melange_part": 41.5,
+            "melange_suspect": True, "positions_retenues": 7, "positions_visees": 9,
+            "positions_sans_GQ": 2,
+            "genes": {"A": {"statut": "complet"}, "B": {"statut": "partiel"},
+                      "C": {"statut": "complet"}}}
+
+    def test_les_neuf_champs_dans_l_ordre(self):
+        self.assertEqual(q.verdict(self.META),
+                         ["12", "1", "41.5", "1", "7", "9", "2", "3", "2"])
+
+    def test_une_mesure_absente_ne_laisse_aucun_champ_vide(self):
+        # Un champ vide decalerait les suivants : un melange suspect serait lu
+        # comme une couverture.
+        meta = dict(self.META, couverture_mediane=None,
+                    couverture_mediane_clinique=None, melange_part=None,
+                    couverture_hors_domaine=False, melange_suspect=False)
+        v = q.verdict(meta)
+        self.assertEqual(v[:4], ["-", "0", "-", "0"])
+        self.assertEqual(len(v), 9)
+        self.assertNotIn("", v)
+
+
+class VcfQualifie(unittest.TestCase):
+    """Ce que l'interpreteur recoit : une position ecartee ne lui laisse aucun
+    genotype appele, sur aucun de ses enregistrements."""
+
+    ENTETE = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"
+
+    def execute(self, enregistrements, profondeurs, complement=()):
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        p = lambda n: os.path.join(d, n)
+        with open(p("complement.vcf"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(self.ENTETE + "\n")
+            for pos in complement:
+                fh.write("chr1\t%d\trs%d\tC\tT\t.\tPASS\tPX=TPMT;PXCLASSE=1;PXTYPE=snv\n"
+                         % (pos, pos))
+        with open(p("positions.vcf"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(self.ENTETE + "\n")
+            for pos in sorted(profondeurs):
+                fh.write("chr1\t%d\trs%d\tC\tT\t.\tPASS\tPX=TPMT\n" % (pos, pos))
+        with open(p("ech.vcf"), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("##fileformat=VCFv4.2\n" + self.ENTETE + "\tFORMAT\tECH\n")
+            for pos, alt, echantillon in enregistrements:
+                fh.write("chr1\t%d\t.\tC\t%s\t.\tPASS\t.\tGT:GQ:DP:AD\t%s\n"
+                         % (pos, alt, echantillon))
+        with open(p("profondeur.txt"), "w", encoding="utf-8", newline="\n") as fh:
+            for pos, lu in profondeurs.items():
+                if lu is not None:
+                    fh.write("chr1\t%d\t%d\n" % (pos, lu))
+        argv = ["qc_perimetre.py", "--vcf", p("ech.vcf"), "--profondeur", p("profondeur.txt"),
+                "--positions", p("positions.vcf"), "--sortie", d]
+        if complement:
+            argv += ["--positions-complement", p("complement.vcf")]
+        sortie = io.StringIO()
+        ancien, sys.argv, sys.stdout = (sys.argv, sys.stdout), argv, sortie
+        try:
+            self.assertEqual(q.main(), 0)
+        finally:
+            sys.argv, sys.stdout = ancien
+        with open(p("qualifie.vcf"), encoding="utf-8") as fh:
+            gts = [(int(c[1]), c[4], c[9]) for c in
+                   (l.rstrip("\n").split("\t") for l in fh if not l.startswith("#"))]
+        with open(p("qc_positions.tsv"), encoding="utf-8") as fh:
+            lignes = [l.rstrip("\n").split("\t") for l in fh]
+        tsv = {int(r[lignes[0].index("pos")]): dict(zip(lignes[0], r)) for r in lignes[1:]}
+        return gts, tsv
+
+    def test_un_enregistrement_douteux_masque_toute_la_position(self):
+        gts, tsv = self.execute(
+            [(100, "T", "0/1:99:30:15,15"), (100, "G", "0/1:5:30:15,15"),
+             (200, "T", "0/1:99:30:15,15"), (200, "G", "0/1:80:30:14,16")],
+            {100: 30, 200: 30})
+        self.assertEqual(gts, [(100, "T", "./."), (100, "G", "./."),
+                               (200, "T", "0/1"), (200, "G", "0/1")])
+        self.assertEqual(tsv[100]["statut"], "qualite insuffisante")
+        self.assertEqual(tsv[100]["retenue"], "non")
+        self.assertEqual(tsv[100]["enregistrements"], "2")
+        # la ligne porte l'enregistrement qui a decide, de quoi rejouer la decision
+        self.assertEqual((tsv[100]["GQ"], tsv[100]["filtre"], tsv[100]["lectures_alleliques"]),
+                         ("5", "PASS", "15,15"))
+        self.assertEqual(tsv[200]["retenue"], "oui")
+
+    def test_une_position_complementaire_ecartee_n_est_pas_masquee(self):
+        # L'interpreteur ne s'en sert pas : la masquer ne changerait pas son
+        # appel, mais modifierait son entree. Elle est ecartee dans le suivi,
+        # et laissee intacte dans le fichier.
+        gts, tsv = self.execute([(100, "T", "0/1:99:30:15,15"), (300, "T", "0/1:5:30:15,15")],
+                                {100: 30}, complement=(300,))
+        self.assertEqual(gts, [(100, "T", "0/1"), (300, "T", "0/1")])
+        self.assertEqual((tsv[300]["statut"], tsv[300]["retenue"], tsv[300]["source"]),
+                         ("qualite insuffisante", "non", "RNPGx"))
+
+    def test_la_profondeur_du_fichier_ne_sauve_pas_une_position_non_mesuree(self):
+        # La position 100 manque a la mesure de l'alignement ; le fichier de
+        # variants y declare quarante lectures.
+        gts, tsv = self.execute([(100, "T", "0/1:99:40:20,20")], {100: None, 200: 30})
+        self.assertEqual(gts, [(100, "T", "./.")])
+        self.assertEqual(tsv[100]["statut"], "profondeur inconnue")
+        self.assertEqual(tsv[100]["profondeur_VCF"], "40")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
