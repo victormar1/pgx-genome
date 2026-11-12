@@ -18,6 +18,7 @@ RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(RACINE, "outils"))
 
 import valider_message as V  # noqa: E402
+import verifier_depot as D  # noqa: E402
 import cas_construit as C  # noqa: E402
 
 
@@ -142,6 +143,27 @@ class ValidateurDeMessage(unittest.TestCase):
     def test_un_message_vide_est_refuse(self):
         self.assertTrue(V.verifie("\n\n"))
         self.assertTrue(V.verifie("# que des commentaires\n"))
+
+
+class MotifsDuDepot(unittest.TestCase):
+    """Ce que le controle du depot cherche dans les fichiers suivis."""
+
+    def trouve(self, texte):
+        return [quoi for motif, quoi in D.INTERDITS if re.search(motif, texte)]
+
+    def test_un_chemin_windows_sous_toutes_ses_ecritures(self):
+        # Le motif exigeait deux antislashs, l'ecriture d'une chaine echappee :
+        # un chemin ecrit normalement dans un document passait.
+        barre = chr(92)
+        for sep in (barre, barre * 2, "/"):
+            for lecteur in ("C:", "c:", "D:"):
+                chemin = lecteur + sep + "Users" + sep + "quelqu_un"
+                self.assertIn("chemin Windows d'un poste", self.trouve("voir " + chemin), chemin)
+
+    def test_un_texte_ordinaire_ne_declenche_rien(self):
+        for texte in ("GT:GQ:DP", "https://example.org/Users/guide", "ratio 1:2/Users",
+                      "les Users du service", "https:" + "//Users.example.org"):
+            self.assertEqual(self.trouve(texte), [], texte)
 
 
 class CasConstruit(unittest.TestCase):

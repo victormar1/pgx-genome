@@ -92,7 +92,7 @@ def controle_perimetre():
 
 # --------------------------------------------------- 3. motifs interdits
 INTERDITS = [
-    (r"[A-Z]:\\\\Users", "chemin Windows d'un poste"),
+    (r"\b[A-Za-z]:[\\/]+Users\b", "chemin Windows d'un poste"),
     (r"/mnt/[a-z]/", "chemin monte d'un poste"),
     (r"\b0[0-9]_[a-z_]+/", "arborescence de travail"),
     (r"\blot[0-9]+/", "dossier de lot"),
