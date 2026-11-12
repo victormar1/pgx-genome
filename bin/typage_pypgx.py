@@ -18,23 +18,9 @@ recommandations sans appeleur : le resultat lui revient en appel externe, par le
 meme chemin que HLA et CYP2D6. Les trois autres sortent avec un allele nomme et
 sans interpretation, faute de source clinique pour la leur donner.
 """
-import argparse, csv, json, os, shutil, subprocess, sys, tempfile, zipfile
+import argparse, csv, json, os, shutil, subprocess, sys, zipfile
 
-
-def profondeurs(chemin):
-    """samtools depth -a : contig, position, profondeur."""
-    d = {}
-    if not chemin or not os.path.exists(chemin):
-        return d
-    with open(chemin, encoding="utf-8") as fh:
-        for ligne in fh:
-            c = ligne.rstrip("\n").split("\t")
-            if len(c) >= 3:
-                try:
-                    d[(c[0], int(c[1]))] = int(c[2])
-                except ValueError:
-                    pass
-    return d
+from qc_perimetre import RETENUS, juger, lire_profondeur, lire_vcf
 
 
 def exige(chemin, quoi):
@@ -54,39 +40,18 @@ def contigs(chemin):
         return {l.strip() for l in fh if l.strip()}
 
 
-def qualites(chemin):
-    """bcftools query sur les positions definissantes : contig, position, FILTER,
-    GQ, DP. Les positions absentes du fichier n'y figurent pas, et c'est la
-    profondeur d'alignement qui tranche leur sort."""
-    d = {}
-    if not chemin:
-        return None   # option non fournie
-    with open(chemin, encoding="utf-8") as fh:
-        for ligne in fh:
-            c = ligne.rstrip("\n").split("\t")
-            if len(c) < 3:
-                continue
-            nb = lambda x: None if x in ("", ".", None) else (
-                int(float(x)) if str(x).replace(".", "", 1).isdigit() else None)
-            try:
-                pos = int(c[1])
-            except ValueError:
-                continue   # ligne illisible : la profondeur tranchera
-            d[(c[0], pos)] = {"filtre": c[2],
-                                    "gq": nb(c[3]) if len(c) > 3 else None,
-                                    "dp": nb(c[4]) if len(c) > 4 else None}
-    return d
-
-
-def recevabilite(gene, info, prof, vus, qual, prof_min, gq_min, ignorer_filtre):
+def recevabilite(info, prof, vus, lignes, prof_min, gq_min, ignorer_filtre):
     """Le gene peut-il etre type ? Renvoie (recevable, lues, attendues, motif).
 
     Deux refus distincts, et il faut les deux. La profondeur d'alignement traite
     la position absente du fichier de variants : sans elle, une position jamais
     lue passerait pour une reference. La qualite traite la position presente
     mais douteuse : le typeur s'en servirait sans le dire, alors que le controle
-    qualite l'a ecartee du reste du module. Un seul critere pour tout le module,
-    ou le compte rendu se contredit d'une section a l'autre."""
+    qualite l'a ecartee du reste du module. Le jugement est celui du controle
+    qualite, par sa propre fonction : un seul critere pour tout le module, ou le
+    compte rendu se contredit d'une section a l'autre.
+
+    `lignes` porte les enregistrements du fichier de variants, par position."""
     if vus is not None and not vus:
         return False, 0, len(info["positions"]), \
             "aucun contig releve dans le fichier de variants"
@@ -101,15 +66,14 @@ def recevabilite(gene, info, prof, vus, qual, prof_min, gq_min, ignorer_filtre):
             inconnues += 1
         elif d >= prof_min:
             lues += 1
-        q = (qual or {}).get((contig, pos))
-        if q is None:
-            continue   # position absente du fichier : la profondeur a deja tranche
-        if not ignorer_filtre and q["filtre"] not in ("PASS", ".", ""):
-            douteuses.append("%s:%d (%s)" % (contig, pos, q["filtre"]))
-        elif q["gq"] is None:
-            douteuses.append("%s:%d (sans GQ)" % (contig, pos))
-        elif q["gq"] < gq_min:
-            douteuses.append("%s:%d (GQ %d)" % (contig, pos, q["gq"]))
+        groupe = lignes.get((contig, pos))
+        if not groupe or d is None or d < prof_min:
+            continue   # position absente du fichier ou non lue : la profondeur a tranche
+        # Sur un gene haploide, une fraction allelique est une heteroplasmie.
+        statut = juger({"genes": [], "type": "snv"}, groupe, d, gq_min, prof_min,
+                       ignorer_filtre, equilibre=not info.get("haploide"))[0]
+        if statut not in RETENUS:
+            douteuses.append("%s:%d (%s)" % (contig, pos, statut))
     total = len(info["positions"])
     if inconnues == total:
         return False, lues, total, "profondeur non mesuree sur les positions du gene"
@@ -158,6 +122,10 @@ def lis_resultat(dossier):
         return None, "table de resultats vide"
     if len(lignes) > 1:
         return None, "%d echantillons dans la table de resultats" % len(lignes)
+    # Un haplotype vide se lirait plus loin comme l'allele de reference : un
+    # typeur qui n'a rien rendu sortirait « reference », statut rendu.
+    if not all(haplotypes(lignes[0])):
+        return None, "haplotype non rendu"
     return lignes[0], None
 
 
@@ -273,7 +241,6 @@ def main():
     p.add_argument("--variants", required=True)
     p.add_argument("--profondeur")
     p.add_argument("--contigs-vcf")
-    p.add_argument("--qualites", help="TSV contig/position/FILTER/GQ/DP sur les positions definissantes")
     p.add_argument("--profondeur-min", type=int, default=10)
     p.add_argument("--gq", type=int, default=20)
     p.add_argument("--ignorer-filtre", action="store_true")
@@ -286,11 +253,15 @@ def main():
     cat = json.load(open(a.catalogue, encoding="utf-8"))
     for chemin, quoi in ((a.profondeur, "profondeur"),
                          (a.contigs_vcf, "liste des contigs"),
-                         (a.qualites, "qualites")):
+                         (a.variants, "fichier de variants")):
         exige(chemin, quoi)
-    prof = profondeurs(a.profondeur)
+    prof = lire_profondeur(a.profondeur)
     vus = contigs(a.contigs_vcf)
-    qual = qualites(a.qualites)
+    _, lignes, n_ech = lire_vcf(a.variants)
+    if n_ech != 1:
+        sys.stderr.write("le fichier de variants porte %d echantillons, un seul est accepte\n"
+                         % n_ech)
+        return 1
     pypgx_cmd = a.pypgx.split()
     travail = os.path.join(a.travail, "pypgx")
     os.makedirs(travail, exist_ok=True)
@@ -304,8 +275,8 @@ def main():
                  "phenotype": "",
                  "allele_externe": "",
                  "heteroplasmie": False, "fraction": None}
-        ok, lues, total, motif = recevabilite(gene, info, prof, vus, qual,
-                                              a.profondeur_min, a.gq, a.ignorer_filtre)
+        ok, lues, total, motif = recevabilite(info, prof, vus, lignes, a.profondeur_min,
+                                              a.gq, a.ignorer_filtre)
         ligne.update({"positions_lues": lues, "positions_attendues": total})
         if not ok:
             ligne.update({"statut": "non conclusif", "motif": motif})

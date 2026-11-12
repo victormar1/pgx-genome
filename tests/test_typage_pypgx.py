@@ -5,6 +5,7 @@ constatee, et porte en commentaire ce qu'il empeche de revenir.
 Aucune dependance externe : les fonctions testees ne font pas appel au typeur,
 qui est invoque en sous-processus ailleurs dans le module.
 """
+import gzip
 import io
 import json
 import os
@@ -146,19 +147,29 @@ class AlleleUnique(unittest.TestCase):
         self.assertTrue(souci)
 
 
+def enregistrement(pos, gt="0/1", gq=99, ad="15,15", filtre="PASS", contig="chr3"):
+    """Une ligne de VCF a dix colonnes, comme les lit le controle qualite."""
+    cles, vals = ["GT"], [gt]
+    for nom, v in (("GQ", gq), ("AD", ad)):
+        if v is not None:
+            cles.append(nom)
+            vals.append(str(v))
+    return [contig, str(pos), ".", "C", "T", ".", filtre, ".", ":".join(cles), ":".join(vals)]
+
+
 class Recevabilite(unittest.TestCase):
     INFO = {"contig": "chr3", "positions": ["chr3:100:C:T", "chr3:200:T:C"]}
     PROF = {("chr3", 100): 30, ("chr3", 200): 25}
-    QUAL = {("chr3", 100): {"filtre": "PASS", "gq": 99, "dp": 30}}
 
-    def recevable(self, **kw):
-        a = {"gene": "BCHE", "info": self.INFO, "prof": self.PROF,
-             "vus": {"chr3"}, "qual": self.QUAL, "prof_min": 10, "gq_min": 20,
-             "ignorer_filtre": False}
+    def recevable(self, *enregistrements, **kw):
+        lignes = {}
+        for c in enregistrements or (enregistrement(100),):
+            lignes.setdefault((c[0], int(c[1])), []).append(c)
+        a = {"info": self.INFO, "prof": self.PROF, "vus": {"chr3"},
+             "prof_min": 10, "gq_min": 20, "ignorer_filtre": False}
         a.update(kw)
-        return t.recevabilite(a["gene"], a["info"], a["prof"], a["vus"],
-                              a["qual"], a["prof_min"], a["gq_min"],
-                              a["ignorer_filtre"])
+        return t.recevabilite(a["info"], a["prof"], a["vus"], lignes,
+                              a["prof_min"], a["gq_min"], a["ignorer_filtre"])
 
     def test_cas_nominal(self):
         ok, lues, total, motif = self.recevable()
@@ -190,51 +201,86 @@ class Recevabilite(unittest.TestCase):
         self.assertIn("1 position", motif)
 
     def test_refuse_un_genotype_sans_gq(self):
-        ok, _, _, motif = self.recevable(
-            qual={("chr3", 100): {"filtre": "PASS", "gq": None, "dp": 30}})
+        ok, _, _, motif = self.recevable(enregistrement(100, gq=None))
         self.assertFalse(ok)
-        self.assertIn("sans GQ", motif)
+        self.assertIn("chr3:100 (qualite non mesurable)", motif)
+
+    def test_refuse_un_gq_sous_le_seuil_et_passe_au_seuil(self):
+        self.assertFalse(self.recevable(enregistrement(100, gq=19))[0])
+        self.assertTrue(self.recevable(enregistrement(100, gq=20))[0])
 
     def test_refuse_un_filtre_autre_que_pass(self):
-        ok, _, _, motif = self.recevable(
-            qual={("chr3", 100): {"filtre": "LowQual", "gq": 99, "dp": 30}})
+        ok, _, _, motif = self.recevable(enregistrement(100, filtre="LowQual"))
         self.assertFalse(ok)
-        self.assertIn("LowQual", motif)
+        self.assertIn("site filtre", motif)
 
     def test_ignorer_filtre_laisse_passer_le_filtre_mais_pas_le_gq(self):
-        ok, _, _, _ = self.recevable(
-            qual={("chr3", 100): {"filtre": "LowQual", "gq": 99, "dp": 30}},
-            ignorer_filtre=True)
+        ok, _, _, _ = self.recevable(enregistrement(100, filtre="LowQual"),
+                                     ignorer_filtre=True)
         self.assertTrue(ok)
-        ok, _, _, motif = self.recevable(
-            qual={("chr3", 100): {"filtre": "LowQual", "gq": 3, "dp": 30}},
-            ignorer_filtre=True)
+        ok, _, _, motif = self.recevable(enregistrement(100, filtre="LowQual", gq=3),
+                                         ignorer_filtre=True)
         self.assertFalse(ok)
-        self.assertIn("GQ 3", motif)
+        self.assertIn("qualite insuffisante", motif)
+
+    # Les trois regles ci-dessous sont celles du controle qualite que le typage
+    # n'appliquait pas : il nommait un allele sur un genotype que le reste du
+    # module avait ecarte.
+
+    def test_refuse_un_appel_sur_trop_peu_de_lectures(self):
+        ok, _, _, motif = self.recevable(enregistrement(100, ad="5,4"))
+        self.assertFalse(ok)
+        self.assertIn("profondeur d appel insuffisante", motif)
+        self.assertTrue(self.recevable(enregistrement(100, ad="5,5"))[0])
+
+    def test_refuse_un_heterozygote_desequilibre(self):
+        ok, _, _, motif = self.recevable(enregistrement(100, ad="76,24"))
+        self.assertFalse(ok)
+        self.assertIn("desequilibre allelique", motif)
+        self.assertTrue(self.recevable(enregistrement(100, ad="75,25"))[0])
+
+    def test_refuse_un_genotype_incomplet(self):
+        ok, _, _, motif = self.recevable(enregistrement(100, gt="0/."))
+        self.assertFalse(ok)
+        self.assertIn("non appelee", motif)
+
+    def test_une_heteroplasmie_n_est_pas_un_desequilibre(self):
+        # Sur l'ADN mitochondrial, un allele a 10 % est le resultat a rendre,
+        # et c'est le seul gene de l'etage qui porte une recommandation.
+        info = dict(self.INFO, haploide=True)
+        self.assertTrue(self.recevable(enregistrement(100, ad="90,10"), info=info)[0])
+
+    def test_un_second_enregistrement_douteux_suffit(self):
+        ok, _, _, motif = self.recevable(enregistrement(100), enregistrement(100, gq=3))
+        self.assertFalse(ok)
+        self.assertIn("qualite insuffisante", motif)
+
+    def test_la_seconde_position_est_jugee_aussi(self):
+        ok, _, _, motif = self.recevable(enregistrement(100), enregistrement(200, gq=3))
+        self.assertFalse(ok)
+        self.assertIn("chr3:200", motif)
 
 
 class LectureDesEntrees(unittest.TestCase):
-    def test_une_ligne_de_qualite_illisible_n_arrete_pas_l_etage(self):
-        with tempfile.NamedTemporaryFile("w", suffix=".tsv", delete=False,
-                                         encoding="utf-8", newline="\n") as fh:
-            fh.write("CHROM\tPOS\tFILTER\n")          # entete residuelle
-            fh.write("chr3\t100\tPASS\t99\t30\n")
-            chemin = fh.name
-        try:
-            d = t.qualites(chemin)
-            self.assertIn(("chr3", 100), d)
-        finally:
-            os.unlink(chemin)
-
     def test_option_non_fournie_rend_none(self):
-        self.assertIsNone(t.qualites(None))
         self.assertIsNone(t.contigs(None))
 
     def test_un_fichier_demande_mais_introuvable_arrete_l_etage(self):
         # Sinon le garde-fou devient contournable par simple suppression du
         # fichier de controle, et un genotype douteux passe en silence.
         with self.assertRaises(SystemExit):
-            t.exige(os.path.join(tempfile.gettempdir(), "absent_xyz.tsv"), "qualites")
+            t.exige(os.path.join(tempfile.gettempdir(), "absent_xyz.tsv"), "contigs")
+
+
+ENTETE_VCF = ("##fileformat=VCFv4.2\n"
+              "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n")
+
+
+def ecrire_vcf(chemin, enregistrements, echantillons="ECH"):
+    with gzip.open(chemin, "wt", encoding="utf-8", newline="\n") as fh:
+        fh.write(ENTETE_VCF % echantillons)
+        for c in enregistrements:
+            fh.write("\t".join(c) + "\n")
 
 
 class TypeurEnPanne(unittest.TestCase):
@@ -242,7 +288,7 @@ class TypeurEnPanne(unittest.TestCase):
     echouer. Rendu en « non conclusif », il passerait en reussite complete, et
     MT-RNR1 perdrait ses recommandations sans un mot."""
 
-    def test_un_typeur_qui_ne_tourne_pas_fait_echouer_l_etage(self):
+    def execute(self, enregistrements, echantillons="ECH"):
         d = tempfile.mkdtemp()
         p = lambda n: os.path.join(d, n)
         cat = {"genes": {"POR": {"classe_rnpgx": "2", "contig": "chr7",
@@ -257,23 +303,42 @@ class TypeurEnPanne(unittest.TestCase):
             fh.write("chr7\t75985688\t40\n")
         with open(p("contigs.txt"), "w", encoding="utf-8") as fh:
             fh.write("chr7\n")
-        with open(p("qual.tsv"), "w", encoding="utf-8") as fh:
-            fh.write("chr7\t75985688\tPASS\t99\t40\n")
+        ecrire_vcf(p("v.vcf.gz"), enregistrements, echantillons)
         with open(p("panne.py"), "w", encoding="utf-8") as fh:
             fh.write("import sys\nsys.stderr.write('FATAL: image introuvable\\n')\nsys.exit(255)\n")
         argv = ["typage_pypgx.py", "--catalogue", p("cat.json"), "--variants", p("v.vcf.gz"),
                 "--profondeur", p("prof.txt"), "--contigs-vcf", p("contigs.txt"),
-                "--qualites", p("qual.tsv"), "--travail", d, "--sortie", p("sortie.tsv"),
+                "--travail", d, "--sortie", p("sortie.tsv"),
                 "--pypgx", "%s %s" % (sys.executable, p("panne.py"))]
         sortie = io.StringIO()
         with mock.patch.object(sys, "argv", argv), mock.patch("sys.stdout", sortie), \
                 mock.patch("sys.stderr", io.StringIO()):
             code = t.main()
-        self.assertEqual(code, 1)
+        if not os.path.exists(p("sortie.tsv")):
+            return code, ""
         with open(p("sortie.tsv"), encoding="utf-8") as fh:
-            lignes = fh.read()
+            return code, fh.read()
+
+    def test_un_typeur_qui_ne_tourne_pas_fait_echouer_l_etage(self):
+        code, lignes = self.execute([enregistrement(75985688, contig="chr7")])
+        self.assertEqual(code, 1)
         self.assertIn("\techec\t", lignes)
         self.assertNotIn("non conclusif", lignes)
+
+    def test_un_genotype_douteux_n_atteint_pas_le_typeur(self):
+        # Le fichier de variants est juge par l'etage lui-meme : le gene sort non
+        # conclusif avec son motif, et le typeur, ici en panne, n'est pas lance.
+        code, lignes = self.execute([enregistrement(75985688, contig="chr7", ad="76,24")])
+        self.assertEqual(code, 0)
+        self.assertIn("\tnon conclusif\t", lignes)
+        self.assertIn("chr7:75985688 (desequilibre allelique)", lignes)
+
+    def test_deux_echantillons_arretent_l_etage(self):
+        # Le jugement lirait le premier et le typeur les deux.
+        code, lignes = self.execute(
+            [enregistrement(75985688, contig="chr7") + ["0/1:99:15,15"]],
+            echantillons="ECH\tAUTRE")
+        self.assertEqual((code, lignes), (1, ""))
 
 
 class ResultatDuTypeur(unittest.TestCase):
@@ -284,11 +349,26 @@ class ResultatDuTypeur(unittest.TestCase):
                 z.writestr(nom, contenu)
         return d
 
+    TABLE = "\tGenotype\tHaplotype1\tHaplotype2\nECH\t*1/*28\t%s\t%s\n"
+
     def test_lit_la_table(self):
-        d = self.archive([("x/data.tsv", "\tGenotype\nECH\t*1/*28\n")])
+        d = self.archive([("x/data.tsv", self.TABLE % ("*1;", "*28;"))])
         r, err = t.lis_resultat(d)
         self.assertIsNone(err)
         self.assertEqual(r["Genotype"], "*1/*28")
+
+    def test_refuse_un_haplotype_vide(self):
+        # Un haplotype vide se lisait comme l'allele de reference : un typeur
+        # qui n'a rien rendu sortait « *1/*1 », statut rendu.
+        for h1, h2 in (("", ""), ("*28;", ""), ("", "*28;"), (";", "*28;")):
+            r, err = t.lis_resultat(self.archive([("x/data.tsv", self.TABLE % (h1, h2))]))
+            self.assertIsNone(r, (h1, h2))
+            self.assertIn("haplotype", err)
+
+    def test_refuse_une_table_sans_colonnes_d_haplotype(self):
+        r, err = t.lis_resultat(self.archive([("x/data.tsv", "\tGenotype\nECH\t*1/*28\n")]))
+        self.assertIsNone(r)
+        self.assertIn("haplotype", err)
 
     def test_refuse_plusieurs_tables(self):
         # Prendre la premiere reviendrait a tirer au sort le resultat.
