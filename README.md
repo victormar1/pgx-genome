@@ -33,7 +33,10 @@ génome :
 | Sortie | Contenu |
 |---|---|
 | `sortie/CR_<ECH>.pdf` | le compte rendu en français, médicaments concernés en tête |
-| `sortie/<ECH>.report.json` | l'avis complet, structuré, exploitable par une machine |
+| `sortie/<ECH>.report.json` | l'avis complet de l'interpréteur, dans son format |
+| `sortie/<ECH>.genotypes.tsv` | un gène par ligne : génotype, statut, outil d'origine, identifiant HGNC |
+| `sortie/<ECH>.variants.tsv` | les variants observés qui fondent ces génotypes : position, rsID, allèles portés |
+| `sortie/<ECH>.annotations.tsv` | phénotype et consignes, avec la version du référentiel |
 | `sortie/provenance.json` | la trace d'exécution : hash des entrées, digests des images, versions, seuils, état de chaque étage |
 
 Exemple, contexte « néphropathies » : HG00699, génome public, porteur de
@@ -181,7 +184,7 @@ génotypes, en amont.
 bin/            les neuf scripts du pipeline
 ressources/     les ressources figées, lues à l'exécution (dont les traductions CPIC)
 outils/         les générateurs de ressources, les contrôles, les hooks
-tests/          295 cas, vérifiés par mutation testing
+tests/          444 cas, vérifiés par mutation testing
 doc/            mode d'emploi, flux de fichiers, dossier de validation, glossaire, figures
 env/            dépendances Python, digests des conteneurs, image PyPGx
 exemples/       un manifeste type, une recette Nextflow

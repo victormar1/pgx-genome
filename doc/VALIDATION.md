@@ -17,7 +17,7 @@ dit comment la refaire.
 | **Domaine de validité** | aucun allèle à conséquence clinique perdu jusqu'à 18 × ; neuf faux appels à 11 ×, d'où le refus sous 18 × | 3.4 |
 | Changement de variant caller | 103 683 positions, 99,924 % ; aucun écart de phénotype ni de recommandation sur 29 génomes rejoués | 3.5 |
 | Répétabilité | trois exécutions d'un même génome, aucun écart | 3.2 |
-| Code | 295 cas de test ; 105 mutants, 105 tués | 3.6 |
+| Code | 444 cas de test ; 272 mutants, 272 tués | 3.6 |
 | Débit | 51 génomes par heure sur 24 cœurs | 3.10 |
 
 **Les trois limites qui engagent une plateforme** : un mélange d'échantillons de
@@ -35,7 +35,7 @@ d'un fichier de variants **produits en amont par la plateforme**.
 | | |
 |---|---|
 | Entrées | alignement CRAM ou BAM sur GRCh38, fichier de variants mono-échantillon, référence indexée |
-| Sorties | avis structuré (`report.json`), compte rendu en français (`CR_<ECH>.pdf`), trace d'exécution (`provenance.json`) |
+| Sorties | avis structuré (`report.json`), génotype et annotation en tables séparées, compte rendu en français (`CR_<ECH>.pdf`), trace d'exécution (`provenance.json`) |
 | Ne fait pas | ni séquençage, ni alignement, ni appel de variants, ni validation biologique |
 | Décision finale | un biologiste médical ; le compte rendu porte sa ligne de validation |
 
@@ -135,14 +135,19 @@ couvrant le génome entier, contig mitochondrial compris, et n'a rien à ajouter
 |---|---|---|---|
 | MT-RNR1 | 242 / 243 | 1 (contig `chrM` absent du fichier de variants) | aucun porteur dans le lot ; 2 porteurs de m.1095T>C hors lot, voir 4.1 |
 | BCHE | 243 / 243 | 0 | 243 / 243 sur ses deux positions |
-| MTHFR | 243 / 243 | 0 | 243 / 243 sur C677T et A1298C |
+| MTHFR | 242 / 243 | 1 (hétérozygote déséquilibré, 8 lectures sur 36) | 242 / 242 sur C677T et A1298C |
 | POR | 243 / 243 | 0 | 243 / 243 sur `rs1057868` |
 
 Les fréquences alléliques observées rejoignent les valeurs publiées : BCHE
-`rs1803274` 0,18 contre 0,20 attendu, MTHFR C677T 0,35 contre 0,33. Le gène non
-conclusif est le comportement voulu : sans le contig mitochondrial dans le
+`rs1803274` 0,18 contre 0,20 attendu, MTHFR C677T 0,35 contre 0,33. Le MT-RNR1
+non conclusif est le comportement voulu : sans le contig mitochondrial dans le
 fichier de variants, le typeur rendrait « référence » — donc « risque normal de
 surdité sous aminoside » — sur un gène jamais lu.
+
+Depuis la 0.6.0, les positions définissantes sont jugées par la fonction du
+contrôle qualité, profondeur d'appel et équilibre allélique compris. Rejouée sur
+les extractions conservées des 243 génomes, la règle change 1 couple gène ×
+génome sur 972 : le MTHFR ci-dessus, que le reste du module aurait écarté.
 
 **L'appel positif de MT-RNR1** est éprouvé sur deux porteurs réels de
 m.1095T>C (limite 4.1) ; pour m.1555A>G, faute de porteur, il est exercé par un
@@ -374,8 +379,8 @@ Ces six écarts n'apparaissent pas sous 29 génomes : un échantillon de 9 en do
 
 | Mesure | Résultat |
 |---|---|
-| Cas de test | 271 |
-| Mutation testing, cumulé sur les versions | **105 mutants, 105 tués, 0 survivant** |
+| Cas de test | 444 |
+| Mutation testing, cumulé sur les versions | **272 mutants, 272 tués, 0 survivant** |
 | Contrôles d'intégrité du dépôt | 4 mutants, 4 tués |
 | Reproductibilité du catalogue généré | 3 régénérations, **même hash**, égal à celui du fichier livré |
 
@@ -441,7 +446,7 @@ fraction égale.
 Chaque changement qui ne devrait pas modifier un résultat rendu est vérifié par
 le rejeu de génomes du lot sur **les mêmes entrées**, comparé aux rapports
 conservés par `outils/comparer_rapports.py` — diplotype, phénotype,
-recommandations ; un génome repassé sans rapport est un écart. « Ne devrait
+recommandations, typage PyPGx ; un génome repassé sans rapport est un écart. « Ne devrait
 pas » n'est pas une mesure.
 
 | Changement | Génomes | Couples gène × génome | Écarts |
@@ -450,6 +455,15 @@ pas » n'est pas une mesure.
 | Exécution étage par étage, recette Nextflow (3.9) | 30 | 720 | **0** |
 | Déclaration de la mémoire par étage | 3 | 36 | **0** |
 | Conteneurs sous l'identité de l'appelant, typeur dans son image, verrou par hôte | 3 | 36 | **0** |
+| Refonte de l'orchestration, jugement unique du contrôle qualité et garde-fous du rendu (0.6.0) | 5 | 60, et 20 de typage PyPGx | **0** |
+
+La dernière ligne compare la 0.6.0 à la 0.5.5 sur les mêmes entrées : lot, puis
+un génome étage par étage, en reprise et par la recette Nextflow, sans écart. Le
+comparateur lit le rapport de l'interpréteur et le typage PyPGx, non le document
+rendu : le texte des 5 comptes rendus a donc été comparé à part. Quatre ne
+diffèrent que par le numéro de version ; le cinquième gagne le nom de la
+fluvastatine, que la 0.5.5 omettait pour une statine prescrite seule — 49 génomes
+du benchmark sur 243 sont dans ce cas.
 
 **Témoin négatif.** Un alignement réduit à 1 % de ses lectures est refusé par le
 critère de couverture, sans compte rendu : un échantillon presque vide ne ressort
@@ -531,6 +545,10 @@ réservée à la tâche ; sous Apptainer, ils y restent tenus.
 vient d'assemblages diploïdes en lecture longue. Deux bras, mêmes alignements :
 VCF GATK (bras A) et DRAGEN 3.7.6 (bras B). Le protocole, préenregistré, est
 dans `bench/orthogonale/protocole.md`.
+
+Le benchmark a tourné sous la 0.5.5. Rejoué sous la 0.6.0 sur ses entrées
+conservées, il ne change sur aucun des 422 passages : même VCF qualifié, mêmes
+gènes recevables au typage complémentaire.
 
 **Deux des trois critères d'acceptation ne sont pas tenus.**
 
@@ -736,11 +754,11 @@ l'identique, tables cliniques comprises.
 
 | Outil | Rôle |
 |---|---|
-| `tests/` | 295 cas, vérifiés par mutation testing |
+| `tests/` | 444 cas, vérifiés par mutation testing |
 | `outils/verifier_depot.py` | intégrité des figures, cohérence du périmètre et des comptes annoncés, syntaxe des scripts, reproductibilité des ressources générées |
 | `outils/cas_construit.py` | exercice d'un allèle absent de la cohorte |
 | `outils/fiche_traductions.py` | fiche de relecture des traductions, classée par usage, avec les entrées inemployées à part |
-| `outils/comparer_rapports.py` | compare deux exécutions — diplotype, phénotype, recommandations, rapport manquant — et rend un code de sortie non nul au premier écart |
+| `outils/comparer_rapports.py` | compare deux exécutions — diplotype, phénotype, recommandations, rapport manquant, typage PyPGx — et rend un code de sortie non nul au premier écart |
 | `outils/construire_banc.py` | reconstruit la liste des prélèvements du benchmark depuis le lot et les tables de vérité |
 | `bench/preparer_banc.sh`, `bench/fiche_performance.py`, `bench/confronter_puce.sh` | refont le benchmark depuis les données publiques et le confrontent aux vérités ; voir `bench/LISEZMOI.md` |
 | `bench/qualification/` | un génome public, son fichier de variants et son rapport de référence, pour qualifier une installation |

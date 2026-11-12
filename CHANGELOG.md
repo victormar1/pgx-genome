@@ -8,6 +8,55 @@ incrémente au moins le rang mineur et déclenche la revalidation décrite dans
 La version du module figure dans `provenance.json` et au pied du compte rendu.
 Elle ne vaut aucune déclaration de conformité.
 
+## 0.6.0
+
+Le contrôle qualité s'applique au typage complémentaire, et trois tables
+accompagnent le compte rendu. Le résultat rendu change sur deux points, d'où le
+rang mineur.
+
+**Résultat rendu.** Le typage complémentaire applique les seuils du contrôle
+qualité : 1 couple gène × génome sur 972 devient non conclusif. Une statine ou
+un aminoside rendu seul garde son nom et sa consigne : 49 comptes rendus sur 243.
+
+**Tables.** `genotypes.tsv`, `variants.tsv` avec les rsID, et `annotations.tsv`
+avec la version du référentiel sortent avec le compte rendu, ou pas du tout. Le
+gène y porte son identifiant HGNC. Le compte rendu lui-même ne change pas.
+
+**Contrôle qualité.** Une position à plusieurs enregistrements est écartée dès
+qu'un seul l'est. La profondeur se lit sur l'alignement, jamais dans le VCF. Un
+périmètre clinique introuvable arrête l'étage. `sensibilite_seuils.py` rend le
+périmètre de l'étage aux seuils par défaut.
+
+**Outside calls et typage.** Un diplotype CYP2D6 que Cyrius ne valide pas n'est
+plus transmis à l'interpréteur. Un haplotype que PyPGx rend vide donne un gène
+non conclusif.
+
+**Compte rendu.** Une recommandation forte non traduite sort en texte source. Un
+gène que le contrôle qualité n'a pas mesuré n'est plus rendu sans réserve. Un
+rapport sans annotations CPIC arrête le rendu.
+
+**Exécution.** Une tranche ou une extraction HLA interrompue n'est plus reprise.
+Un lot relancé ne saute un génome que si ses entrées n'ont pas changé. La
+recette Nextflow arrête le lot sur une configuration invalide.
+
+**Code.** Les scripts shell ne contiennent plus de Python, et le lot a son
+module, `bin/lot.py`. Les tests exécutent le pipeline entier sur de faux outils.
+`comparer_rapports.py` compare aussi le typage complémentaire.
+
+**Interface.** Sortent `--forcer`, quatre options de `compte_rendu.py` sans
+appelant, `typage_pypgx.py --qualites` et `pypgx_qualites.tsv`. Entrent
+`appels_externes.py --cyp2d6`, `sensibilite_seuils.py --ignorer-filtre`,
+`resultats.py`, `outils/construire_hgnc.py`, et deux colonnes de
+`qc_positions.tsv` : `filtre` et `lectures_alleliques`.
+
+**Validation.** Benchmark orthogonal sur 211 génomes hors cohorte de réglage,
+contre des assemblages en lecture longue : deux des trois critères d'acceptation
+ne sont pas tenus (`doc/VALIDATION.md`, § 3.11). Rejoué sous la 0.6.0, il ne
+change pas.
+
+Hors les deux points ci-dessus, aucun résultat rendu ne change sur les 243
+génomes du benchmark. 444 cas de test ; 272 mutants, 272 tués.
+
 ## 0.5.5
 
 Correctifs issus d'un audit de code et de documentation par un agent de modèle

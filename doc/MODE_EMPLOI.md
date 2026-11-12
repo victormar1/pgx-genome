@@ -117,7 +117,7 @@ python3 outils/comparer_rapports.py --avant bench/qualification --apres /chemin/
 ```
 
 Le code de retour vaut zéro si diplotypes, phénotypes et recommandations sont
-identiques. Tout écart désigne une différence d'installation — version d'image,
+identiques, ainsi que le typage PyPGx quand l'installation l'active. Tout écart désigne une différence d'installation — version d'image,
 référence, typeur — à résoudre avant tout usage sur un patient. Une plateforme
 sous Apptainer rejoue cette qualification sous ce moteur.
 
@@ -191,7 +191,8 @@ bin/pgx_genome.sh \
 Le fichier d'identité porte `patient`, `naissance` et `contexte` (la
 préindication). Il passe par un chemin, jamais par des arguments : un argument
 est lisible dans la table des processus et dans les journaux de l'ordonnanceur.
-Sans identité, le document porte la mention « prototype ».
+Sans identité, le document porte la mention « prototype ». Un fichier d'identité
+qui ne nomme aucun patient est une entrée cassée : le compte rendu n'est pas produit.
 
 | Option | Défaut | Rôle |
 |---|---|---|
@@ -207,7 +208,7 @@ Sans identité, le document porte la mention « prototype ».
 | `--fils` | 4 | fils pour samtools, l'étage CYP2D6 et l'étage HLA |
 | `--etage` | tous | ne fait tourner que les étages nommés, voir § 3.3 |
 | `--reprise` | absente | réutilise les intermédiaires si les entrées sont identiques |
-| `--forcer` | absente | écrit dans un dossier non vide sans purger |
+| `--si-incomplet` | absente | ne refait rien si le dossier porte déjà le résultat complet de ces entrées, de ces options et de cette version |
 | `--version` | — | version du module |
 
 | Variable | Rôle |
@@ -227,7 +228,8 @@ bin/pgx_lot.sh --manifeste liste.tsv --sortie /chemin/resultats --parallele 6
 
 Le manifeste porte trois colonnes séparées par des tabulations : identifiant,
 chemin de l'alignement, chemin du fichier de variants. Un échantillon déjà complet
-est sauté. Le lot produit `tableau_de_bord.tsv` : une ligne par échantillon,
+est sauté, si sa trace porte la signature de ces mêmes entrées, options et
+version ; sinon il est retraité. Le lot produit `tableau_de_bord.tsv` : une ligne par échantillon,
 l'état et la durée de chaque étage. Le parallélisme vaut 4 par défaut et est
 mesuré jusqu'à six : compter un génome pour quatre cœurs (§ 9).
 Le lanceur ne transmet pas d'identité : ses comptes rendus portent la mention
@@ -266,18 +268,36 @@ compte par sa dernière exécution, et la trace note le nombre de tentatives.
 `exemples/pgx_genome.nf` en donne une recette Nextflow, un processus par étage,
 qui déclare pour chacun les cœurs et la mémoire mesurés (§ 9). Elle reçoit le
 moteur, les images et PyPGx en paramètres (`--moteur`,
-`--img_*`, `--bundle`) ; son en-tête donne l'appel.
+`--img_*`, `--bundle`) ; son en-tête donne l'appel. Un génome refusé ou une ligne
+fautive du manifeste n'arrêtent que ce génome ; une configuration invalide arrête
+le lot. Sous `-resume`, une entrée remplacée ou un module mis à jour relancent la
+chaîne du génome.
 
 ## 4. Ce qu'il rend, et ce qu'il faut surveiller
 
 | Sortie | Contenu |
 |---|---|
-| `sortie/<ECH>.report.json` | l'avis complet, structuré, exploitable par une machine |
+| `sortie/<ECH>.report.json` | l'avis complet de l'interpréteur, dans son format |
+| `sortie/<ECH>.genotypes.tsv` | un gène par ligne : génotype, statut, outil d'origine, identifiant HGNC |
+| `sortie/<ECH>.variants.tsv` | les variants observés qui fondent ces génotypes : position, rsID, allèles portés |
+| `sortie/<ECH>.annotations.tsv` | phénotype et consignes, avec la version du référentiel |
 | `sortie/CR_<ECH>.pdf` | compte rendu en français, deux pages : médicaments, résultats par gène, positions complémentaires, typage complémentaire (PyPGx), conclusion, limites |
 | `sortie/provenance.json` | hash des entrées, digests et versions des images, seuils, état de chaque étage |
 | `travail/perimetre.json` | par gène : positions attendues, retenues, perdues, statut |
-| `travail/qc_positions.tsv` | une ligne par position diagnostique, ce qui a été lu |
+| `travail/qc_positions.tsv` | une ligne par position diagnostique : ce qui a été lu, et de quoi rejouer la décision à d'autres seuils |
 | `travail/etats.tsv` | l'état et la durée de chaque étage |
+
+Les trois tables séparent ce qui a été mesuré de ce qu'un référentiel en dit :
+le génotype se conserve, l'annotation se refait quand le référentiel change.
+
+| Question | Réponse |
+|---|---|
+| Clé de jointure | `hgnc_id` (`ressources/genes_hgnc.json`) ; le symbole reste à côté, pour la lecture |
+| Statut d'un génotype | `rendu`, `reserve` (positions non lues, comptées dans `motif`), `ambigu` (toutes les lectures, séparées par ` \| `), `non_rendu` |
+| rsID | donné quand il existe ; 21 positions des gènes du périmètre n'en ont pas, la clé d'un variant est donc `chrom`, `pos`, `ref`, `alt` |
+| CYP2D6, HLA-A, HLA-B | aucune ligne de variant : l'appel vient de Cyrius et d'OptiType, pas du fichier de variants |
+| Variant vu puis écarté | listé avec `retenue` à `non` et le motif du contrôle qualité |
+| Périmètre | celui du compte rendu, par la même logique : les deux ne peuvent pas se contredire |
 
 Un compte rendu complet, contexte épilepsie : les médicaments concernés en tête,
 les treize gènes du périmètre, les positions du core panel rendues en génotype
@@ -382,6 +402,11 @@ est dans ce cas, et son diplotype vient d'un outil dédié. Le filtrage de
 l'appelant peut être ignoré par `--ignorer-filtre`, à n'utiliser que si le fichier
 de variants a déjà été refiltré en amont.
 
+Quand une position porte plusieurs enregistrements, tous sont jugés et un seul
+écarté suffit à écarter la position : l'interpréteur les lit tous. La profondeur
+est celle de l'alignement ; celle que déclare le fichier de variants ne la
+remplace jamais.
+
 Le contrôle marque aussi chaque gène comme appartenant ou non au **périmètre
 clinique**, les treize gènes du sous-ensemble RNPGx : cette distinction commande
 ce que le compte rendu rapporte. Il mesure enfin les deux conditions d'emploi qui
@@ -400,9 +425,11 @@ dédié lit l'alignement complet et rend un diplotype. L'étage échoue si l'out
 résultat**, qui n'est pas un échec : le gène est rendu non analysé, et le module
 reste en réussite complète.
 
-Deux situations donnent ce résultat. L'outil peut ne rendre aucun diplotype, sur
+Trois situations donnent ce résultat. L'outil peut rendre un diplotype qu'il ne
+valide pas lui-même, son filtre valant autre chose que `PASS` : sur un nombre de
+copies élevé et mal établi, par exemple. Il peut ne rendre aucun diplotype, sur
 un locus trop remanié : sur ce benchmark, un génome porte onze copies du locus avec
-sept hybrides en série. Il peut aussi rendre plusieurs lectures possibles, qu'il
+sept hybrides en série. Il peut enfin rendre plusieurs lectures possibles, qu'il
 sépare par un point-virgule. Elles ne sont **pas** transmises à l'interpréteur. En
 choisir une serait affirmer ce que l'outil n'a pas dit, et les phénotypes diffèrent
 d'une lecture à l'autre ; l'interpréteur refuse d'ailleurs une telle ligne et
@@ -415,8 +442,9 @@ tranche et typées séparément. L'étage échoue en dessous de deux cents paire
 par PyPGx, qui lit la région entière du gène : l'étage lui prépare une extraction
 distincte, sans toucher au fichier qualifié. Sur une région non couverte, le typeur
 rend « Reference » sans lever d'erreur ; un gène n'est donc rendu que si toutes ses
-positions définissantes sont lues au-dessus du seuil **et** qualifiées selon le
-critère de l'étage 2b, sinon non conclusif. Le génotype est reconstruit depuis les
+positions définissantes sont lues au-dessus du seuil **et** retenues par la
+fonction de jugement de l'étage 2b, sinon non conclusif. Seul l'équilibre
+allélique est levé sur MT-RNR1, où une fraction est une hétéroplasmie. Le génotype est reconstruit depuis les
 deux haplotypes, non depuis le diplotype du typeur, qui n'en garde qu'un allèle par
 haplotype. Un typeur qui ne s'exécute pas fait échouer l'étage : c'est une panne
 d'installation, pas une limite de la donnée.
@@ -575,12 +603,13 @@ résultats, sans relire un seul alignement :
 python3 bin/sensibilite_seuils.py --lot /chemin/resultats --sortie /chemin/analyse
 ```
 
-Le script relit les `qc_positions.tsv` du lot et recompte, pour chaque couple de
-seuils, combien de gènes sortent complets, sous réserve ou sans résultat. Il nomme
+Le script relit les `qc_positions.tsv` du lot et rejoue, par la fonction de
+l'étage 2b, combien de gènes sortent complets, sous réserve ou sans résultat à
+chaque couple de seuils. Aux seuils par défaut, il rend le périmètre de l'étage. Il nomme
 aussi les positions dont la qualité est juste au-dessus du seuil : ce sont elles
 qui basculent en premier.
 
-Mesuré sur cent cinq génomes de ce benchmark, la profondeur pèse environ huit fois plus
+Mesuré sur 243 génomes de ce benchmark, la profondeur pèse près de neuf fois plus
 que la qualité de génotype. Passer la profondeur de dix à vingt coûte treize points
 de gènes complets, quand passer la qualité de vingt à trente n'en coûte qu'un et
 demi. Le seuil de qualité par défaut n'est donc pas au bord d'une falaise, celui de
