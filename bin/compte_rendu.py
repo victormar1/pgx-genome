@@ -13,7 +13,7 @@ Regles de securite :
  3. aucune recommandation n'est tue faute de traduction : le texte source est alors rendu,
     signale comme tel.
 """
-import argparse, csv, html, json, os, re, sys, datetime
+import argparse, csv, json, os, sys, datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib import colors
@@ -24,6 +24,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cr_logique as L   # la logique, testable, sans mise en page
+from qc_perimetre import RETENUS
 _p = argparse.ArgumentParser(description="Compte rendu pharmacogenetique, francais.")
 _p.add_argument("--rapport", required=True, help="le JSON produit par PharmCAT")
 _p.add_argument("--perimetre", required=True, help="perimetre.json produit par le controle qualite")
@@ -37,17 +38,9 @@ _p.add_argument("--echantillon", default="")
 # JSON a deux cles, « patient » et « naissance ».
 _p.add_argument("--identite", default="",
                 help="JSON {patient, naissance, contexte} fourni par le SIL ; "
-                     "a preferer aux arguments suivants, et leve la mention prototype")
-_p.add_argument("--patient", default="",
-                help="deconseille : visible dans la table des processus")
-_p.add_argument("--naissance", default="",
-                help="deconseille : visible dans la table des processus")
+                     "leve la mention prototype")
 _p.add_argument("--contexte", default="", help="preindication PFMG, par ex. « néphropathies »")
 _p.add_argument("--traductions", default=os.path.join(RACINE, "ressources", "traductions_cpic_fr.json"))
-_p.add_argument("--sans-mention-prototype", action="store_true",
-                help="a utiliser pour un vrai patient ; par defaut, mention prototype 1000 Genomes")
-_p.add_argument("--typage-complementaire", default=None,
-                help="pypgx.tsv produit par l'etage 4b ; par defaut cherche a cote du perimetre")
 _a = _p.parse_args()
 SRC, OUT = _a.rapport, _a.sortie
 ECH = _a.echantillon or os.path.basename(SRC).split(".")[0]
@@ -60,55 +53,42 @@ if os.path.exists(_vf):
     with open(_vf, encoding="utf-8") as _fh:
         VERSION_MODULE = _fh.read().strip()
 
-PATIENT, NAISSANCE, _id = _a.patient, _a.naissance, {}
+_id = {}
 if _a.identite:
     with open(_a.identite, encoding="utf-8") as _fh:
         _id = json.load(_fh)
-    PATIENT = _id.get("patient", "") or PATIENT
-    NAISSANCE = _id.get("naissance", "") or NAISSANCE
-elif PATIENT or NAISSANCE:
-    sys.stderr.write("avertissement : identite passee en argument, donc visible"
-                     " dans la table des processus ; utiliser --identite\n")
+try:
+    PATIENT, NAISSANCE, proto = L.identite(bool(_a.identite), _id)
+except ValueError as _e:
+    sys.exit("compte rendu refuse : %s (%s)" % (_e, _a.identite))
 TR = json.load(open(_a.traductions, encoding="utf-8"))
 MEDS = TR["medicaments_restitues"]
 
 
-def _perimetre(rapport):
-    global META
-    META = json.load(open(_a.perimetre, encoding="utf-8"))
-    return L.perimetre(rapport, META)
-
-
-META = {}
+META = json.load(open(_a.perimetre, encoding="utf-8"))
 rep = json.load(open(SRC, encoding="utf-8"))
 genes = rep["genes"]
-MESURES, ABSENTS, RESERVES = _perimetre(rep)
+MESURES, ABSENTS, RESERVES = L.perimetre(rep, META)
 COMPLEMENT = META.get("complement_rnpgx") or []
 
-# Typage complementaire (etage 4b). MT-RNR1 est deja restitue plus haut : son
-# allele est passe par l'interpreteur, qui lui attache la recommandation CPIC.
-# Les trois autres genes n'ont pas de table clinique, et ne sortent donc qu'avec
-# un allele nomme, dit comme tel.
-_tc = _a.typage_complementaire or os.path.join(os.path.dirname(os.path.abspath(_a.perimetre)), "pypgx.tsv")
+# Typage complementaire (etage 4b), lu a cote du perimetre. MT-RNR1 est deja
+# restitue plus haut : son allele est passe par l'interpreteur, qui lui attache
+# la recommandation CPIC. Les trois autres genes n'ont pas de table clinique, et
+# ne sortent donc qu'avec un allele nomme, dit comme tel.
+_tc = os.path.join(os.path.dirname(os.path.abspath(_a.perimetre)), "pypgx.tsv")
 TYPAGE = []
 if os.path.exists(_tc):
     with open(_tc, encoding="utf-8") as _fh:
         TYPAGE = list(csv.DictReader(_fh, delimiter="\t"))
 
 # ---------------------------------------------- libelles et logique
-# Tables et regles vivent dans cr_logique ; on les reprend sous leurs noms
-# d'origine pour que la mise en page ci-dessous reste inchangee.
-PHENO_FR, CYP3A5_EXPR = L.PHENO_FR, L.CYP3A5_EXPR
-FORCE_FR, RESTITUES = L.FORCE_FR, L.RESTITUES
-STATINES, AMINOSIDES, NORMAUX = L.STATINES, L.AMINOSIDES, L.NORMAUX
-e_, norm = L.e_, L.norm
-ordre_med = lambda n: (n == "fosphenytoin", MEDS[n])   # phenytoine avant fosphenytoine
+# Tables et regles vivent dans cr_logique.
+e_ = L.e_
+pl = lambda n: "s" if n > 1 else ""
 
 
-diplotypes = lambda sym: L.diplotypes(genes, sym)
 libelle = lambda sym: L.libelle(genes, sym)
 phenotype = lambda sym: L.phenotype(genes, sym)
-gene_normal = lambda sym: L.gene_normal(genes, sym)
 AMBIGUS = L.ambigus(genes, MESURES)
 
 
@@ -116,50 +96,33 @@ AMBIGUS = L.ambigus(genes, MESURES)
 brutes = L.recommandations(rep, genes, MESURES, AMBIGUS, TR, MEDS)
 par_med = L.par_medicament(brutes)
 
-# regroupe les medicaments a consigne identique (IPP, phenytoine/fosphenytoine) ; statines sur une ligne
-lignes, vus = [], set()
-for nom, d in sorted(par_med.items(), key=lambda kv: (kv[1]["sev"], MEDS[kv[0]])):
-    if nom in vus:
-        continue
-    if nom in STATINES and sum(n in STATINES for n in par_med) > 1:
-        grp = [n for n in sorted(par_med, key=lambda n: (par_med[n]["sev"], MEDS[n])) if n in STATINES]
-        vus |= set(grp)
-        lignes.append({"noms": ["statines"], "sev": min(par_med[n]["sev"] for n in grp),
-                       "action": "<br/>".join(f"<b>{MEDS[n]}</b> : {e_(' '.join(par_med[n]['fr']))}"
-                                              + ("" if par_med[n]['source'] == ["CPIC, forte"] else
-                                                 f" <font color='#666666'>({par_med[n]['source'][0].split(', ')[-1]})</font>")
-                                              for n in grp),
-                       "genes": set().union(*(par_med[n]["genes"] for n in grp)),
-                       "source": "CPIC", "pmid": set().union(*(par_med[n]["pmid"] for n in grp)),
-                       "ok": all(par_med[n]["ok"] for n in grp), "meds": grp})
-        continue
-    if nom in AMINOSIDES and sum(n in AMINOSIDES for n in par_med) > 1:
-        grp = sorted((n for n in par_med if n in AMINOSIDES), key=lambda n: MEDS[n])
-        vus |= set(grp)
-        lignes.append({"noms": ["aminosides"], "sev": min(par_med[n]["sev"] for n in grp),
-                       "action": e_(" ".join(d["fr"]))
-                                 + "<br/><font color='#666666'>Concerne : "
-                                 + e_(", ".join(MEDS[n] for n in grp)) + ".</font>",
-                       "genes": set().union(*(par_med[n]["genes"] for n in grp)),
-                       "source": " ; ".join(d["source"]),
-                       "pmid": set().union(*(par_med[n]["pmid"] for n in grp)),
-                       "ok": all(par_med[n]["ok"] for n in grp), "meds": grp})
-        continue
-    freres = [n for n, x in par_med.items() if n not in vus and n not in STATINES
-              and n not in AMINOSIDES
-              and x["fr"] == d["fr"] and x["genes"] == d["genes"] and x["source"] == d["source"]]
-    vus |= set(freres)
-    lignes.append({"noms": [MEDS[n] for n in sorted(freres, key=ordre_med)], "sev": d["sev"],
-                   "action": e_(" ".join(d["fr"])), "genes": d["genes"], "source": " ; ".join(d["source"]),
-                   "pmid": set().union(*(par_med[n]["pmid"] for n in freres)), "ok": d["ok"],
-                   "meds": sorted(freres, key=ordre_med)})
+# Le regroupement est decide par cr_logique ; ici, seulement sa mise en forme.
+lignes = []
+for g in L.regrouper(par_med, MEDS):
+    grp, d = g["meds"], par_med[g["tete"]]
+    if g["classe"] == "statines":
+        noms, source = ["statines"], "CPIC"
+        action = "<br/>".join(f"<b>{MEDS[n]}</b> : {e_(' '.join(par_med[n]['fr']))}"
+                              + ("" if par_med[n]['source'] == ["CPIC, forte"] else
+                                 f" <font color='#666666'>({par_med[n]['source'][0].split(', ')[-1]})</font>")
+                              for n in grp)
+    else:
+        noms, source = [MEDS[n] for n in grp], " ; ".join(d["source"])
+        action = e_(" ".join(d["fr"]))
+        if g["classe"] == "aminosides":
+            noms = ["aminosides"]
+            action += ("<br/><font color='#666666'>Concerne : "
+                       + e_(", ".join(MEDS[n] for n in grp)) + ".</font>")
+    lignes.append({"noms": noms, "sev": g["sev"], "action": action, "genes": g["genes"],
+                   "source": source, "pmid": g["pmid"], "ok": g["ok"], "meds": grp,
+                   "classe": g["classe"]})
 
 MED_PAR_GENE = {}
 for l in lignes:
     for g in l["genes"]:
         # Une ligne groupee est citee par son nom de classe dans le tableau des
         # genes : y reciter les onze molecules noierait la conclusion.
-        if len(l["noms"]) == 1 and len(l["meds"]) > 1:
+        if l["classe"]:
             MED_PAR_GENE.setdefault(g, []).append((l["sev"], l["noms"][0]))
             continue
         for n in l["meds"]:
@@ -202,7 +165,6 @@ def tableau(rows, widths, fonds=None):
 
 # ------------------------------------------------------------------ document
 h = [Paragraph("COMPTE RENDU DE PHARMACOGÉNÉTIQUE", st_titre), Spacer(1, 4)]
-proto = L.mention_prototype(_a.sans_mention_prototype, bool(_a.identite))
 CONTEXTE = L.contexte(_id, _a.contexte)
 ident = []
 if PATIENT:
@@ -260,8 +222,7 @@ for g in ordre:
         cons = "Pas de modification de la prise en charge."
     if g in RESERVES:
         n, tot = RESERVES[g]
-        cons += (f" Sous réserve : {n} position{'s' if n > 1 else ''} non lue"
-                 f"{'s' if n > 1 else ''} sur {tot}.")
+        cons += f" Sous réserve : {n} position{pl(n)} non lue{pl(n)} sur {tot}."
     rows.append([Paragraph(g, st_gras), Paragraph(e_(libelle(g)), st_corps),
                  Paragraph(e_(phenotype(g)), st_corps), Paragraph(cons, st_corps)])
 _TYPE_RENDU = {r["gene"]: r for r in TYPAGE if r.get("statut") == "rendu"}
@@ -296,7 +257,7 @@ COMPLEMENT = [x for x in COMPLEMENT if x["gene"] not in _TYPES_OK]
 if COMPLEMENT:
     ref = [x for x in COMPLEMENT if x["genotype"] == "référence"]
     var = [x for x in COMPLEMENT if x not in ref and x["statut"] in ("mesuree", "couverture seule")]
-    perdu = [x for x in COMPLEMENT if x["statut"] not in ("mesuree", "reference, lue", "couverture seule")]
+    perdu = [x for x in COMPLEMENT if x["statut"] not in RETENUS]
     h.append(Paragraph("POSITIONS DU CORE PANEL RNPGx HORS PÉRIMÈTRE INTERPRÉTÉ", st_section))
     if var:
         rows = [[Paragraph(x, st_tete) for x in ("Gène", "Variant", "Classe", "Génotype", "Commentaire")]]
@@ -305,9 +266,9 @@ if COMPLEMENT:
                          Paragraph(str(x["classe"] or "—"), st_corps), Paragraph(e_(x["genotype"]), st_gras),
                          Paragraph(e_(x["note"]), st_petit)])
         h.append(tableau(rows, [20, 24, 14, 22, 90]))
-    resume = (f"{len(ref)} position{'s' if len(ref) > 1 else ''} à l'état de référence"
+    resume = (f"{len(ref)} position{pl(len(ref))} à l'état de référence"
               if ref else "") + (" ; " if ref and perdu else "") + (
-              f"{len(perdu)} non mesurée{'s' if len(perdu) > 1 else ''} "
+              f"{len(perdu)} non mesurée{pl(len(perdu))} "
               + "(" + ", ".join(sorted({x['rsid'] for x in perdu})) + ")" if perdu else "")
     h.append(Paragraph(
         (resume + ". " if resume else "")
@@ -351,12 +312,11 @@ if _MT and _MT.get("heteroplasmie") == "True":
 
 # --- 3. conclusion
 h.append(Paragraph("CONCLUSION", st_section))
-_cite = lambda l: ([l["noms"][0]] if len(l["noms"]) == 1 and len(l["meds"]) > 1
-                   else [MEDS[n] for n in l["meds"]])
+_cite = lambda l: l["noms"] if l["classe"] else [MEDS[n] for n in l["meds"]]
 tous = [n for l in lignes for n in _cite(l)]
 ci = [n for l in lignes if l["sev"] == 0 for n in _cite(l)]
 if tous:
-    txt = (f"{len(tous)} médicament{'s' if len(tous) > 1 else ''} avec une recommandation pharmacogénétique "
+    txt = (f"{len(tous)} médicament{pl(len(tous))} avec une recommandation pharmacogénétique "
            f"directement actionnable dans le périmètre testé : {', '.join(tous)}. "
            + (f"<b>Contre-indication : {', '.join(ci)}.</b> " if ci else "")
            + "Les adaptations proposées doivent être intégrées au contexte clinique, aux interactions "
@@ -381,8 +341,7 @@ limites = [
 if RESERVES:
     limites.append(
         "Sous réserve pour "
-        + ", ".join(f"{g} ({n} sur {tot} position{'s' if tot > 1 else ''} non lue"
-                    f"{'s' if n > 1 else ''})"
+        + ", ".join(f"{g} ({n} sur {tot} position{pl(tot)} non lue{pl(n)})"
                     for g, (n, tot) in sorted(RESERVES.items()))
         + " : un allèle défini par l'une de ces positions n'aurait pas été vu. "
           "Plus la part de positions perdues est grande, moins le diplotype "

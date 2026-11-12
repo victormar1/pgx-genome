@@ -171,6 +171,21 @@ class Perimetre(unittest.TestCase):
         rendus, _, _ = L.perimetre(rap, meta)
         self.assertEqual(rendus, ["MT-RNR1"])
 
+    def test_un_gene_que_le_controle_qualite_n_a_pas_mesure_n_est_pas_rendu(self):
+        # L'interpreteur l'appelle depuis le fichier de variants, et rien ne dit
+        # que ses positions ont ete lues : le rendre sans reserve serait
+        # affirmer une mesure qui n'a pas eu lieu.
+        rap = {"genes": {"TPMT": gene(labels=["*1/*1"])}}
+        meta = {"perimetre_clinique": ["TPMT"], "genes": {}}
+        rendus, absents, reserves = L.perimetre(rap, meta)
+        self.assertEqual((rendus, reserves), ([], {}))
+        self.assertEqual(absents, [("TPMT", "non mesuré par le contrôle qualité")])
+
+    def test_un_appel_externe_n_a_pas_de_positions_a_mesurer(self):
+        rap = {"genes": {"CYP2D6": gene(labels=["*1/*4"], source="OUTSIDE")}}
+        meta = {"perimetre_clinique": ["CYP2D6"], "genes": {}}
+        self.assertEqual(L.perimetre(rap, meta)[0], ["CYP2D6"])
+
     def test_diplotype_inconnu_n_est_pas_rendu(self):
         rap = {"genes": {"TPMT": gene(labels=["Unknown/Unknown"])}}
         meta = {"perimetre_clinique": ["TPMT"],
@@ -282,6 +297,28 @@ class Recommandations(unittest.TestCase):
         self.assertEqual(b[0][2], "Texte inedit de CPIC.")
         self.assertFalse(b[0][7])          # marque comme non traduit
 
+    def test_un_texte_inconnu_sort_meme_sans_indicateur_d_adaptation(self):
+        # Sans traduction, rien ne dit qu'il s'agit d'une dose standard : le
+        # tenir pour tel ferait disparaitre une consigne forte sans une ligne.
+        rep = rapport({"codeine": [annotation(
+            "Strong", {"CYP2D6": "Poor Metabolizer"}, "Texte inedit de CPIC.")]})
+        b = self.selection(rep)
+        self.assertEqual([(x[1], x[2], x[7]) for x in b],
+                         [("codeine", "Texte inedit de CPIC.", False)])
+
+    def test_une_annotation_sans_texte_n_est_pas_une_consigne(self):
+        rep = rapport({"codeine": [annotation(
+            "Strong", {"CYP2D6": "Poor Metabolizer"}, "", dosingInformation=True)]})
+        self.assertEqual(self.selection(rep), [])
+
+    def test_un_rapport_sans_annotations_cpic_n_est_pas_un_rapport_sans_consigne(self):
+        # La cle absente signale un rapport d'un autre format : le lire comme
+        # « aucune recommandation » rendrait un document rassurant et faux.
+        with self.assertRaises(ValueError):
+            self.selection({"drugs": {}})
+        with self.assertRaises(ValueError):
+            self.selection({})
+
     def test_la_regle_hla_hors_interpreteur_s_applique(self):
         # HLA-B*15:11 est de classe 1 au RNPGx et l'interpreteur ne l'evalue
         # pas : sans cette regle, un porteur ne recevrait aucune consigne.
@@ -314,6 +351,24 @@ class ParMedicament(unittest.TestCase):
                               self.brut(0, "codeine", "Ne pas prescrire")])
         self.assertEqual(d["codeine"]["sev"], 0)
         self.assertEqual(d["codeine"]["fr"], ["Ne pas prescrire"])
+
+    def test_un_texte_non_traduit_ne_disparait_pas_derriere_une_consigne_plus_severe(self):
+        # Sa severite n'est pas connue : il est range par defaut, et la consigne
+        # traduite du meme medicament l'effacerait avec son gene.
+        inconnu = (2, "codeine", "Contraindicated: do not use.", "adaptation",
+                   "CPIC, forte", ("Y",), "456", False)
+        for ordre in ([self.brut(1, "codeine", "Eviter"), inconnu],
+                      [inconnu, self.brut(1, "codeine", "Eviter")]):
+            d = L.par_medicament(ordre)["codeine"]
+            self.assertEqual(d["sev"], 1)
+            self.assertEqual(d["fr"], ["Eviter", "Contraindicated: do not use."])
+            self.assertEqual(d["genes"], {"X", "Y"})
+            self.assertFalse(d["ok"])
+
+    def test_une_consigne_traduite_moins_severe_reste_ecartee(self):
+        d = L.par_medicament([self.brut(1, "codeine", "Eviter"),
+                              self.brut(2, "codeine", "Adapter", genes=("Y",))])["codeine"]
+        self.assertEqual((d["fr"], d["genes"], d["ok"]), (["Eviter"], {"X"}, True))
 
     def test_a_severite_egale_les_textes_distincts_s_additionnent(self):
         # Deux genes peuvent concourir au meme medicament pour des raisons
@@ -390,14 +445,20 @@ class EnTete(unittest.TestCase):
     """Un compte rendu de patient ne doit pas pouvoir sortir avec la mention
     « ne concerne aucun patient » : elle tombe avec l'identite, sans option."""
 
-    def test_sans_identite_le_document_est_un_prototype(self):
-        self.assertTrue(L.mention_prototype(False, False))
+    def test_sans_fichier_d_identite_le_document_est_un_prototype(self):
+        self.assertEqual(L.identite(False, {}), ("", "", True))
 
     def test_l_identite_leve_la_mention(self):
-        self.assertFalse(L.mention_prototype(False, True))
+        self.assertEqual(L.identite(True, {"patient": "DUPONT Jean", "naissance": "01/02/1960"}),
+                         ("DUPONT Jean", "01/02/1960", False))
 
-    def test_l_option_la_leve_aussi(self):
-        self.assertFalse(L.mention_prototype(True, False))
+    def test_un_fichier_d_identite_sans_patient_est_une_entree_cassee(self):
+        # Il levait la mention prototype sans nommer personne : un document
+        # sans patient et sans mention, donc attribuable a n'importe qui.
+        for contenu in ({}, {"patient": ""}, {"patient": "   "}, {"naissance": "01/02/1960"},
+                        {"patient": None}):
+            with self.assertRaises(ValueError):
+                L.identite(True, contenu)
 
     def test_le_contexte_vient_du_fichier_d_identite(self):
         self.assertEqual(L.contexte({"contexte": "néphropathies"}, ""), "néphropathies")
@@ -405,6 +466,75 @@ class EnTete(unittest.TestCase):
     def test_l_argument_vaut_quand_le_fichier_n_en_porte_pas(self):
         self.assertEqual(L.contexte({"patient": "X"}, "épilepsie"), "épilepsie")
         self.assertEqual(L.contexte(None, ""), "")
+
+
+class Regroupement(unittest.TestCase):
+    """Quels medicaments partagent une ligne. Un medicament range par erreur
+    dans une ligne qui n'existe pas sort du document sans son nom."""
+
+    MEDS = {"rosuvastatin": "rosuvastatine", "atorvastatin": "atorvastatine",
+            "amikacin": "amikacine", "gentamicin": "gentamicine",
+            "phenytoin": "phénytoïne", "fosphenytoin": "fosphénytoïne",
+            "codeine": "codéine", "tramadol": "tramadol"}
+
+    @staticmethod
+    def med(sev, fr, genes=("G",), source="CPIC, forte", pmid="1", ok=True):
+        return {"sev": sev, "fr": [fr], "type": "adaptation", "source": [source],
+                "genes": set(genes), "pmid": {pmid}, "ok": ok}
+
+    def groupes(self, par_med):
+        return [(g["classe"], g["meds"]) for g in L.regrouper(par_med, self.MEDS)]
+
+    def test_une_statine_seule_garde_sa_ligne(self):
+        self.assertEqual(self.groupes({"rosuvastatin": self.med(2, "Limiter")}),
+                         [(None, ["rosuvastatin"])])
+
+    def test_deux_statines_partagent_une_ligne(self):
+        g = L.regrouper({"rosuvastatin": self.med(2, "A", pmid="1"),
+                         "atorvastatin": self.med(1, "B", genes=("H",), pmid="2",
+                                                  ok=False)}, self.MEDS)
+        self.assertEqual(len(g), 1)
+        self.assertEqual(g[0]["classe"], "statines")
+        # la plus severe en tete, et la ligne porte la severite la plus forte
+        self.assertEqual(g[0]["meds"], ["atorvastatin", "rosuvastatin"])
+        self.assertEqual(g[0]["sev"], 1)
+        self.assertEqual(g[0]["genes"], {"G", "H"})
+        self.assertEqual(g[0]["pmid"], {"1", "2"})
+        self.assertFalse(g[0]["ok"])
+
+    def test_un_aminoside_seul_garde_sa_ligne(self):
+        self.assertEqual(self.groupes({"amikacin": self.med(1, "Eviter")}),
+                         [(None, ["amikacin"])])
+
+    def test_deux_aminosides_partagent_une_ligne(self):
+        self.assertEqual(self.groupes({"gentamicin": self.med(1, "Eviter"),
+                                       "amikacin": self.med(1, "Eviter")}),
+                         [("aminosides", ["amikacin", "gentamicin"])])
+
+    def test_une_meme_consigne_reunit_deux_medicaments(self):
+        g = L.regrouper({"fosphenytoin": self.med(0, "Ne pas prescrire", pmid="2"),
+                         "phenytoin": self.med(0, "Ne pas prescrire", pmid="1")},
+                        self.MEDS)
+        self.assertEqual([x["meds"] for x in g], [["phenytoin", "fosphenytoin"]])
+        self.assertEqual(g[0]["pmid"], {"1", "2"})
+
+    def test_une_statine_ne_rejoint_pas_un_autre_medicament(self):
+        # Meme consigne, memes genes, meme source : la statine, seule de sa
+        # classe, reste pourtant sur sa propre ligne.
+        self.assertEqual(self.groupes({"codeine": self.med(1, "Idem"),
+                                       "rosuvastatin": self.med(1, "Idem")}),
+                         [(None, ["codeine"]), (None, ["rosuvastatin"])])
+
+    def test_des_consignes_differentes_restent_separees(self):
+        # le plus severe d'abord, et non l'ordre alphabetique
+        self.assertEqual(self.groupes({"codeine": self.med(2, "Adapter"),
+                                       "tramadol": self.med(0, "Contre-indiquer")}),
+                         [(None, ["tramadol"]), (None, ["codeine"])])
+
+    def test_des_genes_differents_separent_une_meme_consigne(self):
+        self.assertEqual(len(L.regrouper(
+            {"tramadol": self.med(1, "Idem", genes=("A",)),
+             "codeine": self.med(1, "Idem", genes=("B",))}, self.MEDS)), 2)
 
 
 if __name__ == "__main__":

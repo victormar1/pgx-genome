@@ -103,8 +103,12 @@ def perimetre(rapport, meta):
         if not appele:
             absents.append((sym, "aucun diplotype rendu" if v
                             else "non appelable depuis le fichier de variants"))
-        elif e.get("callSource") == "OUTSIDE" or v is None or statut == "complet":
+        elif e.get("callSource") == "OUTSIDE" or statut == "complet":
             rendus.append(sym)
+        elif v is None:
+            # Appele depuis le fichier de variants sans que le controle qualite
+            # ait mesure ses positions : rien ne dit qu'elles ont ete lues.
+            absents.append((sym, "non mesuré par le contrôle qualité"))
         elif statut == "partiel":
             rendus.append(sym)
             # La reserve porte son denominateur : perdre quatre positions sur
@@ -199,7 +203,12 @@ def recommandations(rep, genes, mesures, les_ambigus, tr, meds):
     et non ambigus : un diplotype ambigu ne declenche aucune conduite.
     """
     brutes = []
-    for nom, m in rep["drugs"].get("CPIC Guideline Annotation", {}).items():
+    # La cle absente signale un rapport d'un autre format : le lire comme
+    # « aucune recommandation » rendrait un document rassurant et faux.
+    cpic = (rep.get("drugs") or {}).get("CPIC Guideline Annotation")
+    if cpic is None:
+        raise ValueError("rapport sans annotations CPIC : format inattendu")
+    for nom, m in cpic.items():
         if nom not in meds:
             continue
         cites = sorted(m.get("citations") or [], key=lambda c: c.get("year") or 0)
@@ -222,14 +231,16 @@ def recommandations(rep, genes, mesures, les_ambigus, tr, meds):
                         if not gene_normal(genes, g) and not v.endswith("negative")] \
                     or [g for g, _ in cle]
                 src = norm(a.get("drugRecommendation", ""))
+                if not src:
+                    continue
                 t = tr["traductions"].get(src)
                 if t:
                     fr, ty, ok = t["fr"], t["type"], True
                 else:
-                    # texte inconnu de la ressource : rendu tel quel, jamais tu
-                    fr, ok = src, False
-                    ty = "adaptation" if (a.get("alternateDrugAvailable")
-                                          or a.get("dosingInformation")) else "standard"
+                    # Texte inconnu de la ressource : rendu tel quel, jamais tu.
+                    # Sans traduction, rien ne dit qu'il s'agit d'une dose
+                    # standard, et c'est la seule categorie qui se tait.
+                    fr, ty, ok = src, "adaptation", False
                 if ty in RESTITUES:
                     brutes.append((RESTITUES[ty], nom, fr, ty,
                                    "CPIC, %s" % FORCE_FR[cl],
@@ -249,13 +260,19 @@ def recommandations(rep, genes, mesures, les_ambigus, tr, meds):
 
 
 # ------------------------------------------------------------- en-tete du CR
-def mention_prototype(sans_mention, identite_fournie):
-    """Un document etabli pour un patient identifie n'est pas un prototype.
+def identite(fournie, contenu):
+    """(patient, date de naissance, mention prototype).
 
-    La mention tombe des que l'identite est fournie, sans option a ajouter :
-    une option oubliee par la plateforme ferait sortir un compte rendu de
-    patient portant « ne concerne aucun patient »."""
-    return not (sans_mention or identite_fournie)
+    Un document etabli pour un patient identifie n'est pas un prototype : la
+    mention tombe avec le fichier d'identite, sans option a ajouter, qui serait
+    une option oubliee. Un fichier qui ne nomme personne est une entree cassee :
+    il leverait la mention sur un document attribuable a n'importe qui."""
+    if not fournie:
+        return "", "", True
+    patient = str(contenu.get("patient") or "").strip()
+    if not patient:
+        raise ValueError("fichier d'identite sans patient")
+    return patient, str(contenu.get("naissance") or "").strip(), False
 
 
 def contexte(identite, argument):
@@ -287,4 +304,57 @@ def par_medicament(brutes):
             cur["genes"] |= set(b[5])
             cur["pmid"] |= {b[6]} - {""}
             cur["ok"] &= b[7]
+    # Un texte non traduit n'a pas de severite connue : range par defaut, il
+    # serait efface par une consigne traduite du meme medicament. Il la rejoint.
+    for b in sorted(brutes):
+        cur = par_med[b[1]]
+        if not b[7] and b[2] not in cur["fr"]:
+            cur["fr"].append(b[2])
+            cur["genes"] |= set(b[5])
+            cur["ok"] = False
     return par_med
+
+
+def regrouper(par_med, meds):
+    """Les lignes du tableau des medicaments, sans mise en page.
+
+    Les statines et les aminosides partagent une ligne quand ils sont plusieurs ;
+    seul de sa classe, un medicament garde la sienne, donc son nom. Les autres
+    se regroupent quand ils portent la meme consigne, pour les memes genes et
+    de la meme source. L'ordre est celui du document : le plus severe d'abord.
+
+    Chaque groupe porte `tete`, le medicament dont la consigne fait foi pour
+    la ligne, et `meds`, dans l'ordre ou ils sont cites.
+    """
+    ordre = lambda n: (par_med[n]["sev"], meds[n])
+    cite = lambda n: (n == "fosphenytoin", meds[n])   # phenytoine d'abord
+    classes = (("statines", STATINES, ordre), ("aminosides", AMINOSIDES, meds.get))
+    groupes, vus = [], set()
+    for nom in sorted(par_med, key=ordre):
+        if nom in vus:
+            continue
+        d = par_med[nom]
+        for classe, membres, tri in classes:
+            grp = sorted((n for n in par_med if n in membres), key=tri)
+            if nom in membres and len(grp) > 1:
+                groupes.append({
+                    "classe": classe, "tete": nom, "meds": grp,
+                    "sev": min(par_med[n]["sev"] for n in grp),
+                    "genes": set().union(*(par_med[n]["genes"] for n in grp)),
+                    "pmid": set().union(*(par_med[n]["pmid"] for n in grp)),
+                    "ok": all(par_med[n]["ok"] for n in grp)})
+                break
+        else:
+            # Les classes groupees sont exclues des freres, pas le medicament
+            # lui-meme : seul de sa classe, il garde sa ligne et son nom.
+            grp = sorted((n for n, x in par_med.items() if n not in vus
+                          and (n == nom or (n not in STATINES and n not in AMINOSIDES))
+                          and x["fr"] == d["fr"] and x["genes"] == d["genes"]
+                          and x["source"] == d["source"]), key=cite)
+            groupes.append({
+                "classe": None, "tete": nom, "meds": grp, "sev": d["sev"],
+                "genes": d["genes"],
+                "pmid": set().union(*(par_med[n]["pmid"] for n in grp)),
+                "ok": d["ok"]})
+        vus |= set(grp)
+    return groupes
