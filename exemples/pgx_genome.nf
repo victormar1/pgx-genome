@@ -32,7 +32,8 @@
  *   1  l'etage a echoue ; l'echec est inscrit, la chaine continue, et le
  *      genome sortira sans reussite complete
  *   2  le genome est refuse, a l'entree ou apres le controle qualite ; aucun
- *      etage suivant ne tourne pour lui
+ *      etage suivant ne tourne pour lui. Le meme code dit une configuration
+ *      invalide, que la recette distingue : elle arrete alors tout
  *   3  un autre processus tient deja cet etage pour ce genome
  *
  * Eprouvee sous Nextflow 25.04 avec l'executeur local, sous Docker et sous
@@ -72,6 +73,15 @@ params.identites = null                       // dossier de fichiers d'identite
 
 // L'appel commun. Le code 1 est un echec inscrit : la chaine continue, comme en
 // execution complete. Les codes 2 et 3 remontent a l'ordonnanceur.
+//
+// Le code 2 dit un genome refuse, et aussi une configuration invalide : option
+// inconnue, moteur ou image absents. Un refus laisse sa marque dans le dossier
+// du genome ; sans elle c'est la configuration, qui vaut pour tout le lot, et le
+// code devient 64 pour que tout s'arrete au lieu d'ignorer les genomes un a un.
+// Une entree introuvable reste l'affaire de son seul genome : le manifeste d'un
+// lot peut porter une ligne fautive sans que les autres en patissent. La marque
+// d'une execution precedente est retiree avant la recevabilite, qui la reposera
+// s'il y a lieu : perimee, elle ferait ignorer une configuration invalide.
 def etage(String noms, String e, al, va, fils, String extra = '') {
     def env = [PGX_IMG_BCFTOOLS: params.img_bcftools, PGX_IMG_PHARMCAT: params.img_pharmcat,
                PGX_IMG_OPTITYPE: params.img_optitype, PGX_IMG_PYPGX: params.img_pypgx,
@@ -85,12 +95,15 @@ def etage(String noms, String e, al, va, fils, String extra = '') {
     export PGX_FILS='${fils}'
     ${env}
 
+    ${noms.startsWith('recevabilite') ? "rm -f '${params.sortie}/${e}/travail/arret.txt'" : ''}
     rc=0
     bash '${params.racine}/bin/pgx_genome.sh' \\
       --cram '${al}' --vcf '${va}' --fasta '${params.fasta}' \\
       --sortie '${params.sortie}/${e}' --echantillon '${e}' \\
       --etage '${noms}' ${extra} || rc=\$?
     [ "\$rc" -eq 1 ] && rc=0
+    if [ "\$rc" -eq 2 ] && [ ! -s '${params.sortie}/${e}/travail/arret.txt' ] \\
+       && [ -s '${al}' ] && [ -s '${va}' ]; then rc=64; fi
     exit "\$rc"
     """
 }
@@ -115,8 +128,8 @@ process OUVRIR {
     memory '2 GB'
     errorStrategy { strategie(task.exitStatus) }
     maxRetries 3
-    input:  tuple val(e), val(al), val(va)
-    output: tuple val(e), val(al), val(va)
+    input:  tuple val(e), val(al), val(va), val(empreinte)
+    output: tuple val(e), val(al), val(va), val(empreinte)
     script: etage('recevabilite,filtre,tranche', e, al, va, task.cpus)
 }
 
@@ -127,8 +140,8 @@ process CONTROLER {
     memory '1 GB'
     errorStrategy { strategie(task.exitStatus) }
     maxRetries 3
-    input:  tuple val(e), val(al), val(va)
-    output: tuple val(e), val(al), val(va)
+    input:  tuple val(e), val(al), val(va), val(empreinte)
+    output: tuple val(e), val(al), val(va), val(empreinte)
     script: etage('qc', e, al, va, task.cpus)
 }
 
@@ -141,7 +154,7 @@ process CYP2D6 {
     memory '1 GB'
     errorStrategy { strategie(task.exitStatus) }
     maxRetries 3
-    input:  tuple val(e), val(al), val(va)
+    input:  tuple val(e), val(al), val(va), val(empreinte)
     output: tuple val(e), val('cyp2d6')
     script: etage('cyp2d6', e, al, va, task.cpus)
 }
@@ -155,7 +168,7 @@ process HLA {
     memory '3 GB'
     errorStrategy { strategie(task.exitStatus) }
     maxRetries 3
-    input:  tuple val(e), val(al), val(va)
+    input:  tuple val(e), val(al), val(va), val(empreinte)
     output: tuple val(e), val('hla')
     script: etage('hla', e, al, va, task.cpus)
 }
@@ -169,7 +182,7 @@ process COMPLEMENT {
     memory '3 GB'
     errorStrategy { strategie(task.exitStatus) }
     maxRetries 3
-    input:  tuple val(e), val(al), val(va)
+    input:  tuple val(e), val(al), val(va), val(empreinte)
     output: tuple val(e), val('pypgx')
     script: etage('pypgx', e, al, va, task.cpus)
 }
@@ -184,7 +197,7 @@ process INTERPRETER {
     memory '2 GB'
     errorStrategy { strategie(task.exitStatus) }
     maxRetries 3
-    input:  tuple val(e), val(al), val(va)
+    input:  tuple val(e), val(al), val(va), val(empreinte)
     output: val(e)
     script:
     def ident = params.identites ? "--identite ${params.identites}/${e}.json" : ''
@@ -193,6 +206,9 @@ process INTERPRETER {
 
 process BILAN {
     publishDir "${params.sortie}", mode: 'copy'
+    // Le bilan lit les traces dans le dossier partage, que ses entrees ne
+    // decrivent pas : repris du cache, il redirait l'execution precedente.
+    cache false
     input:
     val(echantillons)
     val(attente)
@@ -224,13 +240,21 @@ workflow {
 
     // Chemins absolus : le module les lit lui-meme. Leurs index doivent les
     // accompagner, faute de quoi l'etage de recevabilite refuse le genome.
+    //
+    // Un chemin n'est qu'une chaine pour le cache de Nextflow : un alignement
+    // remplace au meme chemin serait repris de l'execution precedente sous
+    // -resume, sans que le module soit meme appele. La taille et la date des
+    // deux entrees accompagnent donc le genome, avec la version du module : un
+    // fichier change ou un module mis a jour relance toute la chaine.
+    def version = file("${params.racine}/VERSION").text.trim()
     genomes = Channel
         .fromPath(params.manifeste)
         .splitCsv(sep: '\t')
         .map { ligne ->
-            tuple(ligne[0],
-                  file(ligne[1]).toAbsolutePath().toString(),
-                  file(ligne[2]).toAbsolutePath().toString())
+            def (al, va) = [file(ligne[1]), file(ligne[2])]
+            tuple(ligne[0], al.toAbsolutePath().toString(), va.toAbsolutePath().toString(),
+                  ([al, va].collect { it.exists() ? "${it.size()}-${it.lastModified()}" : 'absent' }
+                   + version).join('/'))
         }
 
     controles = CONTROLER(OUVRIR(genomes))
@@ -240,7 +264,7 @@ workflow {
     trois = CYP2D6(controles)
         .join(HLA(controles))
         .join(COMPLEMENT(controles))
-    INTERPRETER(controles.join(trois).map { it[0..2] })
+    INTERPRETER(controles.join(trois).map { it[0..3] })
 
     // Le bilan attend la fin de l'interpretation, et porte sur tous les genomes
     // du manifeste, refuses compris. La valeur fictive evite qu'un lot ou tout
