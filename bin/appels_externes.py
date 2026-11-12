@@ -23,12 +23,20 @@ def cyp2d6(chemin):
         return None, "fichier vide"
     g = (lignes[0].get("Genotype") or "").strip()
     if not g or g == "None":
-        return None, "aucun diplotype"
+        return None, "aucun diplotype rendu"
     # Une paire, et une seule. Cyrius separe par un point-virgule les lectures
     # entre lesquelles il n a pas tranche ; l interpreteur s arrete sur une
     # telle ligne, et en choisir une serait affirmer ce que l outil n a pas dit.
-    if ";" in g or "," in g or g.count("/") != 1:
+    if ";" in g or "," in g or g.count("/") > 1:
         return None, "plusieurs diplotypes possibles : " + g
+    if "/" not in g:
+        return None, "diplotype illisible : " + g
+    # Cyrius rend un diplotype meme quand il ne le valide pas, par exemple sur
+    # un nombre de copies eleve et mal etabli. Seul celui qu il valide passe.
+    filtre = (lignes[0].get("Filter") or "").strip()
+    if filtre != "PASS":
+        return None, "diplotype %s non valide par le filtre de Cyrius (%s)" % (
+            g, filtre or "absent")
     return re.sub(r"\s*\+\s*", " + ", g), None
 
 
@@ -69,9 +77,19 @@ def mtrnr1(chemin):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--travail", required=True)
-    p.add_argument("--sortie", required=True)
+    p.add_argument("--travail")
+    p.add_argument("--sortie")
+    p.add_argument("--cyp2d6", help="juge le seul fichier de Cyrius : imprime le diplotype "
+                                    "transmissible (code 0) ou le motif de son refus (code 3)")
     a = p.parse_args()
+    if a.cyp2d6:
+        d6, err = cyp2d6(a.cyp2d6)
+        print(d6 or err)
+        # 3 et non 1 : Python sort en 1 sur toute exception, et un plantage
+        # ne doit pas se lire comme « l outil n a rien conclu ».
+        return 0 if d6 else 3
+    if not (a.travail and a.sortie):
+        p.error("--travail et --sortie, ou --cyp2d6")
 
     lignes, notes = [], []
     d6, err = cyp2d6(os.path.join(a.travail, "cyp2d6.tsv"))

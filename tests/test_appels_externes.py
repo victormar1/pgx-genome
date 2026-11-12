@@ -27,12 +27,49 @@ def fichier(contenu):
 
 
 class Cyp2d6(unittest.TestCase):
-    def lis(self, genotype):
-        f = fichier("Genotype\tFilter\n%s\tPASS\n" % genotype)
+    def lis(self, genotype, filtre="PASS", entete="Genotype\tFilter"):
+        f = fichier("%s\n%s\t%s\n" % (entete, genotype, filtre))
         try:
             return a.cyp2d6(f)
         finally:
             os.unlink(f)
+
+    def test_un_diplotype_que_cyrius_n_a_pas_valide_n_est_pas_transmis(self):
+        # Cyrius rend un diplotype meme quand il le marque : un nombre de copies
+        # eleve et mal etabli sortirait en phenotype, sans aucune reserve.
+        for filtre in ("LowQ_high_CN", "Not_assigned_to_haplotypes", "", "pass"):
+            g, err = self.lis("*1/*2x3", filtre=filtre)
+            self.assertIsNone(g, filtre)
+            self.assertIn("filtre de Cyrius", err)
+
+    def test_un_fichier_sans_colonne_de_filtre_n_est_pas_un_feu_vert(self):
+        g, err = self.lis("*1/*2", filtre="x", entete="Genotype\tAutre")
+        self.assertIsNone(g)
+        self.assertIn("filtre de Cyrius", err)
+
+    def test_le_jugement_seul_rend_un_code_qui_ne_se_confond_pas_avec_un_plantage(self):
+        # Python sort en 1 sur toute exception : le refus doit porter un autre code.
+        import subprocess
+        script = os.path.join(RACINE, "bin", "appels_externes.py")
+        for contenu, code, sortie in (
+                (b"Genotype\tFilter\n*1/*4\tPASS\n", 0, "*1/*4"),
+                (b"Genotype\tFilter\n*1/*4\tLowQ_high_CN\n", 3, "filtre de Cyrius"),
+                (b"Genotype\tFilter\n\xff\xfe\tPASS\n", 1, "")):
+            f = tempfile.mktemp(suffix=".tsv")
+            with open(f, "wb") as fh:
+                fh.write(contenu)
+            try:
+                r = subprocess.run([sys.executable, "-B", script, "--cyp2d6", f],
+                                   capture_output=True, text=True)
+            finally:
+                os.unlink(f)
+            self.assertEqual(r.returncode, code, r.stderr)
+            self.assertIn(sortie, r.stdout)
+
+    def test_un_diplotype_sans_barre_est_dit_illisible(self):
+        g, err = self.lis("*1")
+        self.assertIsNone(g)
+        self.assertIn("diplotype illisible", err)
 
     def test_diplotype_simple(self):
         self.assertEqual(self.lis("*1/*4"), ("*1/*4", None))
