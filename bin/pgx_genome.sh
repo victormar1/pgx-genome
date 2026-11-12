@@ -29,7 +29,8 @@
 #   --ignorer-filtre   retient les sites que l'appelant a rejetes (FILTER)
 #   --fils N           fils pour samtools, Cyrius et OptiType (defaut 4)
 #   --reprise          reutilise les intermediaires si les entrees sont identiques
-#   --forcer           ecrit dans un dossier non vide sans reprise
+#   --si-incomplet     ne refait rien si le dossier porte deja le resultat
+#                      complet de ces entrees, de ces options et de cette version
 #   --etage LISTE      ne fait tourner que ces etages, separes par des virgules :
 #                      recevabilite filtre tranche qc cyp2d6 hla pypgx appels
 #                      pharmcat rendu provenance. La recevabilite ouvre le
@@ -45,8 +46,8 @@ set -uo pipefail
 RACINE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RES="$RACINE/ressources"
 
-CRAM=""; VCF=""; SORTIE=""; ECH=""; REPRISE=0; FORCER=0; IDENTITE=""; CONTEXTE=""
-ETAGES=""; RECEVABLE=0
+CRAM=""; VCF=""; SORTIE=""; ECH=""; REPRISE=0; SI_INCOMPLET=0; IDENTITE=""; CONTEXTE=""
+ETAGES=""
 FASTA="${PGX_FASTA:-}"
 GQ="${PGX_GQ:-20}"
 PROF="${PGX_PROFONDEUR:-10}"
@@ -97,10 +98,10 @@ while [ $# -gt 0 ]; do
     --identite) IDENTITE="$2"; shift 2;;
     --contexte) CONTEXTE="$2"; shift 2;;
     --reprise) REPRISE=1; shift;;
-    --forcer) FORCER=1; shift;;
+    --si-incomplet) SI_INCOMPLET=1; shift;;
     --ignorer-filtre) IGNORER_FILTRE="--ignorer-filtre"; shift;;
     --etage) ETAGES="${ETAGES:+$ETAGES,}$2"; shift 2;;
-    -h|--help) sed -n '2,42p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0;;
+    -h|--help) sed -n '2,43p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0;;
     --version) cat "$RACINE/VERSION" 2>/dev/null || echo inconnue; exit 0;;
     *) echo "option inconnue : $1" >&2; exit 2;;
   esac
@@ -136,7 +137,14 @@ case "$MELANGE_MAX" in
   ''|*[!0-9.]*) echo "part de melange invalide : $MELANGE_MAX" >&2; exit 2;;
 esac
 
-mkdir -p "$SORTIE"/{travail,sortie}
+mkdir -p "$SORTIE"/{travail,sortie} || exit 2
+# Les conteneurs et Cyrius s'executent dans leur propre dossier : un chemin
+# relatif au dossier d'appel n'y designe plus rien. Tout est rendu absolu ici.
+absolu() { printf '%s/%s' "$(cd "$(dirname "$1")" && pwd)" "$(basename "$1")"; }
+SORTIE="$(cd "$SORTIE" && pwd)"
+CRAM="$(absolu "$CRAM")"
+VCF="$(absolu "$VCF")"
+[ -n "$FASTA" ] && [ -e "$FASTA" ] && FASTA="$(absolu "$FASTA")"
 JOURNAL="$SORTIE/journal.txt"
 ETATS="$SORTIE/travail/etats.tsv"
 
@@ -229,16 +237,22 @@ dire() {
   inscrire "$JOURNAL" "$l"
 }
 etat() { inscrire "$ETATS" "$(printf '%s\t%s\t%s\t%s' "$1" "$2" "$3" "$4")"; }
+# Un etage s'entame et se clot par ces deux fonctions : la ligne du journal et
+# la ligne d'etat s'ecrivent ensemble, avec la duree mesuree depuis l'entame.
+declare -A LIBELLE=(
+  [recevabilite]="0. recevabilite" [filtre]="1. filtre" [tranche]="2a. tranche"
+  [qc]="2b. controle qualite" [cyp2d6]="3. CYP2D6" [hla]="4. HLA"
+  [pypgx]="4b. typage complementaire" [appels]="5. appels externes"
+  [pharmcat]="6. interpretation" [rendu]="7. compte rendu")
+entamer() { ETAGE="$1"; t0=$(date +%s); }
+clore() {  # $1 etat  $2 ce que dit le journal  $3 detail de l'etat
+  dire "${LIBELLE[$ETAGE]} : $2"
+  etat "$ETAGE" "$1" $(( $(date +%s)-t0 )) "$3"
+}
 
-D_CRAM="$(cd "$(dirname "$CRAM")" && pwd)"
-D_VCF="$(cd "$(dirname "$VCF")" && pwd)"
-D_SORTIE="$(cd "$SORTIE" && pwd)"
-DOSSIERS=("$D_CRAM" "$D_VCF" "$RES")
-ECRIVABLES=("$D_SORTIE")
-if [ -n "$FASTA" ]; then
-  D_FASTA="$(cd "$(dirname "$FASTA")" && pwd)"
-  DOSSIERS+=("$D_FASTA")
-fi
+DOSSIERS=("$(dirname "$CRAM")" "$(dirname "$VCF")" "$RES")
+ECRIVABLES=("$SORTIE")
+[ -n "$FASTA" ] && DOSSIERS+=("$(dirname "$FASTA")")
 
 # Le moteur de conteneurs est interchangeable. Docker reclame un demon
 # privilegie, que beaucoup de plateformes de calcul n'autorisent pas ; elles
@@ -290,7 +304,16 @@ conteneur() {   # $1 dossier de travail  $2 image  $3... commande
   args_conteneur "$cwd" "$image" || return 127
   "${CONT[@]}" "$@"
 }
-BCF() { conteneur "$D_SORTIE" "$IMG_BCF" bcftools "$@"; }
+BCF() { conteneur "$SORTIE" "$IMG_BCF" bcftools "$@"; }
+# Les regions visees se composent de plusieurs ressources, dont certaines sont
+# optionnelles : on reunit celles qui existent, triees.
+reunir() {  # $1 fichier a ecrire  $2... fichiers de regions
+  local sortie="$1" f
+  shift
+  for f in "$@"; do
+    if [ -s "$f" ]; then cat "$f"; fi
+  done | sort -k1,1 -k2,2n > "$sortie"
+}
 
 # Le moteur se verifie ici, avant tout etage. Sans ce controle, un moteur
 # inconnu ou absent ferait echouer la recevabilite sur « le fichier de
@@ -346,6 +369,9 @@ PO="$T/appels_externes.tsv"
 PRE="$T/$(basename "$QUAL" .gz).preprocessed.vcf.bgz"
 RAP="$SORTIE/sortie/$ECH.report.json"
 ARRET="$T/arret.txt"
+# L'en-tete de l'alignement, lu une fois par la recevabilite ; les etages qui
+# suivent le relisent ici. La signature garantit qu'il vient des memes entrees.
+ENTETE="$T/entete_alignement.txt"
 
 # Un alignement sur un autre assemblage rend des resultats aux mauvaises
 # coordonnees sans lever d'erreur : les regions visees n'y existent pas, la
@@ -353,13 +379,12 @@ ARRET="$T/arret.txt"
 # La verification ne nomme aucun assemblage : elle confronte les contigs vises
 # et leurs longueurs a ceux de la reference fournie.
 ecarts_assemblage() {
-  local entete="$T/entete_alignement.txt" fai=""
+  local fai=""
   [ -n "$FASTA" ] && [ -s "$FASTA.fai" ] && fai="$FASTA.fai"
-  samtools view -H ${FASTA:+--reference "$FASTA"} "$CRAM" 2>/dev/null \
-    | grep '^@SQ' > "$entete"
-  [ -s "$entete" ] || { printf 'en-tete illisible'; return 0; }
+  [ "$(grep -c '^@SQ' "$ENTETE" 2>/dev/null)" != 0 ] || { printf 'en-tete illisible'; return 0; }
   awk -v FS='\t' -v fai="$fai" '
     FILENAME == ARGV[1] {
+      if ($0 !~ /^@SQ/) next
       sn = ""; ln = ""
       for (i = 1; i <= NF; i++) {
         if ($i ~ /^SN:/) sn = substr($i, 4)
@@ -381,23 +406,50 @@ ecarts_assemblage() {
           n++
         }
       }
-    }' "$entete" ${fai:+"$fai"} "$RES/pharmcat_positions.bed" 2>/dev/null
+    }' "$ENTETE" ${fai:+"$fai"} "$RES/pharmcat_positions.bed" 2>/dev/null
 }
-# Le verdict de l'etage de controle se relit dans perimetre.json : un etage
-# lance seul n'a pas en memoire ce que l'etage 2b a mesure. Quatre champs,
-# jamais vides : un champ absent decalerait les suivants.
+# Le verdict de l'etage de controle se relit dans le fichier qu'il ecrit : un
+# etage lance seul n'a pas en memoire ce que l'etage 2b a mesure. Neuf champs,
+# jamais vides (qc_perimetre.verdict) : un champ absent decalerait les suivants.
 lire_verdict() {
-  local v
-  HORS_DOMAINE=""; MELANGE=""; COUV=""; MEL_PART=""
-  [ -s "$T/perimetre.json" ] || return 0
-  v=$(python3 -c "import json,sys;sys.path.insert(0,r'$RACINE/bin');import qc_perimetre as q;d=json.load(open(r'$T/perimetre.json',encoding='utf-8'));c=q.couverture_retenue(d);m=d.get('melange_part');print('-' if c is None else c, 1 if d.get('couverture_hors_domaine') else 0, '-' if m is None else m, 1 if d.get('melange_suspect') else 0)" 2>>"$JOURNAL")
-  set -- $v
-  COUV="${1:--}"; MEL_PART="${3:--}"
+  local hors suspect ret vis complets genes sansgq
+  HORS_DOMAINE=""; MELANGE=""; COUV=""; MEL_PART=""; QC_CHIFFRES=""
+  [ -s "$T/verdict.tsv" ] || return 0
+  read -r COUV hors MEL_PART suspect ret vis complets genes sansgq < "$T/verdict.tsv"
+  QC_CHIFFRES="$ret $vis $complets $genes $sansgq"
   [ "$COUV" = "-" ] && COUV=""
   [ "$MEL_PART" = "-" ] && MEL_PART=""
-  [ "${2:-0}" = 1 ] && HORS_DOMAINE="couverture mediane ${COUV}x, domaine valide a partir de ${COUV_MIN}x"
-  [ "${4:-0}" = 1 ] && MELANGE="part d'heterozygotes desequilibres ${MEL_PART}%, au-dela de ${MELANGE_MAX}% : echantillon tenu pour melange"
+  [ "${hors:-0}" = 1 ] && HORS_DOMAINE="couverture mediane ${COUV}x, domaine valide a partir de ${COUV_MIN}x"
+  [ "${suspect:-0}" = 1 ] && MELANGE="part d'heterozygotes desequilibres ${MEL_PART}%, au-dela de ${MELANGE_MAX}% : echantillon tenu pour melange"
   return 0
+}
+# La trace s'ecrit d'un seul endroit : un refus porte les memes seuils qu'une
+# execution aboutie, et non ceux par defaut de provenance.py.
+tracer() {
+  python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
+    --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
+    --gq "$GQ" --profondeur "$PROF" --couverture-min "$COUV_MIN" \
+    --couverture "${COUV:-}" --melange-max "$MELANGE_MAX" --melange "${MEL_PART:-}" \
+    --images "$IMAGES" --moteur "$MOTEUR" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
+    --filtre "$([ -n "$IGNORER_FILTRE" ] && echo ignore || echo respecte)" \
+    --perimetre-clinique "$RES/perimetre_rnpgx.json" \
+    --signature "$SIGNATURE" >>"$JOURNAL" 2>&1
+}
+# Un refus, a l'entree ou apres le controle qualite, purge ce qui pourrait etre
+# pris pour un resultat, laisse la marque que lisent les etages lances seuls,
+# inscrit en echec ceux qui ne tourneront pas, et ecrit la trace.
+refuser() {  # $1 motif  $2 detail des etats  $3... etages qui ne tourneront pas
+  local motif="$1" detail="$2" e
+  shift 2
+  rm -rf "$SORTIE/sortie"; mkdir -p "$SORTIE/sortie"
+  printf '%s' "$motif" > "$ARRET"
+  for e in "$@"; do etat "$e" ECHEC 0 "$detail"; done
+  if [ -n "$CAT_PYPGX" ]; then etat pypgx ECHEC 0 "$detail"
+  else etat pypgx IGNORE 0 "typeur non defini"; fi
+  dire "arret : $motif"
+  tracer
+  dire "termine, reussite complete : False"
+  exit 2
 }
 REGION_TEST=$(awk 'NR==1{printf "%s:%d-%d", $1, $2+1, $3}' "$RES/pharmcat_positions.bed")
 
@@ -432,14 +484,21 @@ SIG_FICHIER="$T/signature.txt"
 # zero. Un etage lance seul le reprend la ou il en est, a condition qu'il porte
 # la recevabilite de ces memes entrees : sinon il travaillerait sur les
 # intermediaires d'un autre echantillon sans que rien ne le signale.
+#
+# Un resultat complet n'est tenu pour acquis que s'il porte cette signature : un
+# lot relance apres correction du manifeste, changement d'un seuil ou mise a
+# jour du module ne garde pas sous le meme identifiant le resultat d'avant.
+if [ "$SI_INCOMPLET" = 1 ] && [ "$DECOUPE" = 0 ] \
+   && python3 "$RACINE/bin/provenance.py" --complet "$SORTIE/sortie/provenance.json" "$SIGNATURE"; then
+  echo "deja complet pour ces entrees : rien a refaire"
+  exit 0
+fi
 if a_faire recevabilite; then
-  if [ -s "$SIG_FICHIER" ]; then
-    if [ "$(cat "$SIG_FICHIER")" = "$SIGNATURE" ] && [ "$REPRISE" = 1 ]; then
-      : # meme entree, reprise demandee : on garde les intermediaires
-    else
-      rm -rf "$T"; mkdir -p "$T"
-    fi
-  elif [ -n "$(ls -A "$T" 2>/dev/null)" ] && [ "$FORCER" = 0 ]; then
+  # Les intermediaires ne se gardent que signes de ces entrees, et sur demande.
+  if [ "$REPRISE" = 1 ] && [ -s "$SIG_FICHIER" ] \
+     && [ "$(cat "$SIG_FICHIER")" = "$SIGNATURE" ]; then
+    :
+  else
     rm -rf "$T"; mkdir -p "$T"
   fi
   rm -f "$ARRET"
@@ -470,7 +529,6 @@ else
     echo "la recevabilite n'a pas abouti dans $SORTIE" >&2
     exit 2
   fi
-  RECEVABLE=1
   dire "etage(s) $ETAGES"
 fi
 # Les lignes d'etat ecrites par cette execution, et elles seules, decident de
@@ -478,83 +536,66 @@ fi
 DEBUT_ETATS=$(wc -l < "$ETATS")
 
 if a_faire recevabilite; then
-t0=$(date +%s)
-NOMS_VCF=$(BCF query -l "$D_VCF/$(basename "$VCF")" 2>>"$JOURNAL")
+entamer recevabilite
+NOMS_VCF=$(BCF query -l "$VCF" 2>>"$JOURNAL")
 RC_VCF=$?
 NB_VCF=$(printf '%s\n' "$NOMS_VCF" | grep -c . || true)
-SM_CRAM=$(samtools view -H ${FASTA:+--reference "$FASTA"} "$CRAM" 2>>"$JOURNAL" \
-          | tr '\t' '\n' | grep -oE '^SM:.+' | sed 's/SM://' | sed 's/\\t.*//' \
+samtools view -H ${FASTA:+--reference "$FASTA"} "$CRAM" > "$ENTETE" 2>>"$JOURNAL"
+SM_CRAM=$(tr '\t' '\n' < "$ENTETE" | grep -oE '^SM:.+' | sed 's/SM://' | sed 's/\\t.*//' \
           | sort -u | head -3 | tr '\n' ',' | sed 's/,$//')
+# Le premier motif de refus rencontre : ce que dit le journal, et le detail
+# inscrit a l'etat. Tous deux vides si les entrees sont recevables.
+REFUS_JOURNAL=""; REFUS_ETAT=""
 if [ "$RC_VCF" != 0 ]; then
   # bcftools n'a pas tourne, ou n'a pas lu le fichier : la faute peut etre dans
   # le conteneur comme dans le fichier, et le journal porte son message.
-  dire "0. recevabilite : ECHEC, bcftools n'a pas lu le fichier de variants (code $RC_VCF) ; voir son message ci-dessus"
-  etat recevabilite ECHEC $(( $(date +%s)-t0 )) "lecture du VCF impossible, code $RC_VCF"
-  RECEVABLE=0
+  REFUS_JOURNAL="bcftools n'a pas lu le fichier de variants (code $RC_VCF) ; voir son message ci-dessus"
+  REFUS_ETAT="lecture du VCF impossible, code $RC_VCF"
 elif [ "$NB_VCF" != "1" ]; then
-  dire "0. recevabilite : ECHEC, le fichier de variants porte $NB_VCF echantillons"
-  etat recevabilite ECHEC $(( $(date +%s)-t0 )) "$NB_VCF echantillons dans le VCF"
-  RECEVABLE=0
-elif [ "$(BCF view -h "$D_VCF/$(basename "$VCF")" 2>>"$JOURNAL" | grep -c '^##FORMAT=<ID=AD,')" = 0 ]; then
+  REFUS_JOURNAL="le fichier de variants porte $NB_VCF echantillons"
+  REFUS_ETAT="$NB_VCF echantillons dans le VCF"
+elif [ "$(BCF view -h "$VCF" 2>>"$JOURNAL" | grep -c '^##FORMAT=<ID=AD,')" = 0 ]; then
   # Sans lectures par allele, l'equilibre allelique de chaque heterozygote et le
   # critere de melange ne se mesurent pas : le controle qualite les sauterait.
   # grep -c lit tout l'en-tete : sous pipefail, grep -q fermerait le tuyau, et
   # bcftools, tue par SIGPIPE, ferait refuser un VCF conforme.
-  dire "0. recevabilite : ECHEC, le fichier de variants ne declare pas AD (lectures par allele)"
-  etat recevabilite ECHEC $(( $(date +%s)-t0 )) "VCF sans AD"
-  RECEVABLE=0
+  REFUS_JOURNAL="le fichier de variants ne declare pas AD (lectures par allele)"
+  REFUS_ETAT="VCF sans AD"
 elif [ -n "$SM_CRAM" ] && [ "$SM_CRAM" != "$NOMS_VCF" ] && [ "$SM_CRAM" != "$ECH" ] && [ "$NOMS_VCF" != "$ECH" ]; then
-  dire "0. recevabilite : ECHEC, identites divergentes (VCF $NOMS_VCF, alignement $SM_CRAM, demande $ECH)"
-  etat recevabilite ECHEC $(( $(date +%s)-t0 )) "VCF=$NOMS_VCF alignement=$SM_CRAM demande=$ECH"
-  RECEVABLE=0
+  REFUS_JOURNAL="identites divergentes (VCF $NOMS_VCF, alignement $SM_CRAM, demande $ECH)"
+  REFUS_ETAT="VCF=$NOMS_VCF alignement=$SM_CRAM demande=$ECH"
 elif ! samtools quickcheck "$CRAM" 2>>"$JOURNAL"; then
-  dire "0. recevabilite : ECHEC, alignement tronque ou illisible"
-  etat recevabilite ECHEC $(( $(date +%s)-t0 )) "samtools quickcheck : alignement tronque"
-  RECEVABLE=0
+  REFUS_JOURNAL="alignement tronque ou illisible"
+  REFUS_ETAT="samtools quickcheck : alignement tronque"
 elif ECARTS=$(ecarts_assemblage); [ -n "$ECARTS" ]; then
-  dire "0. recevabilite : ECHEC, assemblage different de la reference : $ECARTS"
-  etat recevabilite ECHEC $(( $(date +%s)-t0 )) "assemblage : $ECARTS"
-  RECEVABLE=0
+  REFUS_JOURNAL="assemblage different de la reference : $ECARTS"
+  REFUS_ETAT="assemblage : $ECARTS"
 elif ! samtools view -c ${FASTA:+--reference "$FASTA"} "$CRAM" "$REGION_TEST" >/dev/null 2>>"$JOURNAL"; then
-  dire "0. recevabilite : ECHEC, acces aleatoire impossible (index absent ou illisible)"
-  etat recevabilite ECHEC $(( $(date +%s)-t0 )) "index de l alignement absent ou illisible"
-  RECEVABLE=0
-elif [ -n "$SM_CRAM" ] && [ "$SM_CRAM" != "$NOMS_VCF" ]; then
-  # Le champ SM d'un alignement est parfois un identifiant interne : la
-  # divergence est acceptee quand la demande nomme l'un des deux, mais elle
-  # est dite et tracee, jamais presentee comme une concordance.
-  dire "0. recevabilite : un echantillon, identites divergentes acceptees (alignement $SM_CRAM, VCF $NOMS_VCF, demande $ECH), assemblage conforme"
-  etat recevabilite OK $(( $(date +%s)-t0 )) "identites divergentes acceptees : VCF=$NOMS_VCF alignement=$SM_CRAM demande=$ECH"
-  RECEVABLE=1
-else
-  dire "0. recevabilite : un echantillon, identites concordantes ($NOMS_VCF), assemblage conforme"
-  etat recevabilite OK $(( $(date +%s)-t0 )) "VCF=$NOMS_VCF alignement=$SM_CRAM"
-  RECEVABLE=1
+  REFUS_JOURNAL="acces aleatoire impossible (index absent ou illisible)"
+  REFUS_ETAT="index de l alignement absent ou illisible"
 fi
 
 # Un refus a l'entree arrete tout. La purge du dossier de travail n'est pas une
 # precaution de confort : avec --reprise, la tranche d'une execution anterieure
 # serait retrouvee par l'etage 2a, qui se declarerait abouti, et le module
 # produirait un compte rendu pour un genome qu'il vient de refuser.
-if [ "$RECEVABLE" != 1 ]; then
+if [ -n "$REFUS_ETAT" ]; then
+  clore ECHEC "ECHEC, $REFUS_JOURNAL" "$REFUS_ETAT"
   # On purge les intermediaires, pas la trace : l'etat de recevabilite porte le
   # motif du refus, et c'est la seule chose que le module ait a produire ici.
-  find "$T" -mindepth 1 -maxdepth 1        ! -name "$(basename "$ETATS")" ! -name "$(basename "$SIG_FICHIER")"        -exec rm -rf {} + 2>/dev/null
-  rm -rf "$SORTIE/sortie"; mkdir -p "$SORTIE/sortie"
+  find "$T" -mindepth 1 -maxdepth 1 ! -name "$(basename "$ETATS")" \
+    ! -name "$(basename "$SIG_FICHIER")" -exec rm -rf {} + 2>/dev/null
   printf '%s' "$SIGNATURE" > "$SIG_FICHIER"
-  printf '%s' "entrees non recevables" > "$ARRET"
-  for e in filtre tranche qc cyp2d6 hla appels pharmcat rendu; do
-    etat "$e" ECHEC 0 "entrees non recevables"
-  done
-  dire "arret : entrees non recevables, aucun etage n'a demarre"
-  python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
-    --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
-    --gq "$GQ" --profondeur "$PROF" \
-    --images "$IMAGES" --moteur "$MOTEUR" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
-  --filtre "$([ -n "$IGNORER_FILTRE" ] && echo ignore || echo respecte)" \
-  --perimetre-clinique "$RES/perimetre_rnpgx.json" >>"$JOURNAL" 2>&1
-  dire "termine, reussite complete : False"
-  exit 2
+  refuser "entrees non recevables" "entrees non recevables" \
+    filtre tranche qc cyp2d6 hla appels pharmcat rendu
+fi
+if [ -n "$SM_CRAM" ] && [ "$SM_CRAM" != "$NOMS_VCF" ]; then
+  # Le champ SM d'un alignement est parfois un identifiant interne : la
+  # divergence est acceptee quand la demande nomme l'un des deux, mais elle
+  # est dite et tracee, jamais presentee comme une concordance.
+  clore OK "un echantillon, identites divergentes acceptees (alignement $SM_CRAM, VCF $NOMS_VCF, demande $ECH), assemblage conforme" "identites divergentes acceptees : VCF=$NOMS_VCF alignement=$SM_CRAM demande=$ECH"
+else
+  clore OK "un echantillon, identites concordantes ($NOMS_VCF), assemblage conforme" "VCF=$NOMS_VCF alignement=$SM_CRAM"
 fi
 fi
 
@@ -563,19 +604,15 @@ fi
 # (classes 1 et 2 absentes de PharmCAT). Le complement est optionnel : absent, le
 # module se comporte exactement comme avant.
 if a_faire filtre; then
-t0=$(date +%s)
+entamer filtre
 BEDR="$T/regions.bed"
-cat "$RES/pharmcat_positions.bed" > "$BEDR"
-[ -s "$RES/rnpgx_complement.bed" ] && cat "$RES/rnpgx_complement.bed" >> "$BEDR"
-sort -k1,1 -k2,2n "$BEDR" -o "$BEDR"
-if [ "$RECEVABLE" = 1 ] \
-   && BCF view -R "$D_SORTIE/travail/regions.bed" -Oz -o "$FIL" "$D_VCF/$(basename "$VCF")" >>"$JOURNAL" 2>&1 \
+reunir "$BEDR" "$RES/pharmcat_positions.bed" "$RES/rnpgx_complement.bed"
+if BCF view -R "$BEDR" -Oz -o "$FIL" "$VCF" >>"$JOURNAL" 2>&1 \
    && BCF index -f -t "$FIL" >>"$JOURNAL" 2>&1; then
   n=$(BCF view -H "$FIL" 2>/dev/null | wc -l)
-  dire "1. filtre : $n enregistrements dans les regions visees"
-  etat filtre OK $(( $(date +%s)-t0 )) "$n enregistrements"
+  clore OK "$n enregistrements dans les regions visees" "$n enregistrements"
 else
-  dire "1. filtre : ECHEC"; etat filtre ECHEC $(( $(date +%s)-t0 )) "bcftools view ou index"
+  clore ECHEC "ECHEC" "bcftools view ou index"
 fi
 fi
 
@@ -584,65 +621,62 @@ fi
 # Le BED de tranche est construit ici : les contigs HLA alternatifs dependent de
 # la reference de la plateforme et ne peuvent pas etre figes dans les ressources.
 if a_faire tranche; then
-t0=$(date +%s)
-if [ ! -s "$TRANCHE" ] && [ "$RECEVABLE" = 1 ]; then
-  cat "$RES/pharmcat_positions.bed" > "$BEDT"
-  [ -s "$RES/rnpgx_complement.bed" ] && cat "$RES/rnpgx_complement.bed" >> "$BEDT"
+entamer tranche
+# La tranche et son index sont ecrits a part et mis en place ensemble, l'index
+# d'abord : une execution interrompue pendant le tri ou l'indexation ne laisse
+# rien qu'une reprise prendrait pour une tranche complete.
+rm -f "$TRANCHE.brut" "$T/tranche.tmp.bam" "$T/tranche.tmp.bam.bai"
+if [ ! -s "$TRANCHE" ] || [ ! -s "$TRANCHE.bai" ]; then
+  rm -f "$TRANCHE" "$TRANCHE.bai"
   # Les positions definissantes du typage complementaire, et elles seules : la
   # tranche ne porte pas les regions entieres des quatre genes, seulement de
   # quoi prouver que chaque position a bien ete lue.
-  [ -n "$CAT_PYPGX" ] && [ -s "$RES/pypgx_tranche.bed" ] && cat "$RES/pypgx_tranche.bed" >> "$BEDT"
+  reunir "$BEDT" "$RES/pharmcat_positions.bed" "$RES/rnpgx_complement.bed" \
+    ${CAT_PYPGX:+"$RES/pypgx_tranche.bed"}
   printf 'chr6\t29600000\t33100000\n' >> "$BEDT"
-  samtools view -H ${FASTA:+--reference "$FASTA"} "$CRAM" 2>/dev/null \
-    | awk '$0 ~ /SN:HLA-/ {sn=""; ln=""; for(i=1;i<=NF;i++){if($i ~ /^SN:/) sn=substr($i,4); if($i ~ /^LN:/) ln=substr($i,4)} if(sn!="" && ln!="") printf "%s\t0\t%s\n", sn, ln}' \
-    >> "$BEDT"
+  awk '$0 ~ /SN:HLA-/ {sn=""; ln=""; for(i=1;i<=NF;i++){if($i ~ /^SN:/) sn=substr($i,4); if($i ~ /^LN:/) ln=substr($i,4)} if(sn!="" && ln!="") printf "%s\t0\t%s\n", sn, ln}' \
+    "$ENTETE" >> "$BEDT"
   # Une region sur un contig absent de l'alignement ferait echouer l'extraction.
   # On ne garde que les contigs reellement presents : un chrM absent, ou un
   # nommage different sur la plateforme, se traduit alors par une position
   # « profondeur inconnue », jamais par un etage en echec.
-  samtools view -H ${FASTA:+--reference "$FASTA"} "$CRAM" 2>/dev/null \
-    | awk '/^@SQ/ {for(i=1;i<=NF;i++) if($i ~ /^SN:/) print substr($i,4)}' > "$T/contigs.txt"
+  awk '/^@SQ/ {for(i=1;i<=NF;i++) if($i ~ /^SN:/) print substr($i,4)}' "$ENTETE" > "$T/contigs.txt"
   awk 'NR==FNR {ok[$1]=1; next} ok[$1]' "$T/contigs.txt" "$BEDT" > "$BEDT.tmp"
   ecartes=$(( $(grep -c . "$BEDT") - $(grep -c . "$BEDT.tmp") ))
   [ "$ecartes" -gt 0 ] && dire "2a. tranche : $ecartes region(s) ecartee(s), contig absent de l'alignement"
   mv "$BEDT.tmp" "$BEDT"
   sort -k1,1 -k2,2n "$BEDT" -o "$BEDT"
-  if samtools view -b -M -L "$BEDT" ${FASTA:+--reference "$FASTA"} -o "$TRANCHE.tmp" "$CRAM" 2>>"$JOURNAL" \
-     && samtools sort -@ "$FILS" -o "$TRANCHE" "$TRANCHE.tmp" 2>>"$JOURNAL" \
-     && samtools index "$TRANCHE" 2>>"$JOURNAL"; then
-    rm -f "$TRANCHE.tmp"
-  else
-    rm -f "$TRANCHE.tmp" "$TRANCHE"
-  fi
+  samtools view -b -M -L "$BEDT" ${FASTA:+--reference "$FASTA"} -o "$TRANCHE.brut" "$CRAM" 2>>"$JOURNAL" \
+    && samtools sort -@ "$FILS" -o "$T/tranche.tmp.bam" "$TRANCHE.brut" 2>>"$JOURNAL" \
+    && samtools index "$T/tranche.tmp.bam" 2>>"$JOURNAL" \
+    && mv "$T/tranche.tmp.bam.bai" "$TRANCHE.bai" \
+    && mv "$T/tranche.tmp.bam" "$TRANCHE"
+  rm -f "$TRANCHE.brut" "$T/tranche.tmp.bam" "$T/tranche.tmp.bam.bai"
 fi
 if [ -s "$TRANCHE" ] && [ -s "$TRANCHE.bai" ]; then
   nl=$(samtools view -c "$TRANCHE" 2>/dev/null)
-  dire "2a. tranche : $(du -h "$TRANCHE" | cut -f1), $nl lectures, $(grep -c . "$BEDT") regions"
-  etat tranche OK $(( $(date +%s)-t0 )) "$nl lectures"
+  clore OK "$(du -h "$TRANCHE" | cut -f1), $nl lectures, $(grep -c . "$BEDT") regions" "$nl lectures"
 else
-  dire "2a. tranche : ECHEC"; etat tranche ECHEC $(( $(date +%s)-t0 )) "samtools view, sort ou index"
+  clore ECHEC "ECHEC" "samtools view, sort ou index"
 fi
 fi
 
 # ------------------------------------------------------- 2b. controle qualite
 if a_faire qc; then
-t0=$(date +%s)
+entamer qc
 PROFOK=0
 BEDP="$T/positions_mesurees.bed"
-cat "$RES/positions_exactes.bed" > "$BEDP"
-[ -s "$RES/rnpgx_complement_positions.bed" ] && cat "$RES/rnpgx_complement_positions.bed" >> "$BEDP"
 # La profondeur sur les positions du typage complementaire est ce qui distingue
 # un « reference » lu d'un « reference » suppose : sans elle, l'etage 4b refuse
 # de rendre le gene.
-[ -n "$CAT_PYPGX" ] && [ -s "$RES/pypgx_positions.bed" ] && cat "$RES/pypgx_positions.bed" >> "$BEDP"
-sort -k1,1 -k2,2n "$BEDP" -o "$BEDP"
+reunir "$BEDP" "$RES/positions_exactes.bed" "$RES/rnpgx_complement_positions.bed" \
+  ${CAT_PYPGX:+"$RES/pypgx_positions.bed"}
 if [ -s "$TRANCHE.bai" ]; then
   if samtools depth -a -b "$BEDP" -Q 0 -q 0 "$TRANCHE" > "$DEPTH" 2>>"$JOURNAL" \
      && [ -s "$DEPTH" ]; then PROFOK=1; else rm -f "$DEPTH"; fi
 fi
 if [ "$PROFOK" = 0 ]; then
-  dire "2b. controle qualite : ECHEC, profondeur non mesuree sur l'alignement"
-  etat qc ECHEC $(( $(date +%s)-t0 )) "samtools depth"
+  clore ECHEC "ECHEC, profondeur non mesuree sur l'alignement" "samtools depth"
 elif python3 "$RACINE/bin/qc_perimetre.py" --vcf "$FIL" --profondeur "$DEPTH" \
        --positions "$RES/pharmcat_positions.vcf" --sortie "$T" \
        ${COMPLEMENT:+--positions-complement "$COMPLEMENT"} \
@@ -650,19 +684,16 @@ elif python3 "$RACINE/bin/qc_perimetre.py" --vcf "$FIL" --profondeur "$DEPTH" \
        --melange-max "$MELANGE_MAX" \
        --echantillon "$ECH" \
        --perimetre-clinique "$RES/perimetre_rnpgx.json" $IGNORER_FILTRE >>"$JOURNAL" 2>&1 \
-     && conteneur "$D_SORTIE" "$IMG_BCF" bgzip -f "$T/qualifie.vcf" >>"$JOURNAL" 2>&1 \
+     && conteneur "$SORTIE" "$IMG_BCF" bgzip -f "$T/qualifie.vcf" >>"$JOURNAL" 2>&1 \
      && BCF index -f -t "$QUAL" >>"$JOURNAL" 2>&1 && [ -s "$QUAL" ]; then
-  ret=$(python3 -c "import json;d=json.load(open(r'$T/perimetre.json',encoding='utf-8'));print(d['positions_retenues'],d['positions_visees'],sum(1 for v in d['genes'].values() if v['statut']=='complet'),len(d['genes']),d.get('positions_sans_GQ',0))")
-  dire "2b. controle qualite : $(echo $ret | awk '{print $1" positions retenues sur "$2", "$3" genes complets sur "$4", "$5" sans qualite"}')"
-  etat qc OK $(( $(date +%s)-t0 )) "$ret"
   # Le verdict sur le domaine est rendu par l'etage lui-meme, ou il se teste.
   lire_verdict
+  clore OK "$(echo $QC_CHIFFRES | awk '{print $1" positions retenues sur "$2", "$3" genes complets sur "$4", "$5" sans qualite"}')" "$QC_CHIFFRES"
   dire "    couverture mediane du perimetre : ${COUV:-inconnue}x"
   dire "    heterozygotes desequilibres : ${MEL_PART:-part non etablie}%"
   true
 else
-  dire "2b. controle qualite : ECHEC"
-  etat qc ECHEC $(( $(date +%s)-t0 )) "qc_perimetre.py, bgzip ou index"
+  clore ECHEC "ECHEC" "qc_perimetre.py, bgzip ou index"
 fi
 
 # Deux motifs d'arret apres le controle qualite, et la meme raison de ne pas se
@@ -676,36 +707,18 @@ fi
 # --couverture-min 0 et --melange-max 0 levent chacun sa porte.
 MOTIF="${HORS_DOMAINE:-}${HORS_DOMAINE:+${MELANGE:+ ; }}${MELANGE:-}"
 if [ -n "$MOTIF" ]; then
-  # On garde la mesure, qui est le motif du refus, et on purge ce qui pourrait
-  # etre pris pour un resultat.
-  rm -rf "$SORTIE/sortie"; mkdir -p "$SORTIE/sortie"
-  printf '%s' "$MOTIF" > "$ARRET"
+  # On garde la mesure, qui est le motif du refus.
   m=$([ -n "${HORS_DOMAINE:-}" ] && echo "couverture hors domaine" || echo "echantillon tenu pour melange")
-  for e in cyp2d6 hla appels pharmcat rendu; do
-    etat "$e" ECHEC 0 "$m"
-  done
-  [ -n "$CAT_PYPGX" ] && etat pypgx ECHEC 0 "$m" \
-    || etat pypgx IGNORE 0 "typeur non defini"
-  dire "arret : $MOTIF"
-  python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
-    --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
-    --gq "$GQ" --profondeur "$PROF" --couverture-min "$COUV_MIN" \
-    --couverture "$COUV" --melange-max "$MELANGE_MAX" --melange "${MEL_PART:-}" \
-    --images "$IMAGES" --moteur "$MOTEUR" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
-    --filtre "$([ -n "$IGNORER_FILTRE" ] && echo ignore || echo respecte)" \
-    --perimetre-clinique "$RES/perimetre_rnpgx.json" >>"$JOURNAL" 2>&1
-  dire "termine, reussite complete : False"
-  exit 2
+  refuser "$MOTIF" "$m" cyp2d6 hla appels pharmcat rendu
 fi
 fi
 
 # --------------------------------------------------------------- 3. CYP2D6
 if a_faire cyp2d6; then
-t0=$(date +%s)
+entamer cyp2d6
 if [ -z "$CYRIUS" ]; then
-  dire "3. CYP2D6 : ECHEC, chemin Cyrius non fourni (PGX_CYRIUS)"
-  etat cyp2d6 ECHEC 0 "PGX_CYRIUS non defini"
-elif [ "$RECEVABLE" = 1 ]; then
+  clore ECHEC "ECHEC, chemin Cyrius non fourni (PGX_CYRIUS)" "PGX_CYRIUS non defini"
+else
   # Dans le dossier de travail, pas dans /tmp de l'hote : un noeud de calcul
   # peut l'avoir petit, en lecture seule ou non partage.
   d=$(mktemp -d -p "$T" cyrius.XXXXXX); echo "$CRAM" > "$d/m.txt"
@@ -714,40 +727,29 @@ elif [ "$RECEVABLE" = 1 ]; then
   rc=$?
   if [ $rc -eq 0 ] && [ -s "$d/x.tsv" ] && [ "$(wc -l < "$d/x.tsv")" -ge 2 ]; then
     cp "$d/x.tsv" "$D6"; cp "$d/x.json" "$T/cyp2d6.json" 2>/dev/null
-    dip=$(awk -F'\t' 'NR==2{print $2}' "$D6")
-    flt=$(awk -F'\t' 'NR==2{print $3}' "$D6")
-    # Un diplotype qui n'est pas une paire unique n'est pas transmis. Choisir
-    # entre "*1/*46" et "*43/*45" serait une affirmation que l'outil n'a pas
-    # faite, et les deux lectures ne donnent pas le meme phenotype ;
-    # l'interpreteur refuse d'ailleurs la ligne et s'arrete. L'etage a tourne
-    # jusqu'au bout sans conclure : ce n'est pas une panne du module, et le
-    # compte rendu rend alors le gene non analyse.
-    motif=""
-    case "$dip" in
-      ""|None)  motif="aucun diplotype rendu";;
-      *";"*)    motif="plusieurs diplotypes possibles : $dip";;
-      */*)      : ;;
-      *)        motif="diplotype illisible : $dip";;
+    # Un diplotype qui n'est pas une paire unique validee par l'outil n'est pas
+    # transmis. Choisir entre "*1/*46" et "*43/*45" serait une affirmation que
+    # l'outil n'a pas faite, et les deux lectures ne donnent pas le meme
+    # phenotype ; l'interpreteur refuse d'ailleurs la ligne et s'arrete. La regle
+    # est celle de l'etage des appels externes, qui la porte seul. L'etage a
+    # tourne jusqu'au bout sans conclure : ce n'est pas une panne du module, et
+    # le compte rendu rend alors le gene non analyse.
+    dip=$(python3 "$RACINE/bin/appels_externes.py" --cyp2d6 "$D6" 2>>"$JOURNAL"); rc=$?
+    case $rc in
+      0) clore OK "$dip (PASS)" "$dip (PASS)";;
+      3) clore SANS_RESULTAT "sans resultat, $dip" "$dip";;
+      *) clore ECHEC "ECHEC (code $rc)" "appels_externes.py code $rc";;
     esac
-    if [ -n "$motif" ]; then
-      dire "3. CYP2D6 : sans resultat, $motif"
-      etat cyp2d6 SANS_RESULTAT $(( $(date +%s)-t0 )) "$motif"
-    else
-      dire "3. CYP2D6 : $dip ($flt)"
-      etat cyp2d6 OK $(( $(date +%s)-t0 )) "$dip ($flt)"
-    fi
   else
-    dire "3. CYP2D6 : ECHEC (code $rc)"; etat cyp2d6 ECHEC $(( $(date +%s)-t0 )) "star_caller.py code $rc"
+    clore ECHEC "ECHEC (code $rc)" "star_caller.py code $rc"
   fi
   rm -rf "$d"
-else
-  dire "3. CYP2D6 : non lance, entrees non recevables"; etat cyp2d6 ECHEC 0 "entrees non recevables"
 fi
 fi
 
 # ------------------------------------------------------------------ 4. HLA
 if a_faire hla; then
-t0=$(date +%s)
+entamer hla
 FQ1="$T/mhc_1.fq"; FQ2="$T/mhc_2.fq"
 # Le typage HLA coute a lui seul la moitie du temps d'un genome. Quand la
 # reprise est legitime — meme signature, donc memes entrees, meme reference et
@@ -773,21 +775,31 @@ if [ "$REPRISE" = 1 ] && [ -s "$T/hla.tsv" ] && [ "$(wc -l < "$T/hla.tsv")" -ge 
 else
   rm -rf "$T/hla"
 fi
+# Les lectures sont ecrites a part et mises en place seulement si les trois
+# commandes du tuyau ont abouti : un flux interrompu laisse des fichiers assez
+# gros pour passer le seuil, et le typage porterait sur une partie du complexe.
+EXTRACTION=""
+rm -f "$FQ1.tmp" "$FQ2.tmp"
 if [ "$HLA_REPRIS" = 0 ] && [ ! -s "$FQ1" ] && [ -s "$TRANCHE.bai" ]; then
   CONTIGS=$(samtools view -H "$TRANCHE" 2>/dev/null | grep -oE 'SN:HLA-[^[:space:]]+' | sed 's/SN://' | tr '\n' ' ')
-  samtools view -u "$TRANCHE" chr6:29600000-33100000 $CONTIGS 2>>"$JOURNAL" \
-    | samtools collate -u -O - 2>>"$JOURNAL" \
-    | samtools fastq -1 "$FQ1" -2 "$FQ2" -0 /dev/null -s /dev/null -n - 2>>"$JOURNAL"
+  if samtools view -u "$TRANCHE" chr6:29600000-33100000 $CONTIGS 2>>"$JOURNAL" \
+       | samtools collate -u -O - 2>>"$JOURNAL" \
+       | samtools fastq -1 "$FQ1.tmp" -2 "$FQ2.tmp" -0 /dev/null -s /dev/null -n - 2>>"$JOURNAL"; then
+    mv "$FQ2.tmp" "$FQ2" && mv "$FQ1.tmp" "$FQ1"
+  else
+    EXTRACTION="interrompue"
+    rm -f "$FQ1.tmp" "$FQ2.tmp"
+  fi
 fi
 NPAIRES=0
 [ -s "$FQ1" ] && NPAIRES=$(( $(wc -l < "$FQ1") / 4 ))
 if [ "$HLA_REPRIS" = 1 ]; then
   r=$(awk -F'\t' 'NR==2{print $2"/"$3" "$4"/"$5}' "$T/hla.tsv")
-  dire "4. HLA : $r, repris de l'execution precedente"
-  etat hla OK $(( $(date +%s)-t0 )) "$r (repris)"
+  clore OK "$r, repris de l'execution precedente" "$r (repris)"
+elif [ -n "$EXTRACTION" ]; then
+  clore ECHEC "ECHEC, extraction des lectures du complexe majeur interrompue" "extraction des lectures interrompue"
 elif [ "$NPAIRES" -lt 200 ]; then
-  dire "4. HLA : ECHEC, seulement $NPAIRES paires extraites du complexe majeur"
-  etat hla ECHEC $(( $(date +%s)-t0 )) "$NPAIRES paires"
+  clore ECHEC "ECHEC, seulement $NPAIRES paires extraites du complexe majeur" "$NPAIRES paires"
 else
   # La configuration de l'image fixe seize fils au placement des lectures. Le
   # typage ne les occupe pas : a quatre, il rend le meme resultat dans le meme
@@ -814,9 +826,9 @@ else
     # qu'elle n'a pas change.
     empreinte_image "$IMG_OPTITYPE" > "$T/hla.image"
     r=$(awk -F'\t' 'NR==2{print $2"/"$3" "$4"/"$5}' "$T/hla.tsv")
-    dire "4. HLA : $r, sur $NPAIRES paires"; etat hla OK $(( $(date +%s)-t0 )) "$r"
+    clore OK "$r, sur $NPAIRES paires" "$r"
   else
-    dire "4. HLA : ECHEC (code $rc)"; etat hla ECHEC $(( $(date +%s)-t0 )) "OptiType code $rc"
+    clore ECHEC "ECHEC (code $rc)" "OptiType code $rc"
   fi
 fi
 fi
@@ -829,45 +841,37 @@ fi
 # contig que l'appelant de la plateforme a ignore rendrait un « reference »
 # indistinguable d'une absence de lecture.
 if a_faire pypgx; then
-t0=$(date +%s)
+entamer pypgx
 if [ -z "$CAT_PYPGX" ]; then
-  dire "4b. typage complementaire : ignore (ni PGX_IMG_PYPGX ni PGX_PYPGX)"
-  etat pypgx IGNORE 0 "typeur non defini"
-elif [ "$RECEVABLE" != 1 ]; then
-  dire "4b. typage complementaire : ECHEC, genome non recevable"
-  etat pypgx ECHEC 0 "genome non recevable"
-elif BCF view -R "$RES/pypgx_regions.bed" -Oz -o "$PGV" "$D_VCF/$(basename "$VCF")" >>"$JOURNAL" 2>&1 \
+  clore IGNORE "ignore (ni PGX_IMG_PYPGX ni PGX_PYPGX)" "typeur non defini"
+elif BCF view -R "$RES/pypgx_regions.bed" -Oz -o "$PGV" "$VCF" >>"$JOURNAL" 2>&1 \
      && BCF index -f -t "$PGV" >>"$JOURNAL" 2>&1; then
-  BCF index -s "$D_VCF/$(basename "$VCF")" 2>/dev/null | cut -f1 > "$T/contigs_vcf.txt"
-  # Le meme critere de qualite que l'etage 2b, sur les seules positions qui
+  BCF index -s "$VCF" 2>/dev/null | cut -f1 > "$T/contigs_vcf.txt"
+  # Le script juge lui-meme, par la fonction de l'etage 2b, les positions qui
   # definissent les alleles : un genotype que le controle qualite ecarte ne doit
   # pas servir ici a nommer un allele.
-  BCF query -R "$RES/pypgx_positions.bed" \
-    -f '%CHROM\t%POS\t%FILTER[\t%GQ\t%DP]\n' "$PGV" > "$T/pypgx_qualites.tsv" 2>>"$JOURNAL"
   if python3 "$RACINE/bin/typage_pypgx.py" --catalogue "$CAT_PYPGX" \
        --variants "$PGV" --profondeur "$DEPTH" --contigs-vcf "$T/contigs_vcf.txt" \
-       --qualites "$T/pypgx_qualites.tsv" --gq "$GQ" $IGNORER_FILTRE \
+       --gq "$GQ" $IGNORER_FILTRE \
        --profondeur-min "$PROF" --travail "$T" --sortie "$T/pypgx.tsv" \
        --json "$T/pypgx.json" --pypgx "$PYPGX" >>"$JOURNAL" 2>&1 \
      && [ -s "$T/pypgx.tsv" ]; then
     r=$(awk -F'\t' 'NR>1 && $3=="rendu"{n++} NR>1{t++} END{printf "%d rendu(s) sur %d", n, t}' "$T/pypgx.tsv")
-    dire "4b. typage complementaire : $r"
-    etat pypgx OK $(( $(date +%s)-t0 )) "$r"
+    clore OK "$r" "$r"
   else
-    dire "4b. typage complementaire : ECHEC"
-    etat pypgx ECHEC $(( $(date +%s)-t0 )) "typage_pypgx.py"
+    clore ECHEC "ECHEC" "typage_pypgx.py"
   fi
 else
-  dire "4b. typage complementaire : ECHEC a l'extraction"
-  etat pypgx ECHEC $(( $(date +%s)-t0 )) "bcftools view ou index"
+  clore ECHEC "ECHEC a l'extraction" "bcftools view ou index"
 fi
 fi
 
 # ------------------------------------------------------- 5. appels externes
 if a_faire appels; then
-t0=$(date +%s)
+entamer appels
 if python3 "$RACINE/bin/appels_externes.py" --travail "$T" --sortie "$PO" >>"$JOURNAL" 2>&1; then
-  nlig=$(grep -c . "$PO" 2>/dev/null || echo 0)
+  # grep -c ecrit deja zero quand rien ne correspond : un « || echo 0 » le doublerait
+  nlig=$(grep -c . "$PO" 2>/dev/null); nlig=${nlig:-0}
   # coherence : un etage marque OK doit avoir depose sa ligne
   attendu=0
   grep -q '^cyp2d6	OK' "$ETATS" && attendu=$((attendu+1))
@@ -877,13 +881,12 @@ if python3 "$RACINE/bin/appels_externes.py" --travail "$T" --sortie "$PO" >>"$JO
   [ -s "$T/pypgx.tsv" ] && awk -F'\t' '$1=="MT-RNR1" && $3=="rendu"{f=1} END{exit !f}' "$T/pypgx.tsv" \
     && attendu=$((attendu+1))
   if [ "$nlig" -ge "$attendu" ]; then
-    dire "5. appels externes : $nlig ligne(s)"; etat appels OK $(( $(date +%s)-t0 )) "$nlig lignes"
+    clore OK "$nlig ligne(s)" "$nlig lignes"
   else
-    dire "5. appels externes : ECHEC, $nlig ligne(s) pour $attendu attendue(s)"
-    etat appels ECHEC $(( $(date +%s)-t0 )) "$nlig lignes pour $attendu attendues"
+    clore ECHEC "ECHEC, $nlig ligne(s) pour $attendu attendue(s)" "$nlig lignes pour $attendu attendues"
   fi
 else
-  dire "5. appels externes : ECHEC"; etat appels ECHEC $(( $(date +%s)-t0 )) "appels_externes.py"
+  clore ECHEC "ECHEC" "appels_externes.py"
 fi
 fi
 
@@ -891,34 +894,30 @@ fi
 # Aucun repli : sans le VCF qualifie, l'etage echoue. Se rabattre sur le VCF
 # filtre remettrait en service les genotypes ecartes sur leur qualite.
 if a_faire pharmcat; then
-t0=$(date +%s)
+entamer pharmcat
 rm -f "$PRE" "$RAP"
 if [ ! -s "$QUAL" ]; then
-  dire "6. interpretation : ECHEC, VCF qualifie absent"
-  etat pharmcat ECHEC 0 "qualifie.vcf.gz absent"
+  clore ECHEC "ECHEC, VCF qualifie absent" "qualifie.vcf.gz absent"
 elif conteneur "$T" "$IMG_PHARMCAT" \
        /pharmcat/pharmcat_vcf_preprocessor -vcf "$QUAL" -o "$T" --absent-to-ref >>"$JOURNAL" 2>&1 \
      && [ -s "$PRE" ]; then
   ARG=(); [ -s "$PO" ] && ARG=(-po "$PO")
-  if conteneur "$D_SORTIE" "$IMG_PHARMCAT" \
+  if conteneur "$SORTIE" "$IMG_PHARMCAT" \
        java -jar /pharmcat/pharmcat.jar -vcf "$PRE" "${ARG[@]}" \
-       -o "$D_SORTIE/sortie" -bf "$ECH" -reporterJson -del >>"$JOURNAL" 2>&1 \
+       -o "$SORTIE/sortie" -bf "$ECH" -reporterJson -del >>"$JOURNAL" 2>&1 \
      && [ -s "$RAP" ]; then
-    dire "6. interpretation : $RAP"
-    etat pharmcat OK $(( $(date +%s)-t0 )) "$ECH.report.json"
+    clore OK "$RAP" "$ECH.report.json"
   else
-    dire "6. interpretation : ECHEC de l'interpreteur"
-    etat pharmcat ECHEC $(( $(date +%s)-t0 )) "pharmcat.jar"
+    clore ECHEC "ECHEC de l'interpreteur" "pharmcat.jar"
   fi
 else
-  dire "6. interpretation : ECHEC au pretraitement"
-  etat pharmcat ECHEC $(( $(date +%s)-t0 )) "pretraitement, $PRE absent"
+  clore ECHEC "ECHEC au pretraitement" "pretraitement, $PRE absent"
 fi
 fi
 
 # --------------------------------------------------------------- 7. rendu
 if a_faire rendu; then
-t0=$(date +%s)
+entamer rendu
 if [ -s "$RAP" ] && [ -s "$T/perimetre.json" ]; then
   # L'identite, si elle a ete fournie, passe par un chemin de fichier et non
   # par sa valeur : un nom en argument serait lisible dans la table des
@@ -929,14 +928,12 @@ if [ -s "$RAP" ] && [ -s "$T/perimetre.json" ]; then
        --couverture-min "$COUV_MIN" \
        ${IDENTITE:+--identite "$IDENTITE"} ${CONTEXTE:+--contexte "$CONTEXTE"} >>"$JOURNAL" 2>&1 \
      && [ -s "$SORTIE/sortie/CR_$ECH.pdf" ]; then
-    dire "7. compte rendu : $SORTIE/sortie/CR_$ECH.pdf"
-    etat rendu OK $(( $(date +%s)-t0 )) "CR_$ECH.pdf"
+    clore OK "$SORTIE/sortie/CR_$ECH.pdf" "CR_$ECH.pdf"
   else
-    dire "7. compte rendu : ECHEC"; etat rendu ECHEC $(( $(date +%s)-t0 )) "compte_rendu.py"
+    clore ECHEC "ECHEC" "compte_rendu.py"
   fi
 else
-  dire "7. compte rendu : ECHEC, rapport ou perimetre absent"
-  etat rendu ECHEC 0 "rapport ou perimetre absent"
+  clore ECHEC "ECHEC, rapport ou perimetre absent" "rapport ou perimetre absent"
 fi
 fi
 
@@ -947,15 +944,10 @@ if a_faire provenance; then
 [ "$DECOUPE" = 1 ] && [ -z "${COUV:-}" ] && lire_verdict
 # Une trace qui ne s'ecrit pas vaut echec : jamais celle d'une execution anterieure.
 rm -f "$SORTIE/sortie/provenance.json"
-python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
-  --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
-  --gq "$GQ" --profondeur "$PROF" --couverture-min "$COUV_MIN" \
-  --couverture "${COUV:-}" --melange-max "$MELANGE_MAX" --melange "${MEL_PART:-}" \
-  --images "$IMAGES" --moteur "$MOTEUR" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
-  --filtre "$([ -n "$IGNORER_FILTRE" ] && echo ignore || echo respecte)" \
-  --perimetre-clinique "$RES/perimetre_rnpgx.json" >>"$JOURNAL" 2>&1
+tracer
 
-REUSSI=$(python3 -c "import json;print(json.load(open(r'$SORTIE/sortie/provenance.json',encoding='utf-8'))['reussite_complete'])" 2>/dev/null || echo False)
+REUSSI=False
+python3 "$RACINE/bin/provenance.py" --complet "$SORTIE/sortie/provenance.json" && REUSSI=True
 dire "termine, reussite complete : $REUSSI"
 [ "$REUSSI" = "True" ] && exit 0 || exit 1
 fi

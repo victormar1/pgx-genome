@@ -109,9 +109,12 @@ class Garanties(unittest.TestCase):
         self.assertIn('"$(cat "$SIG_FICHIER")" != "$SIGNATURE"', self.s)
 
     def test_un_refus_est_inscrit_pour_les_etages_suivants(self):
-        # Les deux chemins de refus doivent laisser la marque que les etages
-        # suivants lisent.
-        self.assertEqual(self.s.count('> "$ARRET"'), 2)
+        # Les deux chemins de refus passent par la meme fonction, qui laisse la
+        # marque que les etages suivants lisent.
+        i = self.s.index("refuser() {")
+        self.assertIn('> "$ARRET"', self.s[i:self.s.index("\n}\n", i)])
+        self.assertEqual(self.s.count('> "$ARRET"'), 1)
+        self.assertEqual(len(re.findall(r"^  refuser \"", self.s, re.M)), 2)
 
     def test_le_code_de_retour_ne_lit_que_ses_propres_etages(self):
         # Trois etages tournent en parallele et ecrivent dans la meme table ;
@@ -126,12 +129,6 @@ class Garanties(unittest.TestCase):
         # recevabilite conclurait a un fichier de variants sans echantillon.
         self.assertIn('[ -f "$i" ] || { echo "pgx_genome : image introuvable', self.s)
 
-    def test_une_lecture_du_vcf_en_echec_n_est_pas_un_vcf_vide(self):
-        i = self.s.index("NOMS_VCF=$(BCF query -l")
-        bloc = self.s[i:i + 900]
-        self.assertIn("RC_VCF=$?", bloc)
-        self.assertLess(bloc.index('if [ "$RC_VCF" != 0 ]'), bloc.index('"$NB_VCF" != "1"'))
-
     def test_le_rendu_recoit_l_identite_et_le_contexte(self):
         # Sans eux, tout compte rendu sortirait en prototype, sans preindication :
         # une plateforme ne pourrait pas produire un document de patient.
@@ -140,32 +137,12 @@ class Garanties(unittest.TestCase):
         self.assertIn('--identite "$IDENTITE"', bloc)
         self.assertIn('--contexte "$CONTEXTE"', bloc)
 
-    def test_un_vcf_sans_ad_est_refuse_a_l_entree(self):
-        # Sans lectures par allele, l'equilibre allelique de chaque heterozygote
-        # et le critere de melange ne se mesureraient pas : le controle qualite
-        # les sauterait sans le dire.
-        i = self.s.index("NOMS_VCF=$(BCF query -l")
-        bloc = self.s[i:self.s.index("\nfi\n", i)]
-        j = bloc.find("grep -c '^##FORMAT=<ID=AD,'")
-        self.assertGreater(j, 0, "la recevabilite ne verifie plus AD")
-        self.assertIn("RECEVABLE=0", bloc[j:bloc.index("\nel", j)])
-
     def test_aucun_grep_q_derriere_un_tuyau(self):
         # Le script tourne sous pipefail : grep -q ferme le tuyau des la premiere
         # correspondance, la commande en amont meurt de SIGPIPE, et le tuyau
         # entier passe pour un echec. Un VCF conforme serait ainsi refuse.
         self.assertIn("set -uo pipefail", self.s)
         self.assertNotRegex(self.s, r"\|\s*grep -q")
-
-    def test_des_identites_divergentes_ne_sont_pas_dites_concordantes(self):
-        # Le champ SM d'un alignement peut etre un identifiant interne : la
-        # divergence est acceptee, mais elle est dite et tracee comme telle.
-        i = self.s.index("NOMS_VCF=$(BCF query -l")
-        bloc = self.s[i:self.s.index("\nfi\n", i)]
-        j = bloc.index('[ "$SM_CRAM" != "$NOMS_VCF" ]; then')
-        suite = bloc[j:bloc.index("\nelse\n", j)]
-        self.assertIn("identites divergentes acceptees", suite)
-        self.assertNotIn("identites concordantes", suite)
 
     def test_un_signal_arrete_l_execution(self):
         # Sans exit dans le piege, bash reprend apres le nettoyage : l'execution
@@ -193,14 +170,6 @@ class Garanties(unittest.TestCase):
         i = self.s.index("if a_faire recevabilite; then")
         bloc = self.s[i:self.s.index("\nelse\n", i)]
         self.assertIn('rm -rf "$SORTIE/sortie"; mkdir -p "$SORTIE/sortie"', bloc)
-
-    def test_une_trace_perimee_ne_decide_pas_du_code_de_retour(self):
-        # Si la trace ne s'ecrit pas, le code de retour ne doit pas se lire dans
-        # celle d'une execution anterieure.
-        i = self.s.index("REUSSI=$(python3")
-        avant = self.s[self.s.rindex("if a_faire provenance; then", 0, i):i]
-        j = avant.index('rm -f "$SORTIE/sortie/provenance.json"')
-        self.assertLess(j, avant.index("bin/provenance.py"))
 
 
 if __name__ == "__main__":

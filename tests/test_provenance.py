@@ -221,5 +221,49 @@ class ReussiteComplete(unittest.TestCase):
                          hashlib.sha256(b"chr1\t4\t6\t4\t5\n").hexdigest())
 
 
+class Complet(unittest.TestCase):
+    """Ce qui decide du code de retour du module et du saut d'un echantillon
+    dans un lot : une trace n'est acquise que complete, et de ces entrees."""
+
+    def trace(self, contenu):
+        f = tempfile.mktemp(suffix=".json")
+        self.addCleanup(lambda: os.path.exists(f) and os.unlink(f))
+        with open(f, "w", encoding="utf-8") as fh:
+            fh.write(contenu if isinstance(contenu, str) else json.dumps(contenu))
+        return f
+
+    def test_une_trace_complete(self):
+        f = self.trace({"reussite_complete": True, "signature": "S"})
+        self.assertTrue(p.complet(f))
+        self.assertTrue(p.complet(f, "S"))
+
+    def test_une_trace_incomplete(self):
+        self.assertFalse(p.complet(self.trace({"reussite_complete": False,
+                                               "signature": "S"}), "S"))
+        # vrai au sens large ne suffit pas : seul le booleen vaut reussite
+        self.assertFalse(p.complet(self.trace({"reussite_complete": "True"})))
+
+    def test_une_autre_signature_ou_aucune(self):
+        self.assertFalse(p.complet(self.trace({"reussite_complete": True,
+                                               "signature": "S"}), "AUTRE"))
+        # une trace ecrite avant que la signature existe : a retraiter
+        self.assertFalse(p.complet(self.trace({"reussite_complete": True}), "S"))
+
+    def test_une_trace_absente_ou_illisible(self):
+        self.assertFalse(p.complet("/absent/provenance.json"))
+        self.assertFalse(p.complet(self.trace('{"reussite_complete": tr')))
+        self.assertFalse(p.complet(self.trace("[true]")))
+
+    def test_la_ligne_de_commande_rend_le_verdict_en_code_de_retour(self):
+        f = self.trace({"reussite_complete": True, "signature": "S"})
+        script = os.path.join(RACINE, "bin", "provenance.py")
+        for arguments, code in ((["--complet", f], 0), (["--complet", f, "S"], 0),
+                                (["--complet", f, "AUTRE"], 1),
+                                (["--complet", f + ".absent"], 1)):
+            r = subprocess.run([sys.executable, "-B", script] + arguments,
+                               capture_output=True)
+            self.assertEqual(r.returncode, code, arguments)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

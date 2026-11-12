@@ -10,6 +10,14 @@ d etages vide donne faux, jamais vrai.
 """
 import argparse, datetime, hashlib, json, os, subprocess, sys
 
+from qc_perimetre import EQUILIBRE_MIN
+
+
+# Les etages sans lesquels un genome n est pas rendu. Le typage complementaire
+# n y figure pas : il est optionnel. Le tableau de bord du lot lit cette liste.
+ATTENDUS = ["recevabilite", "filtre", "tranche", "qc", "cyp2d6", "hla",
+            "appels", "pharmcat", "rendu"]
+
 
 def sha256(chemin, limite=None):
     if not chemin or not os.path.exists(chemin):
@@ -89,7 +97,24 @@ def version_git(chemin):
         return ""
 
 
+def complet(chemin, signature=None):
+    """Cette trace est-elle celle d une execution aboutie, et, si une signature
+    est donnee, de ces entrees ? Une trace absente, illisible ou sans signature
+    n est jamais tenue pour acquise."""
+    try:
+        with open(chemin, encoding="utf-8") as fh:
+            d = json.load(fh)
+    except (OSError, ValueError):
+        return False
+    if not isinstance(d, dict) or d.get("reussite_complete") is not True:
+        return False
+    return signature is None or d.get("signature") == signature
+
+
 def main():
+    # provenance.py --complet TRACE [SIGNATURE] : interroge une trace, n ecrit rien.
+    if len(sys.argv) >= 3 and sys.argv[1] == "--complet":
+        return 0 if complet(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else None) else 1
     p = argparse.ArgumentParser()
     p.add_argument("--sortie", required=True)
     p.add_argument("--echantillon", required=True)
@@ -110,10 +135,11 @@ def main():
                    help="moteur de conteneurs : commande comment les images sont identifiees")
     p.add_argument("--cyrius", default="")
     p.add_argument("--pypgx", default="")
-    p.add_argument("--equilibre", type=float, default=0.25)
     p.add_argument("--filtre", default="respecte",
                    help="respecte ou ignore : traitement du filtrage de l appelant")
     p.add_argument("--perimetre-clinique", default="", dest="perimetre_clinique")
+    p.add_argument("--signature", default="",
+                   help="signature des entrees, des options et de la version")
     a = p.parse_args()
 
     # Un etage lance seul peut etre relance apres un echec : la table d'etats
@@ -135,8 +161,6 @@ def main():
         if n > 1:
             etats[e]["tentatives"] = n
 
-    ATTENDUS = ["recevabilite", "filtre", "tranche", "qc", "cyp2d6", "hla",
-                "appels", "pharmcat", "rendu"]
     manquants = [e for e in ATTENDUS if e not in etats]
     # SANS_RESULTAT : l etage a tourne jusqu au bout et n a rien conclu. Un
     # CYP2D6 que l outil ne resout pas n est pas une defaillance du module, et
@@ -157,6 +181,9 @@ def main():
 
     d = {
         "echantillon": a.echantillon,
+        # Ce qui permet de dire, plus tard, que ce resultat est bien celui de
+        # ces entrees : pgx_genome.sh --si-incomplet la compare a la sienne.
+        "signature": a.signature,
         "date": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
         "entrees": {
             "alignement": os.path.abspath(a.cram),
@@ -178,7 +205,7 @@ def main():
         "cyrius": {"chemin": a.cyrius, "version": version_git(a.cyrius)} if a.cyrius else {},
         "pypgx": version_pypgx(a.pypgx),
         "seuils": {"GQ": a.gq, "profondeur": a.profondeur,
-                   "equilibre_allelique_min": a.equilibre, "filtre_appelant": a.filtre,
+                   "equilibre_allelique_min": EQUILIBRE_MIN, "filtre_appelant": a.filtre,
                    "couverture_mediane_min": a.couv_min,
                    "melange_part_max": a.melange_max},
         "couverture_mediane_perimetre": a.couverture,
