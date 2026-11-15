@@ -12,6 +12,7 @@ dit comment la refaire.
 | Cohorte | 256 génomes publics du 1000 Genomes soumis : 13 refusés à l'entrée, 242 des 243 recevables menés au bout | 3.2 |
 | **Exactitude** | **1000 / 1009** sur les dix gènes à vérité GeT-RM ou Sanger ; 100 % sur les huit gènes à allèles étoile | 3.1 |
 | **Allèles HLA à risque** | **81 porteurs sur 81 retrouvés, aucun faux positif** | 3.1 |
+| **Validation orthogonale** | **211 génomes hors cohorte de réglage**, vérité d'assemblage diploïde : **2 des 3 critères arrêtés d'avance ne sont pas tenus** — borne basse 97,86 % pour 98 % visés, et CYP3A5 `*1/*3` rendu `*1/*1` sur deux génomes | 3.11 |
 | Gènes sans vérité GeT-RM | ABCG2 et POR confrontés à une puce de génotypage : 228 / 228 et 204 / 204 | 4.2 |
 | **Domaine de validité** | aucun allèle à conséquence clinique perdu jusqu'à 18 × ; neuf faux appels à 11 ×, d'où le refus sous 18 × | 3.4 |
 | Changement de variant caller | 103 683 positions, 99,924 % ; aucun écart de phénotype ni de recommandation sur 29 génomes rejoués | 3.5 |
@@ -523,6 +524,60 @@ avec une marge de moitié au moins, ou la borne que l'outil se fixe lui-même :
 Ainsi déclarée, la recette rend sur ces trois génomes les mêmes 36 couples que
 le lot de validation. Sous Docker, les conteneurs échappent à la mémoire
 réservée à la tâche ; sous Apptainer, ils y restent tenus.
+
+### 3.11 Validation orthogonale hors cohorte de réglage
+
+**211 génomes HPRC Release 2**, aucun dans la cohorte de réglage. La vérité
+vient d'assemblages diploïdes en lecture longue. Deux bras, mêmes alignements :
+VCF GATK (bras A) et DRAGEN 3.7.6 (bras B). Le protocole, préenregistré, est
+dans `bench/orthogonale/protocole.md`.
+
+**Deux des trois critères d'acceptation ne sont pas tenus.**
+
+| Critère, arrêté avant tout résultat | Bras A | Bras B |
+|---|---|---|
+| borne basse de l'IC à 95 % au moins égale à 98 % | **non tenu** — 97,86 % | **non tenu** — 97,95 % |
+| aucun allèle HLA à risque manqué | tenu — 39 / 39 | tenu — 39 / 39 |
+| aucun allèle sans fonction rendu en fonction normale | **non tenu** — 2 couples | **non tenu** — 1 couple |
+
+Le troisième échoue sur CYP3A5, `*1/*3` rendu `*1/*1` : le module n'est pas
+qualifié par ce benchmark sur ce gène. Les mesures de phénotype et hors
+abstentions ci-dessous n'ont pas été arrêtées d'avance et ne lèvent pas ce
+verdict.
+
+| Mesure | Bras A | Bras B |
+|---|---|---|
+| **Diplotype**, 12 gènes | **2492 / 2532 = 98,42 %** [97,86 ; 98,84] | 2494 / 2532 = 98,50 % [97,95 ; 98,90] |
+| Diplotype, hors les 4 abstentions | 2492 / 2528 = 98,58 % | 2494 / 2528 = 98,66 % |
+| Phénotype, 8 gènes | 1682 / 1688 = 99,64 % | 1684 / 1688 = 99,76 % |
+| Désaccords de phénotype qui changeraient une conduite | 4 / 1688 | 2 / 1688 |
+| Allèles HLA à risque | 39 porteurs sur 39, 0 à tort | identique |
+| Génomes sans écart sur les 12 gènes | 174 / 211 | 176 / 211 |
+
+<p align="center"><img src="figures/concordance_hprc_par_gene.svg" alt="Concordance par gène sur 211 génomes hors cohorte de réglage : 100 % sur ABCG2, CYP2C9, CYP2C19, CYP3A4, NUDT15 et TPMT, 99,53 % sur POR, 99,05 % sur SLCO1B1, 98,58 % sur CYP3A5, 96,21 % sur HLA-A et HLA-B, 91,47 % sur CYP2D6" width="720"></p>
+
+Les 40 écarts du bras A :
+
+| Nature | Nombre | Gènes |
+|---|---|---|
+| Abstention | 4 | CYP2D6 |
+| Discordance franche | 25 | HLA 16, CYP2D6 5, CYP3A5 3, POR 1 |
+| Mêmes variants, autre répartition | 8 | CYP2D6 7, SLCO1B1 1 |
+| Allèle de vérité hors des tables de l'outil | 3 | CYP2D6 2, SLCO1B1 1 |
+
+<p align="center"><img src="figures/ecarts_hprc_nature.svg" alt="Décomposition des quarante écarts de diplotype du bras A : 25 discordances franches, 8 portant les mêmes variants autrement répartis, 4 abstentions, 3 dont l'allèle de vérité est hors des tables ; CYP2D6 en porte 18 dont 5 franches, HLA-A et HLA-B 8 franches chacun, CYP3A5 3, SLCO1B1 2, POR 1" width="720"></p>
+
+Les 5 discordances CYP2D6 sont des allèles rares rendus par leur parent ; leur
+fonction n'est pas établie ici. Les 16 du HLA sont 11 écarts de second champ et
+5 erreurs de structure. Aucune ne touche un allèle à risque.
+
+<p align="center"><img src="figures/hla_a_risque_hprc.svg" alt="Allèles HLA à risque sur 211 génomes hors cohorte de réglage : A*31:01 13 porteurs sur 13, B*58:01 10 sur 10, B*57:01 10 sur 10, B*15:02 6 sur 6, soit 39 sur 39 et aucun faux positif" width="720"></p>
+
+Le bras B corrige deux couples et n'en casse aucun : McNemar exact bilatéral
+p = 0,50. La mesure ne permet pas de préférer un variant caller à l'autre.
+
+**Non couvert.** Le phénotype de CYP2D6, HLA-A, HLA-B et POR, faute d'appel
+extérieur dans la vérité ; MT-RNR1, absent des assemblages.
 
 ## 4. Limites connues, à déclarer
 

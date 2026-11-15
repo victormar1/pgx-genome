@@ -95,6 +95,8 @@ Arrêtés avant tout résultat sur les 211 :
 | 9 novembre 2026, avant tout résultat du module | règle de spécificité ajoutée devant la règle de sévérité | la sévérité seule remplaçait huit appels de deCYPher par un allèle moins spécifique, dont trois \*49 en \*10 |
 | 11 et 12 novembre 2026, avant toute mesure | alignements rapatriés par plages, recollés sur la plage servie, gardés sur la taille puis le MD5 de l'index | le transport seul change ; l'alignement retenu est identique à l'octet |
 | 11 novembre 2026, avant toute mesure | les deux bras d'un génome sont tentés séparément | la perte d'un bras retirait l'autre de la mesure |
+| 14 novembre 2026, après le résultat | `mesurer.py` écarte une vérité non conclusive sur son verdict, et non sur une colonne vide | un « Unknown » de la vérité comptait comme un échec : 1 couple, MT-RNR1 |
+| 14 novembre 2026, après le résultat | mesures ajoutées : phénotype, et diplotype hors abstentions | elles décrivent le résultat et ne lèvent aucun critère |
 
 ## Épreuve de la méthode sur les 12 génomes du pont
 
@@ -138,3 +140,111 @@ Loci à chaîne douteuse, sur 422 haplotypes :
 - 18 HLA-A : 7 chaînes de 84,5 kb pour une fenêtre de 26 kb, 11 non colinéaires.
 
 Ils restent dans la mesure principale, et l'analyse de sensibilité les retire.
+
+## Résultat
+
+Les 211 génomes sont rendus dans les deux bras, sans refus ni échec.
+
+### Critères d'acceptation
+
+Deux des trois ne sont pas tenus, dans les deux bras.
+
+| Critère | Bras A | Bras B |
+|---|---|---|
+| borne basse de l'IC à 95 % au moins égale à 98 % | **non tenu** — 97,86 % | **non tenu** — 97,95 % |
+| aucun allèle HLA à risque manqué | tenu — 39/39 | tenu — 39/39 |
+| aucun allèle sans fonction rendu en fonction normale | **non tenu** — 2 couples | **non tenu** — 1 couple |
+
+Le troisième critère échoue sur CYP3A5 : `*1/*3` rendu `*1/*1` chez HG03831 dans
+les deux bras, et chez NA20282 au bras A. Chez NA20282, l'allèle porte 6
+lectures sur 26 : le contrôle qualité écarte la position sous 25 %, et le compte
+rendu porte la réserve « 1 sur 7 positions non lue ». Un CYP2D6 `*1/*152` est
+aussi rendu `*1/*1` dans les deux bras ; la fonction de `*152` n'est pas
+établie.
+
+### Concordance de diplotype, périmètre clinique
+
+| Gène | Bras A | Bras B |
+|---|---|---|
+| ABCG2, CYP2C19, CYP2C9, CYP3A4, NUDT15, TPMT | 211/211 — 100 % | 211/211 — 100 % |
+| POR | 210/211 — 99,53 % | 210/211 — 99,53 % |
+| SLCO1B1 | 209/211 — 99,05 % | 210/211 — 99,53 % |
+| CYP3A5 | 208/211 — 98,58 % | 209/211 — 99,05 % |
+| HLA-A | 203/211 — 96,21 % | 203/211 — 96,21 % |
+| HLA-B | 203/211 — 96,21 % | 203/211 — 96,21 % |
+| CYP2D6 | 193/211 — 91,47 % | 193/211 — 91,47 % |
+| **ensemble** | **2492/2532 — 98,42 %** [97,86 ; 98,84] | **2494/2532 — 98,50 %** [97,95 ; 98,90] |
+
+Couples écartés : les 211 de MT-RNR1, sans vérité.
+
+Hors les quatre abstentions : 2492/2528, soit 98,58 %, au bras A ; 2494/2528,
+soit 98,66 %, au bras B ; CYP2D6 à 193/207, soit 93,24 %.
+
+### Allèles HLA à risque
+
+| Allèle | Porteurs retrouvés | À tort |
+|---|---|---|
+| A\*31:01 | 13 sur 13 | 0 |
+| B\*15:02 | 6 sur 6 | 0 |
+| B\*58:01 | 10 sur 10 | 0 |
+| B\*57:01 | 10 sur 10 | 0 |
+
+### Les 40 écarts du bras A
+
+| Nature | Nombre | Gènes |
+|---|---|---|
+| Abstention, « Unknown/Unknown » | 4 | CYP2D6 |
+| Discordance franche | 25 | HLA 16, CYP2D6 5, CYP3A5 3, POR 1 |
+| Mêmes variants, autre répartition | 8 | CYP2D6 7, avec un `*36` de trop dans un tandem ; SLCO1B1 1 |
+| Allèle de vérité hors des tables de l'outil | 3 | CYP2D6 2, SLCO1B1 1 |
+
+Hors abstentions, les 36 écarts sont des réponses fermes.
+
+- **CYP2D6, 5 discordances** : des allèles rares rendus par leur parent, `*152`
+  et `*178` rendus `*1`, `*161` rendu `*2`, `*155` rendu `*29`. Leur fonction
+  n'est pas établie ici.
+- **HLA, 16 discordances** : 11 de second champ, dont `23:17` rendu `*23:01`
+  trois fois ; 5 de structure, soit trois faux homozygotes, un faux
+  hétérozygote et un changement de groupe, `41:02` rendu `*08:23`. Aucune ne
+  touche un allèle à risque.
+- **Répartition** : 174 génomes sans écart, 34 avec un, 3 avec deux.
+
+### Concordance de phénotype
+
+Sur les huit gènes dont la vérité porte un phénotype, par
+`comparer_phenotypes.py`.
+
+| | Phénotype | Désaccords qui changeraient une conduite |
+|---|---|---|
+| Bras A | 1682/1688 — 99,64 % | 4 : CYP3A5 chez HG02055, HG03831 et NA20282 ; SLCO1B1 chez NA18976 |
+| Bras B | 1684/1688 — 99,76 % | 2 : CYP3A5 chez HG02055 et HG03831 |
+
+Les deux autres désaccords de chaque bras ne changent rien : une fonction
+augmentée au lieu de normale, et une ambiguïté qui contient le bon phénotype.
+
+### Bras A contre bras B
+
+Le bras B corrige deux couples et n'en casse aucun : 0 contre 2 paires
+discordantes, McNemar exact bilatéral p = 0,50. La mesure ne permet pas de
+préférer un variant caller à l'autre.
+
+Le rendu diffère sur 65 couples :
+
+| Gène | Couples | Différence |
+|---|---|---|
+| MT-RNR1 | 41 | le bras B n'appelle aucun variant : Reference 170 fois, Unknown 41 fois ; le bras A voit 30 porteurs |
+| SLCO1B1 | 23 | le bras A propose un diplotype de plus, qui contient la vérité |
+| CYP3A5 | 1 | NA20282, juste au bras B |
+
+Le nombre de gènes annoncés complets ne compare pas les deux bras. DRAGEN
+n'émet pas de ligne aux positions non variantes : sans ligne, il n'y a pas de GQ
+à faire échouer, et la position est lue sur la seule profondeur d'alignement.
+Sur un même génome, le bras A lit 435 génotypes dans le VCF et annonce 18 gènes
+complets sur 22 ; le bras B en lit 28 et en annonce 22.
+
+### Ce que le benchmark ne mesure pas
+
+- **Phénotype de CYP2D6, HLA-A, HLA-B et POR** : la vérité PharmCAT est bâtie
+  sans appel extérieur. Pour ces gènes, le diplotype et les allèles à risque
+  font seuls foi.
+- **MT-RNR1** : aucune vérité.
