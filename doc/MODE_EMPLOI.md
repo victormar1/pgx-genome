@@ -148,7 +148,9 @@ Un appel conjoint donne à l'individu une ligne à chaque site où un autre
 varie. Le contrôle qualité y juge sa qualité et ses lectures, pas le filtre du
 site, qui porte sur le variant d'un autre (§ 6, étage 2b). Une référence que
 l'appelant note d'une qualité insuffisante écarte donc la position, ce que son
-propre fichier, sans ligne à cet endroit, ne ferait pas.
+propre fichier, sans ligne à cet endroit, ne ferait pas. MT-RNR1 n'est pas
+rendu depuis un appel conjoint : il demande le fichier individuel ou celui du
+trio (`doc/VALIDATION.md`, § 3.12 et limite 4.9).
 
 Le module **refuse** à l'entrée, sans lancer aucun étage :
 
@@ -251,7 +253,7 @@ chemin de l'alignement, chemin du fichier de variants. Le même fichier de
 variants peut servir à plusieurs lignes : l'identifiant nomme alors la colonne
 lue. Un échantillon déjà complet
 est sauté, si sa trace porte la signature de ces mêmes entrées, options et
-version ; sinon il est retraité. Le lot produit `tableau_de_bord.tsv` : une ligne par échantillon,
+version ; sinon il est retraité. `bin/lot.py` vérifie le manifeste et écrit `tableau_de_bord.tsv` : une ligne par échantillon,
 l'état et la durée de chaque étage. Le parallélisme vaut 4 par défaut et est
 mesuré jusqu'à six : compter un génome pour quatre cœurs (§ 9).
 Le lanceur ne transmet pas d'identité : ses comptes rendus portent la mention

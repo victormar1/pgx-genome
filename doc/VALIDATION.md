@@ -17,7 +17,8 @@ dit comment la refaire.
 | **Domaine de validité** | aucun allèle à conséquence clinique perdu jusqu'à 18 × ; neuf faux appels à 11 ×, d'où le refus sous 18 × | 3.4 |
 | Changement de variant caller | 103 683 positions, 99,924 % ; aucun écart de phénotype ni de recommandation sur 29 génomes rejoués | 3.5 |
 | Répétabilité | trois exécutions d'un même génome, aucun écart | 3.2 |
-| Code | 482 cas de test ; 334 mutants, 334 tués | 3.6 |
+| Fichier de variants à plusieurs échantillons | 4 génomes lus en fusion, en appel conjoint GATK et DRAGEN, en trio : tables identiques au fichier individuel ou à la colonne extraite à la main ; MT-RNR1 non rendu depuis un appel conjoint | 3.12 |
+| Code | 491 cas de test ; 348 mutants, 348 tués | 3.6 |
 | Débit | 51 génomes par heure sur 24 cœurs | 3.10 |
 
 **Les trois limites qui engagent une plateforme** : un mélange d'échantillons de
@@ -34,7 +35,7 @@ d'un fichier de variants **produits en amont par la plateforme**.
 
 | | |
 |---|---|
-| Entrées | alignement CRAM ou BAM sur GRCh38, fichier de variants mono-échantillon, référence indexée |
+| Entrées | alignement CRAM ou BAM sur GRCh38, fichier de variants d'un ou de plusieurs échantillons, référence indexée |
 | Sorties | avis structuré (`report.json`), génotype et annotation en tables séparées, compte rendu en français (`CR_<ECH>.pdf`), trace d'exécution (`provenance.json`) |
 | Ne fait pas | ni séquençage, ni alignement, ni appel de variants, ni validation biologique |
 | Décision finale | un biologiste médical ; le compte rendu porte sa ligne de validation |
@@ -379,8 +380,8 @@ Ces six écarts n'apparaissent pas sous 29 génomes : un échantillon de 9 en do
 
 | Mesure | Résultat |
 |---|---|
-| Cas de test | 482 |
-| Mutation testing, cumulé sur les versions | **334 mutants, 334 tués, 0 survivant** |
+| Cas de test | 491 |
+| Mutation testing, cumulé sur les versions | **348 mutants, 348 tués, 0 survivant** |
 | Contrôles d'intégrité du dépôt | 4 mutants, 4 tués |
 | Reproductibilité du catalogue généré | 3 régénérations, **même hash**, égal à celui du fichier livré |
 
@@ -456,6 +457,7 @@ pas » n'est pas une mesure.
 | Déclaration de la mémoire par étage | 3 | 36 | **0** |
 | Conteneurs sous l'identité de l'appelant, typeur dans son image, verrou par hôte | 3 | 36 | **0** |
 | Refonte de l'orchestration, jugement unique du contrôle qualité et garde-fous du rendu (0.6.0) | 5 | 60, et 20 de typage PyPGx | **0** |
+| Lecture d'un individu dans un fichier à plusieurs, filtre du site réservé au porteur (0.6.1) | 4 | 60 | **0** |
 
 La dernière ligne compare la 0.6.0 à la 0.5.5 sur les mêmes entrées : lot, puis
 un génome étage par étage, en reprise et par la recette Nextflow, sans écart. Le
@@ -464,6 +466,11 @@ rendu : le texte des 5 comptes rendus a donc été comparé à part. Quatre ne
 diffèrent que par le numéro de version ; le cinquième gagne le nom de la
 fluvastatine, que la 0.5.5 omettait pour une statine prescrite seule — 49 génomes
 du benchmark sur 243 sont dans ce cas.
+
+La ligne de la 0.6.1 rejoue le fichier individuel de quatre génomes et compare
+les trois tables rendues et le jugement de chaque position. Le filtre du site ne
+pouvait rien y changer : aucune des 665 exécutions des deux benchmarks ne porte
+de position écartée pour ce motif.
 
 **Témoin négatif.** Un alignement réduit à 1 % de ses lectures est refusé par le
 critère de couverture, sans compte rendu : un échantillon presque vide ne ressort
@@ -597,6 +604,56 @@ p = 0,50. La mesure ne permet pas de préférer un variant caller à l'autre.
 **Non couvert.** Le phénotype de CYP2D6, HLA-A, HLA-B et POR, faute d'appel
 extérieur dans la vérité ; MT-RNR1, absent des assemblages.
 
+### 3.12 Fichier de variants à plusieurs échantillons
+
+Quatre génomes du 1000 Genomes, lus chacun dans son fichier individuel puis dans
+cinq fichiers réels à plusieurs échantillons. Exécutions complètes ; la
+comparaison porte sur les trois tables rendues et sur le jugement de chaque
+position par le contrôle qualité.
+
+| Fichier à plusieurs échantillons | Témoin | Génomes | Écarts |
+|---|---|---|---|
+| Fusion de 4 fichiers individuels DRAGEN (`bcftools merge`) | fichier individuel | 4 | **0** |
+| Même fusion, absents ramenés à la référence | fichier individuel | 4 | **0** |
+| Appel conjoint GATK filtré par VQSR, 215 génomes | colonne extraite à la main (`bcftools view -s`) | 4 | **0** |
+| Appel conjoint DRAGEN 4.2.7, 215 génomes | colonne extraite à la main | 4 | **0** |
+| Trio DRAGEN 4.2.7, appel de pedigree | fichier individuel | 1 | **0** sur les tables ; 10 positions jugées sur la ligne du trio |
+
+Ce que la forme du fichier change, pour le même individu et à diplotype égal :
+
+| Fichier | Réserves propres à ce fichier | MT-RNR1 |
+|---|---|---|
+| Fusion, trio DRAGEN | aucune | comme le fichier individuel |
+| Appel conjoint GATK | SLCO1B1, 4 génomes sur 4 ; aucune dans le trio qui en est tiré | non rendu, 4 sur 4 : le fichier ne porte pas le contig mitochondrial |
+| Appel conjoint DRAGEN | SLCO1B1, 3 sur 4 ; TPMT, 2 sur 4 | non rendu, 4 sur 4 : ses lignes de référence mitochondriales n'ont pas de qualité de génotype |
+
+Un appel conjoint donne à l'individu une ligne à chaque site où un autre varie.
+Ces réserves viennent de lignes où il est à la référence et que l'appelant note
+d'une qualité insuffisante : une position de SLCO1B1 a une qualité médiane de 6
+sur 213 références.
+
+| Ce que retire ou retient l'extraction | Mesure, par génome |
+|---|---|
+| Lignes sans valeur retirées d'une fusion, positions visées | 55 à 71 |
+| Lignes allégées des allèles d'un autre, sans lectures | 2 à 4 ; 12 à 16 sur les régions du typeur |
+| Sites filtrés où l'individu est à la référence, appel conjoint GATK | 12 à 14, jugés sur sa qualité et ses lectures : 11 à 13 retenus |
+| Génotypes porteurs filtrés par individu (`FT`) et de qualité suffisante, appel conjoint DRAGEN | 0 sur 79 303, tous individus |
+
+Le filtre par individu de DRAGEN n'est pas lu : les 73 génotypes porteurs qu'il
+marque hors du contig mitochondrial sont déjà écartés par leur qualité.
+
+Refus et modes d'exécution, sur ces mêmes fichiers :
+
+| Épreuve | Résultat |
+|---|---|
+| Nom absent d'un fichier de 215 | refusé ; le journal donne les 20 premiers noms et leur nombre |
+| Alignement de l'enfant, colonne du père demandée (trio) | refusé |
+| Onze étages lancés un à un (trio) | mêmes tables que l'exécution d'un seul tenant |
+| `--reprise`, `--si-incomplet` | mêmes tables, tranche réutilisée ; dossier complet : rien n'est refait |
+| Lot de 4 lignes sur le même fichier | 4 sur 4, mêmes tables ; relancé, 4 sautés |
+| Recette Nextflow, 2 génomes sur le même fichier | mêmes tables |
+| Apptainer, appel conjoint DRAGEN, 1 génome | mêmes tables que sous Docker |
+
 ## 4. Limites connues, à déclarer
 
 **4.1 MT-RNR1 : un seul des trois variants est éprouvé sur porteur réel.** Ses
@@ -718,6 +775,14 @@ demandé nomme l'un des deux, et l'inscrit dans la trace. Une inversion
 d'échantillons entre deux fichiers qui portent chacun un nom plausible ne se
 détecte qu'en comparant leurs génotypes, en amont.
 
+**4.9 MT-RNR1 n'est pas rendu depuis un appel conjoint, et le fichier à
+plusieurs échantillons n'est éprouvé que sur quatre génomes.** Un appel conjoint
+GATK ne porte pas le contig mitochondrial ; un appel conjoint DRAGEN donne à
+chacun des lignes de référence mitochondriales sans qualité de génotype, que le
+contrôle qualité écarte. Le gène sort non conclusif, jamais normal : pour le
+rendre, il faut le fichier individuel ou celui du trio. La colonne et
+l'alignement ne se confrontent que par leurs noms (4.8).
+
 ## 5. Protocole de revalidation
 
 Toute version des outils et des tables est figée dans `provenance.json` par
@@ -754,8 +819,8 @@ l'identique, tables cliniques comprises.
 
 | Outil | Rôle |
 |---|---|
-| `tests/` | 482 cas, vérifiés par mutation testing |
-| `outils/verifier_depot.py` | intégrité des figures, cohérence du périmètre et des comptes annoncés, syntaxe des scripts, reproductibilité des ressources générées |
+| `tests/` | 491 cas, vérifiés par mutation testing |
+| `outils/verifier_depot.py` | intégrité des figures, cohérence du périmètre et des comptes annoncés, documentation à jour, syntaxe des scripts, reproductibilité des ressources générées |
 | `outils/cas_construit.py` | exercice d'un allèle absent de la cohorte |
 | `outils/fiche_traductions.py` | fiche de relecture des traductions, classée par usage, avec les entrées inemployées à part |
 | `outils/comparer_rapports.py` | compare deux exécutions — diplotype, phénotype, recommandations, rapport manquant, typage PyPGx — et rend un code de sortie non nul au premier écart |

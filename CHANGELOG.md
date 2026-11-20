@@ -8,6 +8,42 @@ incrémente au moins le rang mineur et déclenche la revalidation décrite dans
 La version du module figure dans `provenance.json` et au pied du compte rendu.
 Elle ne vaut aucune déclaration de conformité.
 
+## 0.6.1
+
+Le module lit un individu dans un fichier de variants à plusieurs échantillons.
+Aucun résultat rendu ne change sur les entrées déjà validées, d'où le rang
+correctif.
+
+**Entrées.** `--echantillon` nomme la colonne lue d'un VCF à plusieurs
+échantillons ; en lot, c'est l'identifiant de la ligne, et le même fichier sert
+à plusieurs lignes. Un nom absent du fichier est refusé, les noms présents sont
+donnés. Un alignement qui porte le nom d'une autre colonne est refusé. Un VCF à
+un seul échantillon se lit comme avant.
+
+**Fichiers fusionnés.** Une fusion de fichiers individuels ajoute à chacun des
+lignes sans aucune valeur et, sur ses propres lignes, les allèles des autres
+sans lectures : les unes et les autres sont retirés à l'extraction
+(`colonne_vcf.py`).
+
+**Contrôle qualité.** Le filtre de l'appelant juge le variant d'un site, pas
+l'individu : il n'écarte plus une position que si l'individu y porte un allèle
+alternatif. Sa qualité et ses lectures restent jugées. Aucune des 665 exécutions
+des benchmarks ne portait de position écartée pour ce motif.
+
+**Trace.** `provenance.json` porte `colonne_variants`. La signature de reprise
+porte l'identifiant demandé : mêmes fichiers, autre individu, rien n'est repris.
+
+**Dépôt.** La documentation part avec le code : `verifier_depot.py` refuse un
+code modifié sans document, une option absente du mode d'emploi, un script que
+rien ne cite et une version sans entrée au journal.
+
+**Validation.** Quatre génomes lus en fusion de fichiers individuels, en appel
+conjoint GATK et DRAGEN de 215 génomes et en trio : tables identiques à celles
+du fichier individuel ou de la colonne extraite à la main (`doc/VALIDATION.md`,
+§ 3.12). La recette Nextflow et Apptainer rendent les mêmes tables sur un
+fichier partagé. MT-RNR1 n'est pas rendu depuis un appel conjoint (limite 4.9).
+491 cas de test ; 348 mutants, 348 tués.
+
 ## 0.6.0
 
 Le contrôle qualité s'applique au typage complémentaire, et trois tables
