@@ -53,7 +53,7 @@
     <text x="340" y="160">tranche.bam</text>
     <text x="613" y="228">cyp2d6.tsv</text>
     <text x="274" y="268" font-size="7.5">profondeur</text>
-    <text x="180" y="310">qualifie.vcf.gz</text>
+    <text x="180" y="338">qualifie.vcf.gz</text>
     <text x="690" y="268" text-anchor="end">états des étages</text>
   </g>
 
@@ -70,7 +70,7 @@
     <text x="433" y="35" text-anchor="middle" font-size="8.5" fill="#5F726B">1 ou n échantillons · lecture seule</text>
     <rect x="524" y="6" width="168" height="36" rx="5" fill="#E6F3EE" stroke="#1B9E77"/>
     <text x="608" y="21" text-anchor="middle" font-weight="700">Ressources figées</text>
-    <text x="608" y="35" text-anchor="middle" font-size="8.5" fill="#5F726B">1 226 positions PharmCAT · 18 RNPGx · 79 PyPGx</text>
+    <text x="608" y="35" text-anchor="middle" font-size="7.5" fill="#5F726B">1 226 positions PharmCAT · 18 RNPGx · 79 PyPGx</text>
   </g>
 
   <!-- R2 recevabilite -->
