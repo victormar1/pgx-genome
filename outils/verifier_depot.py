@@ -344,6 +344,80 @@ def controle_coherence():
               % (len(pperdues), pperdues[0][0], pperdues[0][1]))
 
 
+# ------------------------------------------------------ 8. la documentation
+# Le code ne part pas sans sa documentation : une option que le mode d'emploi
+# ignore, un script que rien ne cite ou une version sans entree au journal sont
+# des fautes au meme titre qu'un test rouge.
+CODE = ("bin/", "ressources/", "env/", "exemples/")
+DOCUMENTS = ("README.md", "CHANGELOG.md")
+
+
+def lire(*chemin):
+    with io.open(os.path.join(RACINE, *chemin), encoding="utf-8") as fh:
+        return fh.read()
+
+
+def options_acceptees(script):
+    """Les options longues qu'un script shell accepte, hors l'aide."""
+    return sorted(set(re.findall(r"^\s+(?:-\w\|)?(--[a-z][a-z-]*)\)", script, re.M))
+                  - {"--help"})
+
+
+def version_du_journal(journal):
+    """La version de la premiere entree du journal, vide s'il n'en a pas."""
+    m = re.search(r"^## (\d+(?:\.\d+)+)\s*$", journal, re.M)
+    return m.group(1) if m else ""
+
+
+def sans_documentation(modifies):
+    """Vrai si des fichiers modifies touchent le code sans toucher un document."""
+    code = [f for f in modifies if f.startswith(CODE)]
+    doc = [f for f in modifies if f.startswith("doc/") or f in DOCUMENTS]
+    return bool(code) and not doc
+
+
+def modifies_depuis(reference):
+    """Les fichiers qui different de la branche de reference, None si elle est
+    introuvable : une archive sans historique ne se juge pas sur ce point."""
+    r = subprocess.run(["git", "-C", RACINE, "diff", "--name-only",
+                        reference + "...HEAD"], capture_output=True)
+    if r.returncode != 0:
+        return None
+    return [l for l in r.stdout.decode("utf-8", "replace").splitlines() if l]
+
+
+def controle_documentation():
+    print("\nDocumentation a jour")
+    version = lire("VERSION").strip()
+    au_journal = version_du_journal(lire("CHANGELOG.md"))
+    dire(au_journal == version, "le journal des versions ouvre sur la version",
+         version if au_journal == version
+         else "VERSION dit %s, le journal %s" % (version, au_journal or "rien"))
+
+    mode = lire("doc", "MODE_EMPLOI.md")
+    oubliees = ["%s %s" % (s, o) for s in ("pgx_genome.sh", "pgx_lot.sh")
+                for o in options_acceptees(lire("bin", s)) if o not in mode]
+    dire(not oubliees, "chaque option est dans le mode d'emploi",
+         ", ".join(oubliees))
+
+    textes = mode + lire("doc", "FLUX_FICHIERS.md") + lire("README.md")
+    orphelins = [f for f in sorted(os.listdir(os.path.join(RACINE, "bin")))
+                 if not f.startswith("__") and f not in textes]
+    dire(not orphelins, "chaque script est cite par la documentation",
+         ", ".join(orphelins))
+
+    modifies = modifies_depuis("origin/main")
+    if modifies is None:
+        dire(True, "le code ne change pas sans la documentation",
+             "branche principale introuvable, non juge")
+    else:
+        dire(not sans_documentation(modifies),
+             "le code ne change pas sans la documentation",
+             "%d fichier(s) modifie(s) depuis la branche principale" % len(modifies)
+             if not sans_documentation(modifies)
+             else "code modifie depuis la branche principale, aucun document")
+
+
 def main():
     regenerer = "--regenerer" in sys.argv
     controle_svg()
@@ -352,6 +426,7 @@ def main():
     controle_motifs()
     controle_compilation()
     controle_coherence()
+    controle_documentation()
     controle_ressources(regenerer)
     print()
     if echecs:

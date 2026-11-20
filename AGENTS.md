@@ -26,6 +26,10 @@ La CI rejoue les deux et valide les messages de commit de tout l'historique.
   `commit-msg` le vérifie.
 - Un commit rédigé avec un assistant porte le trailer
   `Co-authored-by: Claude <noreply@anthropic.com>`, sans nom de modèle.
+- La documentation part avec le code, avant toute fusion : mode d'emploi,
+  validation, figures, journal des versions. `outils/verifier_depot.py` refuse
+  un code modifié sans document ; relire que les documents disent vrai reste à
+  faire à la main (`CONTRIBUTING.md`, « Documentation »).
 - Un garde-fou ajouté vient avec son test, et le test se vérifie par mutation
   testing : réintroduire le défaut doit le faire échouer.
 - Un changement qui modifie un résultat rendu (seuil, périmètre, version d'un

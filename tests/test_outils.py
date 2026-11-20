@@ -166,6 +166,59 @@ class MotifsDuDepot(unittest.TestCase):
             self.assertEqual(self.trouve(texte), [], texte)
 
 
+class DocumentationAJour(unittest.TestCase):
+    """Le code ne part pas sans sa documentation : ce que le controle du depot
+    lit pour le dire."""
+
+    SCRIPT = ('while [ $# -gt 0 ]; do\n  case "$1" in\n'
+              '    --cram) CRAM="$2"; shift 2;;\n'
+              '    --si-incomplet) SI=1; shift;;\n'
+              '    -f|--fils) FILS="$2"; shift 2;;\n'
+              '    -h|--help) exit 0;;\n'
+              '    *) exit 2;;\n  esac\ndone\n'
+              'outil --pas-une-option) fin\n')
+
+    def test_les_options_d_un_script_se_lisent_dans_son_aiguillage(self):
+        # Une option qui porte aussi une forme courte se lit sous sa forme longue.
+        self.assertEqual(D.options_acceptees(self.SCRIPT),
+                         ["--cram", "--fils", "--si-incomplet"])
+
+    def test_l_aide_n_a_pas_a_etre_documentee(self):
+        self.assertNotIn("--help", D.options_acceptees(self.SCRIPT))
+
+    def test_le_journal_se_lit_a_sa_premiere_entree(self):
+        journal = "# Journal\n\nLes versions suivent `M.m.c`.\n\n## 0.6.1\n\nTexte.\n\n## 0.6.0\n"
+        self.assertEqual(D.version_du_journal(journal), "0.6.1")
+        self.assertEqual(D.version_du_journal("# Journal\n\n## 0.6.1.1\n"), "0.6.1.1")
+
+    def test_un_journal_sans_entree_ne_donne_aucune_version(self):
+        self.assertEqual(D.version_du_journal("# Journal\n\n## Preambule\n"), "")
+
+    def test_du_code_sans_document_est_une_faute(self):
+        for code in ("bin/pgx_genome.sh", "ressources/perimetre_rnpgx.json",
+                     "env/requirements.txt", "exemples/pgx_genome.nf"):
+            self.assertTrue(D.sans_documentation([code, "tests/test_x.py"]), code)
+
+    def test_du_code_avec_un_document_passe(self):
+        for doc in ("doc/MODE_EMPLOI.md", "README.md", "CHANGELOG.md"):
+            self.assertFalse(D.sans_documentation(["bin/pgx_genome.sh", doc]), doc)
+
+    def test_sans_code_modifie_rien_n_est_exige(self):
+        self.assertFalse(D.sans_documentation(["tests/test_x.py", "outils/x.py"]))
+        self.assertFalse(D.sans_documentation([]))
+
+    def test_un_fichier_au_nom_proche_n_est_pas_un_document(self):
+        self.assertTrue(D.sans_documentation(["bin/a.py", "bench/README.md", "docs.txt"]))
+
+    def test_le_depot_tient_sa_propre_regle(self):
+        self.assertEqual(D.version_du_journal(D.lire("CHANGELOG.md")),
+                         D.lire("VERSION").strip())
+        mode = D.lire("doc", "MODE_EMPLOI.md")
+        for script in ("pgx_genome.sh", "pgx_lot.sh"):
+            for option in D.options_acceptees(D.lire("bin", script)):
+                self.assertIn(option, mode, script)
+
+
 class CasConstruit(unittest.TestCase):
     def setUp(self):
         with io.open(os.path.join(RACINE, "ressources",

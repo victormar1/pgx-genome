@@ -13,15 +13,32 @@ git config core.hooksPath outils/crochets   # une fois par copie de travail
 |---|---|---|
 | `outils/valider_message.py` | hook `commit-msg` ; CI, sur tout l'historique | sujet hors format, corps au-delà de 72 caractères, motif interdit, casse ou forme d'un trailer |
 | `python -m unittest discover -s tests` | hook `pre-push` ; CI | régression sur un garde-fou : contrôle qualité, typage PyPGx, outside calls, rendu, trace, découpage en étages, outils |
-| `outils/verifier_depot.py` | hook `pre-push` ; CI | SVG non conforme XML, nombre de gènes ou de tests incohérent avec la documentation, chemin de poste, script shell invalide, ressource générée périmée |
+| `outils/verifier_depot.py` | hook `pre-push` ; CI | SVG non conforme XML, nombre de gènes ou de tests incohérent avec la documentation, chemin de poste, script shell invalide, ressource générée périmée, code modifié sans document, option ou script absent de la documentation, version sans entrée au journal |
 
 La CI (`.github/workflows/ci.yml`) rejoue ces contrôles à chaque push sur `main`
 et à chaque pull request. `git push --no-verify` contourne le hook local, pas la CI.
 
 Les tests valent ce que vaut leur capacité à échouer. Chaque garde-fou ajouté
 est vérifié par mutation testing : le défaut qu'il empêche est réintroduit, et
-sa suite doit échouer. Cumul sur les versions : 334 mutants, 334 tués, aucun
+sa suite doit échouer. Cumul sur les versions : 348 mutants, 348 tués, aucun
 survivant (`doc/VALIDATION.md`, § 3.6).
+
+## Documentation
+
+**La documentation part avec le code, avant toute fusion.** Une branche qui
+touche `bin/`, `ressources/`, `env/` ou `exemples/` touche aussi `doc/`,
+`README.md` ou `CHANGELOG.md`. `outils/verifier_depot.py` le refuse sinon, et
+refuse de même :
+
+| Faute | Où elle se lit |
+|---|---|
+| option acceptée par un script et absente du mode d'emploi | `doc/MODE_EMPLOI.md` |
+| script de `bin/` que rien ne cite | mode d'emploi, flux des fichiers, README |
+| `VERSION` sans entrée en tête du journal | `CHANGELOG.md` |
+
+Le contrôle dit qu'un document a bougé, pas qu'il dit vrai : relire ce que la
+branche change dans le mode d'emploi, la validation et les figures reste à
+faire à la main, avant la demande de fusion.
 
 ## Messages de commit
 
