@@ -14,7 +14,9 @@
 # etage optionnel : non active, il s'inscrit IGNORE et ne pese pas sur le resultat.
 #
 # Options :
-#   --echantillon ID   identifiant du prelevement    (defaut : nom de l'alignement)
+#   --echantillon ID   identifiant du prelevement    (defaut : nom de l'alignement) ;
+#                      si le fichier de variants porte plusieurs echantillons,
+#                      c'est la colonne de ce nom qui est lue
 #   --fasta CHEMIN     reference d'alignement, requise pour un CRAM
 #   --identite FICHIER JSON {patient, naissance, contexte} pour le compte rendu ;
 #                      fourni, il leve la mention prototype. Un fichier et non
@@ -101,7 +103,7 @@ while [ $# -gt 0 ]; do
     --si-incomplet) SI_INCOMPLET=1; shift;;
     --ignorer-filtre) IGNORER_FILTRE="--ignorer-filtre"; shift;;
     --etage) ETAGES="${ETAGES:+$ETAGES,}$2"; shift 2;;
-    -h|--help) sed -n '2,43p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0;;
+    -h|--help) sed -n '2,45p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0;;
     --version) cat "$RACINE/VERSION" 2>/dev/null || echo inconnue; exit 0;;
     *) echo "option inconnue : $1" >&2; exit 2;;
   esac
@@ -372,6 +374,12 @@ ARRET="$T/arret.txt"
 # L'en-tete de l'alignement, lu une fois par la recevabilite ; les etages qui
 # suivent le relisent ici. La signature garantit qu'il vient des memes entrees.
 ENTETE="$T/entete_alignement.txt"
+# Dans un fichier de variants a plusieurs echantillons, la colonne lue est celle
+# que nomme la demande. La recevabilite l'etablit et la pose ici ; un etage
+# lance seul la relit. Vide : le fichier ne porte qu'un echantillon, et rien
+# n'en est extrait.
+COLONNE_F="$T/colonne_vcf.txt"
+COLONNE=""
 
 # Un alignement sur un autre assemblage rend des resultats aux mauvaises
 # coordonnees sans lever d'erreur : les regions visees n'y existent pas, la
@@ -427,7 +435,7 @@ lire_verdict() {
 # execution aboutie, et non ceux par defaut de provenance.py.
 tracer() {
   python3 "$RACINE/bin/provenance.py" --sortie "$SORTIE" --echantillon "$ECH" \
-    --cram "$CRAM" --vcf "$VCF" --fasta "$FASTA" --ressources "$RES" \
+    --cram "$CRAM" --vcf "$VCF" --colonne "$COLONNE" --fasta "$FASTA" --ressources "$RES" \
     --gq "$GQ" --profondeur "$PROF" --couverture-min "$COUV_MIN" \
     --couverture "${COUV:-}" --melange-max "$MELANGE_MAX" --melange "${MEL_PART:-}" \
     --images "$IMAGES" --moteur "$MOTEUR" --cyrius "$CYRIUS" --pypgx "$PYPGX" \
@@ -452,6 +460,23 @@ refuser() {  # $1 motif  $2 detail des etats  $3... etages qui ne tourneront pas
   exit 2
 }
 REGION_TEST=$(awk 'NR==1{printf "%s:%d-%d", $1, $2+1, $3}' "$RES/pharmcat_positions.bed")
+# Toute lecture du fichier de variants passe par ici. D'un fichier a plusieurs
+# echantillons ne sort que la colonne de l'individu, debarrassee de ce qu'une
+# fusion de fichiers individuels y ajoute sans rien mesurer de lui
+# (colonne_vcf.py). Les alleles ne sont pas retires par bcftools (-a) : il
+# laisse AD entier quand l'en-tete le declare de taille libre, et le controle
+# qualite lirait les lectures d'un autre allele. Un fichier a un seul
+# echantillon est lu comme il l'a toujours ete.
+extraire() {  # $1 regions  $2 sortie, compressee et indexee
+  if [ -z "$COLONNE" ]; then
+    BCF view -R "$1" -Oz -o "$2" "$VCF" >>"$JOURNAL" 2>&1 || return 1
+  else
+    BCF view -s "$COLONNE" -R "$1" -Ov "$VCF" 2>>"$JOURNAL" \
+      | python3 "$RACINE/bin/colonne_vcf.py" > "${2%.gz}" 2>>"$JOURNAL" || return 1
+    conteneur "$SORTIE" "$IMG_BCF" bgzip -f "${2%.gz}" >>"$JOURNAL" 2>&1 || return 1
+  fi
+  BCF index -f -t "$2" >>"$JOURNAL" 2>&1
+}
 
 # --------------------------------------------------------------- 0. recevabilite
 # Les intermediaires ne sont reutilisables que s'ils viennent des memes entrees.
@@ -472,13 +497,15 @@ empreinte() {
 # ressources y entrent aussi : une position ajoutee au perimetre change la
 # tranche sans toucher aux entrees. Le seuil d'equilibre allelique n'y
 # figure pas : il n'est pas reglable en ligne de commande, et l'etage de
-# controle qualite qui le porte est rejoue a chaque execution.
+# controle qualite qui le porte est rejoue a chaque execution. L'echantillon
+# y figure : un fichier de variants peut porter plusieurs individus, et les
+# memes fichiers lus pour un autre nom ne donnent pas les memes intermediaires.
 # Le contenu, et non le nom ni la taille : une position corrigee a taille
 # egale doit invalider la reprise. Cent soixante kilooctets, cent cinquante
 # millisecondes.
 EMPREINTE_RES=$(find "$RES" -type f -print0 2>/dev/null | sort -z \
   | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -c1-16)
-SIGNATURE="$(empreinte "$CRAM")|$(empreinte "$VCF")|$(empreinte "$FASTA")|gq=$GQ|prof=$PROF|couv=$COUV_MIN|mel=$MELANGE_MAX|filtre=${IGNORER_FILTRE:-respecte}|res=$EMPREINTE_RES|version=$(cat "$RACINE/VERSION" 2>/dev/null || echo inconnue)"
+SIGNATURE="$(empreinte "$CRAM")|$(empreinte "$VCF")|$(empreinte "$FASTA")|ech=$ECH|gq=$GQ|prof=$PROF|couv=$COUV_MIN|mel=$MELANGE_MAX|filtre=${IGNORER_FILTRE:-respecte}|res=$EMPREINTE_RES|version=$(cat "$RACINE/VERSION" 2>/dev/null || echo inconnue)"
 SIG_FICHIER="$T/signature.txt"
 # La recevabilite ouvre le dossier : elle seule le purge et remet la trace a
 # zero. Un etage lance seul le reprend la ou il en est, a condition qu'il porte
@@ -529,6 +556,7 @@ else
     echo "la recevabilite n'a pas abouti dans $SORTIE" >&2
     exit 2
   fi
+  COLONNE=$(cat "$COLONNE_F" 2>/dev/null)
   dire "etage(s) $ETAGES"
 fi
 # Les lignes d'etat ecrites par cette execution, et elles seules, decident de
@@ -540,6 +568,17 @@ entamer recevabilite
 NOMS_VCF=$(BCF query -l "$VCF" 2>>"$JOURNAL")
 RC_VCF=$?
 NB_VCF=$(printf '%s\n' "$NOMS_VCF" | grep -c . || true)
+# Le nom sous lequel le fichier de variants designe l'individu : son seul
+# echantillon, ou, s'il en porte plusieurs, celui que nomme la demande. Les
+# etages qui lisent le fichier n'en extraient alors que cette colonne : le
+# controle qualite et l'interpreteur lisent la premiere venue, sans la nommer.
+NOM_VCF="$NOMS_VCF"; COLONNE=""; PARMI=""
+if [ "$RC_VCF" = 0 ] && [ "$NB_VCF" -gt 1 ]; then
+  NOM_VCF=""
+  if [ "$(printf '%s\n' "$NOMS_VCF" | grep -Fxc -- "$ECH" || true)" = 1 ]; then
+    NOM_VCF="$ECH"; COLONNE="$ECH"; PARMI=" (1 sur $NB_VCF)"
+  fi
+fi
 samtools view -H ${FASTA:+--reference "$FASTA"} "$CRAM" > "$ENTETE" 2>>"$JOURNAL"
 SM_CRAM=$(tr '\t' '\n' < "$ENTETE" | grep -oE '^SM:.+' | sed 's/SM://' | sed 's/\\t.*//' \
           | sort -u | head -3 | tr '\n' ',' | sed 's/,$//')
@@ -551,9 +590,20 @@ if [ "$RC_VCF" != 0 ]; then
   # le conteneur comme dans le fichier, et le journal porte son message.
   REFUS_JOURNAL="bcftools n'a pas lu le fichier de variants (code $RC_VCF) ; voir son message ci-dessus"
   REFUS_ETAT="lecture du VCF impossible, code $RC_VCF"
-elif [ "$NB_VCF" != "1" ]; then
+elif [ "$NB_VCF" = 0 ]; then
   REFUS_JOURNAL="le fichier de variants porte $NB_VCF echantillons"
   REFUS_ETAT="$NB_VCF echantillons dans le VCF"
+elif [ -z "$NOM_VCF" ]; then
+  # Les noms presents sont donnes : la demande se corrige a leur lecture. Vingt
+  # au plus, un fichier de cohorte en porte des milliers.
+  REFUS_JOURNAL="le fichier de variants porte $NB_VCF echantillons et aucun ne se nomme $ECH (presents : $(printf '%s\n' "$NOMS_VCF" \
+    | awk 'NR<=20{printf "%s%s", (NR>1 ? ", " : ""), $0} END{if (NR>20) printf ", ... (%d en tout)", NR}'))"
+  REFUS_ETAT="$ECH absent des $NB_VCF echantillons du VCF"
+elif case "$COLONNE" in *,*|^*) true;; *) false;; esac; then
+  # bcftools lit une virgule comme un separateur de noms et un ^ initial comme
+  # une exclusion : la colonne extraite ne serait pas celle demandee.
+  REFUS_JOURNAL="la colonne $COLONNE ne peut pas etre extraite du fichier de variants : son nom porte une virgule ou commence par ^"
+  REFUS_ETAT="nom de colonne non extractible : $COLONNE"
 elif [ "$(BCF view -h "$VCF" 2>>"$JOURNAL" | grep -c '^##FORMAT=<ID=AD,')" = 0 ]; then
   # Sans lectures par allele, l'equilibre allelique de chaque heterozygote et le
   # critere de melange ne se mesurent pas : le controle qualite les sauterait.
@@ -561,9 +611,16 @@ elif [ "$(BCF view -h "$VCF" 2>>"$JOURNAL" | grep -c '^##FORMAT=<ID=AD,')" = 0 ]
   # bcftools, tue par SIGPIPE, ferait refuser un VCF conforme.
   REFUS_JOURNAL="le fichier de variants ne declare pas AD (lectures par allele)"
   REFUS_ETAT="VCF sans AD"
-elif [ -n "$SM_CRAM" ] && [ "$SM_CRAM" != "$NOMS_VCF" ] && [ "$SM_CRAM" != "$ECH" ] && [ "$NOMS_VCF" != "$ECH" ]; then
-  REFUS_JOURNAL="identites divergentes (VCF $NOMS_VCF, alignement $SM_CRAM, demande $ECH)"
-  REFUS_ETAT="VCF=$NOMS_VCF alignement=$SM_CRAM demande=$ECH"
+elif [ -n "$COLONNE" ] && [ -n "$SM_CRAM" ] && [ "$SM_CRAM" != "$ECH" ] \
+     && [ "$(printf '%s\n' "$NOMS_VCF" | grep -Fxc -- "$SM_CRAM" || true)" != 0 ]; then
+  # L'alignement porte le nom d'un autre individu du meme fichier : les deux
+  # entrees ne sont pas du meme prelevement. Un identifiant interne, lui, ne
+  # figure pas parmi les colonnes, et reste accepte plus bas.
+  REFUS_JOURNAL="l'alignement se nomme $SM_CRAM, une autre colonne du fichier de variants que celle demandee ($ECH)"
+  REFUS_ETAT="alignement=$SM_CRAM, autre colonne du VCF ; demande=$ECH"
+elif [ -n "$SM_CRAM" ] && [ "$SM_CRAM" != "$NOM_VCF" ] && [ "$SM_CRAM" != "$ECH" ] && [ "$NOM_VCF" != "$ECH" ]; then
+  REFUS_JOURNAL="identites divergentes (VCF $NOM_VCF, alignement $SM_CRAM, demande $ECH)"
+  REFUS_ETAT="VCF=$NOM_VCF alignement=$SM_CRAM demande=$ECH"
 elif ! samtools quickcheck "$CRAM" 2>>"$JOURNAL"; then
   REFUS_JOURNAL="alignement tronque ou illisible"
   REFUS_ETAT="samtools quickcheck : alignement tronque"
@@ -589,14 +646,15 @@ if [ -n "$REFUS_ETAT" ]; then
   refuser "entrees non recevables" "entrees non recevables" \
     filtre tranche qc cyp2d6 hla appels pharmcat rendu
 fi
-if [ -n "$SM_CRAM" ] && [ "$SM_CRAM" != "$NOMS_VCF" ]; then
+if [ -n "$SM_CRAM" ] && [ "$SM_CRAM" != "$NOM_VCF" ]; then
   # Le champ SM d'un alignement est parfois un identifiant interne : la
   # divergence est acceptee quand la demande nomme l'un des deux, mais elle
   # est dite et tracee, jamais presentee comme une concordance.
-  clore OK "un echantillon, identites divergentes acceptees (alignement $SM_CRAM, VCF $NOMS_VCF, demande $ECH), assemblage conforme" "identites divergentes acceptees : VCF=$NOMS_VCF alignement=$SM_CRAM demande=$ECH"
+  clore OK "un echantillon, identites divergentes acceptees (alignement $SM_CRAM, VCF $NOM_VCF$PARMI, demande $ECH), assemblage conforme" "identites divergentes acceptees : VCF=$NOM_VCF$PARMI alignement=$SM_CRAM demande=$ECH"
 else
-  clore OK "un echantillon, identites concordantes ($NOMS_VCF), assemblage conforme" "VCF=$NOMS_VCF alignement=$SM_CRAM"
+  clore OK "un echantillon, identites concordantes ($NOM_VCF$PARMI), assemblage conforme" "VCF=$NOM_VCF$PARMI alignement=$SM_CRAM"
 fi
+printf '%s' "$COLONNE" > "$COLONNE_F"
 fi
 
 # ------------------------------------------------------------------ 1. filtre
@@ -607,8 +665,7 @@ if a_faire filtre; then
 entamer filtre
 BEDR="$T/regions.bed"
 reunir "$BEDR" "$RES/pharmcat_positions.bed" "$RES/rnpgx_complement.bed"
-if BCF view -R "$BEDR" -Oz -o "$FIL" "$VCF" >>"$JOURNAL" 2>&1 \
-   && BCF index -f -t "$FIL" >>"$JOURNAL" 2>&1; then
+if extraire "$BEDR" "$FIL"; then
   n=$(BCF view -H "$FIL" 2>/dev/null | wc -l)
   clore OK "$n enregistrements dans les regions visees" "$n enregistrements"
 else
@@ -844,8 +901,7 @@ if a_faire pypgx; then
 entamer pypgx
 if [ -z "$CAT_PYPGX" ]; then
   clore IGNORE "ignore (ni PGX_IMG_PYPGX ni PGX_PYPGX)" "typeur non defini"
-elif BCF view -R "$RES/pypgx_regions.bed" -Oz -o "$PGV" "$VCF" >>"$JOURNAL" 2>&1 \
-     && BCF index -f -t "$PGV" >>"$JOURNAL" 2>&1; then
+elif extraire "$RES/pypgx_regions.bed" "$PGV"; then
   BCF index -s "$VCF" 2>/dev/null | cut -f1 > "$T/contigs_vcf.txt"
   # Le script juge lui-meme, par la fonction de l'etage 2b, les positions qui
   # definissent les alleles : un genotype que le controle qualite ecarte ne doit

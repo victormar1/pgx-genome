@@ -20,7 +20,7 @@ et à chaque pull request. `git push --no-verify` contourne le hook local, pas l
 
 Les tests valent ce que vaut leur capacité à échouer. Chaque garde-fou ajouté
 est vérifié par mutation testing : le défaut qu'il empêche est réintroduit, et
-sa suite doit échouer. Cumul sur les versions : 272 mutants, 272 tués, aucun
+sa suite doit échouer. Cumul sur les versions : 327 mutants, 327 tués, aucun
 survivant (`doc/VALIDATION.md`, § 3.6).
 
 ## Messages de commit

@@ -9,6 +9,7 @@ teste ici.
 
 Linux seulement : le module ne s'execute pas ailleurs.
 """
+import gzip
 import json
 import os
 import shutil
@@ -73,9 +74,10 @@ class Execution(unittest.TestCase):
         cwd = reglages.pop("cwd", None)
         sortie = reglages.pop("sortie", self.sortie)
         cram = reglages.pop("cram", self.cram)
+        vcf = reglages.pop("vcf", VCF)
         env = dict(self.env, **reglages)
         return subprocess.run(
-            ["bash", SCRIPT, "--cram", cram, "--vcf", VCF, "--sortie", sortie,
+            ["bash", SCRIPT, "--cram", cram, "--vcf", vcf, "--sortie", sortie,
              "--echantillon", "HG00699"] + list(options),
             env=env, cwd=cwd, capture_output=True, text=True)
 
@@ -168,8 +170,168 @@ class Execution(unittest.TestCase):
         # la faute dans les donnees du patient.
         self.refus_a_l_entree("lecture du VCF impossible", FAUX_PANNE="vcf_illisible")
 
-    def test_un_vcf_a_deux_echantillons_est_refuse(self):
-        self.refus_a_l_entree("2 echantillons", FAUX_VCF="deux_echantillons")
+    # ------------------------------------------------ plusieurs echantillons
+    def a_trois(self, fusionne=False, noms=("PARENT1", "PARENT2")):
+        """Le fichier de qualification, entre d'autres individus dont aucun
+        genotype n'est le sien : lire une autre colonne se verrait. Fusionne :
+        le dernier n'a aucune valeur, comme l'individu d'un fichier fusionne
+        aux sites ou seuls les autres varient."""
+        chemin = os.path.join(self.d, "famille.vcf.gz")
+        with gzip.open(VCF, "rt", encoding="utf-8") as src, \
+                gzip.open(chemin, "wt", encoding="utf-8", newline="\n") as dst:
+            for l in src:
+                if l.startswith("##"):
+                    dst.write(l)
+                    continue
+                c = l.rstrip("\n").split("\t")
+                if l.startswith("#CHROM"):
+                    autres = list(noms)
+                else:
+                    reste = c[9].split(":")[1:]
+                    autres = [":".join([gt] + reste) for gt in ("0/0", "1/1")][:len(noms)]
+                    if fusionne:
+                        autres[-1] = ":".join(["./."] + ["."] * len(reste))
+                dst.write("\t".join(c[:9] + [autres[0], c[9]] + autres[1:]) + "\n")
+        return chemin
+
+    def colonnes(self, chemin):
+        """Les noms d'echantillon d'un fichier, et ses champs par ligne."""
+        noms, champs = [], []
+        with gzip.open(chemin, "rt", encoding="utf-8") as fh:
+            for l in fh:
+                c = l.rstrip("\n").split("\t")
+                if l.startswith("#CHROM"):
+                    noms = c[9:]
+                elif not l.startswith("#"):
+                    champs.append(c[9:])
+        return noms, champs
+
+    def test_l_individu_nomme_est_extrait_d_un_fichier_a_plusieurs(self):
+        r = self.lancer(vcf=self.a_trois())
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        noms, champs = self.colonnes(os.path.join(self.sortie, "travail", "filtre.vcf.gz"))
+        _, attendus = self.colonnes(VCF)
+        self.assertEqual(noms, ["HG00699"])
+        self.assertEqual(champs, attendus)
+        e = self.trace()["etages"]["recevabilite"]
+        self.assertEqual(e["etat"], "OK")
+        self.assertIn("VCF=HG00699 (1 sur 3)", e["detail"])
+        # L'alignement et la colonne portent le meme nom : c'est une
+        # concordance, et non une divergence acceptee.
+        self.assertNotIn("divergentes", e["detail"])
+        self.assertIn("identites concordantes (HG00699 (1 sur 3))", r.stdout)
+        self.assertEqual(self.trace()["entrees"]["colonne_variants"], "HG00699")
+
+    def test_une_ligne_sans_mesure_de_l_individu_n_est_pas_un_non_appele(self):
+        # Un fichier fusionne : l'individu n'a de ligne que parce qu'un autre
+        # varie. Elle est retiree, et la position se juge sur l'alignement.
+        r = self.lancer("--echantillon", "PARENT2", vcf=self.a_trois(fusionne=True),
+                        FAUX_SM="PARENT2")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        noms, champs = self.colonnes(os.path.join(self.sortie, "travail", "filtre.vcf.gz"))
+        self.assertEqual(noms, ["PARENT2"])
+        self.assertEqual(champs, [])
+        _, attendus = self.colonnes(VCF)
+        with open(os.path.join(self.sortie, "journal.txt"), encoding="utf-8") as fh:
+            self.assertIn("%d ligne(s) sans valeur pour l'individu" % len(attendus), fh.read())
+        with open(os.path.join(self.sortie, "travail", "qc_positions.tsv"),
+                  encoding="utf-8") as fh:
+            lignes = [l.rstrip("\n").split("\t") for l in fh]
+        statut = lignes[0].index("statut")
+        self.assertEqual({l[statut] for l in lignes[1:]} & {"non appelee"}, set())
+        self.assertIn("reference, lue", {l[statut] for l in lignes[1:]})
+
+    def test_un_fichier_a_un_echantillon_n_est_pas_decoupe(self):
+        # Le chemin des fichiers a un seul echantillon ne change pas : aucune
+        # extraction, et la trace ne nomme aucune colonne.
+        self.assertEqual(self.lancer().returncode, 0)
+        with open(self.appels, encoding="utf-8") as fh:
+            vues = [json.loads(l) for l in fh if '"bcftools", "view"' in l]
+        self.assertTrue(vues)
+        self.assertEqual([v for v in vues if "-s" in v], [])
+        self.assertEqual(self.trace()["entrees"]["colonne_variants"], "")
+
+    def test_un_individu_absent_du_fichier_est_refuse_et_les_presents_nommes(self):
+        r = self.lancer("--echantillon", "AUTRE", vcf=self.a_trois(), FAUX_SM="AUTRE")
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        e = self.trace()["etages"]["recevabilite"]
+        self.assertEqual(e["etat"], "ECHEC")
+        self.assertIn("AUTRE absent des 3 echantillons du VCF", e["detail"])
+        self.assertIn("PARENT1, HG00699, PARENT2", r.stdout)
+        self.assertEqual(self.livrables(), ["provenance.json"])
+        self.assertEqual(self.appele('"view", "-b"'), 0)
+
+    def test_deux_echantillons_sont_deja_plusieurs(self):
+        r = self.lancer(vcf=self.a_trois(noms=("PARENT1",)))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        noms, _ = self.colonnes(os.path.join(self.sortie, "travail", "filtre.vcf.gz"))
+        self.assertEqual(noms, ["HG00699"])
+        self.assertIn("VCF=HG00699 (1 sur 2)", self.trace()["etages"]["recevabilite"]["detail"])
+
+    def test_un_nom_partiel_ne_designe_aucune_colonne(self):
+        # « HG0069 » n'est pas « HG00699 » : la colonne se nomme en entier.
+        r = self.lancer("--echantillon", "HG0069", vcf=self.a_trois(), FAUX_SM="HG0069")
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertIn("HG0069 absent des 3 echantillons du VCF",
+                      self.trace()["etages"]["recevabilite"]["detail"])
+
+    def test_un_nom_que_l_extraction_lirait_de_travers_est_refuse(self):
+        # bcftools lit « ^X » comme « tous sauf X », et une virgule comme un
+        # separateur : la colonne extraite ne serait pas celle demandee.
+        for nom in ("^PARENT1", "PERE,MERE"):
+            r = self.lancer("--echantillon", nom, vcf=self.a_trois(noms=(nom, "PARENT2")),
+                            FAUX_SM=nom)
+            self.assertEqual(r.returncode, 2, nom + "\n" + r.stdout + r.stderr)
+            self.assertIn("nom de colonne non extractible",
+                          self.trace()["etages"]["recevabilite"]["detail"])
+            self.assertEqual(self.appele('"view", "-s"'), 0)
+
+    def test_l_alignement_d_un_autre_individu_du_fichier_est_refuse(self):
+        # L'alignement se nomme comme une autre colonne : les deux entrees ne
+        # sont pas du meme individu, et rien d'autre ne le dirait.
+        r = self.lancer(vcf=self.a_trois(), FAUX_SM="PARENT1")
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        e = self.trace()["etages"]["recevabilite"]
+        self.assertEqual(e["etat"], "ECHEC")
+        self.assertIn("alignement=PARENT1, autre colonne du VCF", e["detail"])
+        self.assertEqual(self.appele('"view", "-b"'), 0)
+
+    def test_un_alignement_au_nom_interne_reste_accepte_et_dit(self):
+        r = self.lancer(vcf=self.a_trois(), FAUX_SM="INTERNE")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        e = self.trace()["etages"]["recevabilite"]
+        self.assertIn("identites divergentes acceptees", e["detail"])
+        self.assertIn("VCF=HG00699 (1 sur 3)", e["detail"])
+
+    def test_un_etage_lance_seul_lit_la_colonne_de_la_recevabilite(self):
+        vcf = self.a_trois()
+        for e in ("recevabilite", "filtre"):
+            r = self.lancer("--etage", e, vcf=vcf)
+            self.assertEqual(r.returncode, 0, e + "\n" + r.stdout + r.stderr)
+        noms, _ = self.colonnes(os.path.join(self.sortie, "travail", "filtre.vcf.gz"))
+        self.assertEqual(noms, ["HG00699"])
+
+    def test_le_typage_complementaire_lit_la_meme_colonne(self):
+        # Le typeur recoit sa propre extraction du fichier d'origine : elle
+        # doit porter le meme individu que le filtre.
+        self.lancer(vcf=self.a_trois(), PGX_PYPGX="typeur_absent")
+        with open(self.appels, encoding="utf-8") as fh:
+            vues = [json.loads(l) for l in fh if "pypgx_regions.bed" in l]
+        self.assertEqual(len(vues), 1, vues)
+        self.assertEqual(vues[0][vues[0].index("-s") + 1], "HG00699")
+
+    def test_un_autre_individu_du_meme_fichier_n_est_pas_tenu_pour_deja_fait(self):
+        # Memes fichiers, autre colonne : ni resultat complet ni intermediaire
+        # du premier ne doivent servir au second.
+        vcf = self.a_trois()
+        self.assertEqual(self.lancer(vcf=vcf).returncode, 0)
+        r = self.lancer("--echantillon", "PARENT1", "--si-incomplet", "--reprise",
+                        vcf=vcf, FAUX_SM="PARENT1")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertNotIn("deja complet", r.stdout)
+        noms, champs = self.colonnes(os.path.join(self.sortie, "travail", "filtre.vcf.gz"))
+        self.assertEqual(noms, ["PARENT1"])
+        self.assertTrue(all(c[0].startswith("0/0") for c in champs))
 
     def test_un_vcf_sans_ad_est_refuse_a_l_entree(self):
         # Sans lectures par allele, ni l'equilibre allelique ni le melange ne
@@ -424,6 +586,28 @@ class Execution(unittest.TestCase):
         self.assertIn("reussite complete : 1", r.stdout)
         with open(os.path.join(self.d, "lot", "lot.log"), encoding="utf-8") as fh:
             self.assertIn("deja complet", fh.read())
+
+    def test_un_lot_lit_dans_le_meme_fichier_la_colonne_de_chaque_ligne(self):
+        vcf = self.a_trois()
+        manifeste = os.path.join(self.d, "manifeste.tsv")
+        with open(manifeste, "w", encoding="utf-8", newline="\n") as fh:
+            for nom in ("HG00699", "PARENT2"):
+                cram = os.path.join(self.d, nom + ".cram")
+                with open(cram, "wb") as al:
+                    al.write(b"alignement de " + nom.encode())
+                fh.write("%s\t%s\t%s\n" % (nom, cram, vcf))
+        r = subprocess.run(
+            ["bash", LOT, "--manifeste", manifeste, "--sortie",
+             os.path.join(self.d, "lot"), "--parallele", "2"],
+            env=dict(self.env, FAUX_SM="fichier"), capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("reussite complete : 2", r.stdout)
+        for nom, gt in (("HG00699", None), ("PARENT2", "1/1")):
+            noms, champs = self.colonnes(
+                os.path.join(self.d, "lot", nom, "travail", "filtre.vcf.gz"))
+            self.assertEqual(noms, [nom])
+            if gt:
+                self.assertTrue(all(c[0].startswith(gt) for c in champs), nom)
 
     def test_un_lot_relance_sur_un_autre_alignement_le_retraite(self):
         # Le manifeste est corrige : le meme identifiant designe un autre

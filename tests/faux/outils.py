@@ -11,14 +11,15 @@ code de retour — et non la biologie, que mesure le banc.
 Le nom sous lequel le fichier est appele choisit la doublure : samtools,
 docker ou star_caller.py. Les variables FAUX_* reglent une execution :
 
-  FAUX_SM          identite portee par l'alignement        (defaut HG00699)
+  FAUX_SM          identite portee par l'alignement        (defaut HG00699) ;
+                   « fichier » : le nom du fichier d'alignement, sans extension
   FAUX_PROFONDEUR  profondeur rendue a chaque position     (defaut 30)
   FAUX_PAIRES      paires extraites du complexe majeur     (defaut 500)
   FAUX_D6          diplotype rendu par Cyrius              (defaut *1/*2)
   FAUX_D6_FILTRE   filtre que Cyrius lui attache           (defaut PASS)
   FAUX_PANNE       defaillance a simuler : sort_tue, index_tue, collate,
                    optitype, vcf_illisible, quickcheck, d6_illisible
-  FAUX_VCF         defaut du fichier de variants : sans_ad, deux_echantillons
+  FAUX_VCF         defaut du fichier de variants : sans_ad
   FAUX_JOURNAL     fichier ou chaque appel inscrit sa ligne de commande
 """
 import gzip
@@ -65,12 +66,15 @@ def contigs():
     return vus
 
 
-def entete():
+def entete(alignement=""):
     lignes = ["@HD\tVN:1.6\tSO:coordinate"]
     for c in contigs():
         lignes.append("@SQ\tSN:%s\tLN:300000000" % c)
     lignes.append("@SQ\tSN:HLA-A*01:01:01:01\tLN:3503")
-    lignes.append("@RG\tID:1\tSM:%s" % os.environ.get("FAUX_SM", "HG00699"))
+    sm = os.environ.get("FAUX_SM", "HG00699")
+    if sm == "fichier":
+        sm = os.path.splitext(os.path.basename(alignement))[0]
+    lignes.append("@RG\tID:1\tSM:%s" % sm)
     return "\n".join(lignes) + "\n"
 
 
@@ -84,7 +88,7 @@ def samtools(a):
     cmd, a = a[0], a[1:]
     if cmd == "view":
         if "-H" in a:
-            sys.stdout.write(entete())
+            sys.stdout.write(entete(a[-1]))
         elif "-c" in a:
             print(1000)
         elif "-b" in a:
@@ -156,8 +160,6 @@ def bcftools(a):
             if l.startswith("#CHROM"):
                 for nom in l.rstrip("\n").split("\t")[9:]:
                     print(nom)
-                if defaut == "deux_echantillons":
-                    print("SECOND")
                 return 0
         return 1
     if cmd == "view" and "-h" in a:
@@ -175,7 +177,23 @@ def bcftools(a):
         return 0
     if cmd == "view" and "-R" in a:
         # Le fichier de qualification est deja restreint aux regions utiles.
-        shutil.copyfile(a[-1], apres(a, "-o"))
+        if "-s" not in a:
+            shutil.copyfile(a[-1], apres(a, "-o"))
+            return 0
+        # Comme le vrai : une colonne demandee et absente est une erreur, et
+        # la sortie ne porte que la colonne demandee.
+        nom, garde = apres(a, "-s"), None
+        for l in lignes_vcf(a[-1]):
+            if l.startswith("##"):
+                sys.stdout.write(l)
+                continue
+            c = l.rstrip("\n").split("\t")
+            if l.startswith("#CHROM"):
+                if nom not in c[9:]:
+                    sys.stderr.write("faux bcftools : colonne absente : %s\n" % nom)
+                    return 1
+                garde = c.index(nom)
+            sys.stdout.write("\t".join(c[:9] + [c[garde]]) + "\n")
         return 0
     if cmd == "index":
         ecrire(a[-1] + ".tbi", b"index")

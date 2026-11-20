@@ -164,6 +164,26 @@ class Garanties(unittest.TestCase):
         self.assertIsNotNone(m)
         self.assertIn('version=$(cat "$RACINE/VERSION"', m.group(1))
 
+    def test_la_signature_de_reprise_porte_l_echantillon(self):
+        # Un fichier de variants peut porter plusieurs individus : memes
+        # fichiers, autre colonne, et les intermediaires ne valent plus.
+        m = re.search(r'^SIGNATURE="(.*)"$', self.s, re.M)
+        self.assertIsNotNone(m)
+        self.assertIn("ech=$ECH", m.group(1))
+
+    def test_toute_lecture_du_fichier_de_variants_nomme_la_colonne(self):
+        # Une lecture qui l'oublierait rendrait, sur un fichier a plusieurs
+        # individus, les genotypes de tous : l'etage suivant lirait le premier.
+        i = self.s.index("\nextraire() {")
+        fonction = self.s[i:self.s.index("\n}\n", i)]
+        self.assertIn('BCF view -s "$COLONNE" -R "$1"', fonction)
+        self.assertIn("colonne_vcf.py", fonction)
+        ailleurs = self.s[:i] + self.s[i + len(fonction):]
+        lectures = [l for l in ailleurs.splitlines()
+                    if "BCF view" in l and '"$VCF"' in l and " -h " not in l]
+        self.assertEqual(lectures, [])
+        self.assertEqual(len(re.findall(r"^(?:if|elif) extraire ", ailleurs, re.M)), 2)
+
     def test_la_recevabilite_purge_les_livrables_precedents(self):
         # Un etage en echec laisserait sinon le compte rendu ou la trace d'une
         # autre execution dans le dossier de sortie.

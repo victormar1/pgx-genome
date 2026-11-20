@@ -126,15 +126,29 @@ sous Apptainer rejoue cette qualification sous ce moteur.
 | Entrée | Format | Contrainte |
 |---|---|---|
 | Alignement | CRAM ou BAM indexé | GRCh38, le même que celui du rendu diagnostique |
-| Variants | VCF d'un seul échantillon | GRCh38, avec `GT`, `GQ` et `AD` ; couvrant le génome entier, contig mitochondrial compris |
+| Variants | VCF d'un ou de plusieurs échantillons | GRCh38, avec `GT`, `GQ` et `AD` ; couvrant le génome entier, contig mitochondrial compris |
 | Référence | FASTA indexé | celle qui a servi à l'alignement, obligatoire pour un CRAM |
 
 Une région absente du fichier de variants rend ses gènes non conclusifs, jamais
 « référence ».
 
+Un fichier de variants à plusieurs échantillons se lit pour un individu à la
+fois : `--echantillon` nomme sa colonne, et rien n'est lu des autres. Un fichier
+à un seul échantillon se lit comme avant, quel que soit son nom.
+
+| Ligne du fichier, pour l'individu | Origine | Traitement |
+|---|---|---|
+| génotype et lectures, référence comprise | appel conjoint | jugée par le contrôle qualité |
+| non appelé, avec des lectures | appel conjoint | position écartée |
+| aucune valeur, ou référence sans aucune valeur | fusion de fichiers individuels | ligne retirée : la position se juge sur l'alignement, comme sans ligne |
+| allèle alternatif sans qualité | fusion mal formée | position écartée |
+| allèle d'un autre individu, sans lectures | fusion de fichiers individuels | allèle retiré de la ligne |
+
 Le module **refuse** à l'entrée, sans lancer aucun étage :
 
-- un fichier de variants portant plus d'un échantillon ;
+- un fichier de variants à plusieurs échantillons dont aucun ne porte le nom
+  demandé ; le journal donne les noms présents ;
+- un alignement qui porte le nom d'une autre colonne du fichier de variants ;
 - un fichier de variants qui ne déclare pas `AD`, les lectures par allèle ;
 - trois noms deux à deux différents : l'identifiant demandé, celui du fichier de
   variants et le champ `SM` de l'alignement. Une divergence entre les deux
@@ -196,7 +210,7 @@ qui ne nomme aucun patient est une entrée cassée : le compte rendu n'est pas p
 
 | Option | Défaut | Rôle |
 |---|---|---|
-| `--echantillon` | nom de l'alignement | identifiant du prélèvement, confronté au VCF et à l'alignement |
+| `--echantillon` | nom de l'alignement | identifiant du prélèvement, confronté au VCF et à l'alignement ; colonne lue si le VCF porte plusieurs échantillons |
 | `--fasta` | `$PGX_FASTA` | référence d'alignement |
 | `--identite` | absente | JSON `{patient, naissance, contexte}` ; fourni, il lève la mention prototype |
 | `--contexte` | absent | préindication portée sur le compte rendu, si le fichier d'identité n'en porte pas |
@@ -227,7 +241,9 @@ bin/pgx_lot.sh --manifeste liste.tsv --sortie /chemin/resultats --parallele 6
 ```
 
 Le manifeste porte trois colonnes séparées par des tabulations : identifiant,
-chemin de l'alignement, chemin du fichier de variants. Un échantillon déjà complet
+chemin de l'alignement, chemin du fichier de variants. Le même fichier de
+variants peut servir à plusieurs lignes : l'identifiant nomme alors la colonne
+lue. Un échantillon déjà complet
 est sauté, si sa trace porte la signature de ces mêmes entrées, options et
 version ; sinon il est retraité. Le lot produit `tableau_de_bord.tsv` : une ligne par échantillon,
 l'état et la durée de chaque étage. Le parallélisme vaut 4 par défaut et est

@@ -120,6 +120,8 @@ def main():
     p.add_argument("--echantillon", required=True)
     p.add_argument("--cram", required=True)
     p.add_argument("--vcf", required=True)
+    p.add_argument("--colonne", default="",
+                   help="colonne lue dans un fichier de variants a plusieurs echantillons")
     p.add_argument("--fasta", default="")
     p.add_argument("--ressources", required=True)
     p.add_argument("--gq", type=int, required=True)
@@ -190,6 +192,10 @@ def main():
             "empreinte_alignement": sha256(a.cram, limite=512 << 20),
             "variants": os.path.abspath(a.vcf),
             "empreinte_variants": sha256(a.vcf),
+            # Vide quand le fichier ne porte qu'un echantillon : rien n'en a
+            # ete extrait. Sinon, l'empreinte ci-dessus est celle du fichier de
+            # tous les individus, et seul ce nom dit lequel a ete lu.
+            "colonne_variants": a.colonne,
             "reference": os.path.abspath(a.fasta) if a.fasta else "",
             "empreinte_reference": sha256(a.fasta, limite=64 << 20) if a.fasta else "",
             # Le hash du FASTA s'arrete a 64 Mo, communs a deux GRCh38 avec ou sans
