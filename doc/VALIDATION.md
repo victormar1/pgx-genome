@@ -17,7 +17,7 @@ dit comment la refaire.
 | **Domaine de validité** | aucun allèle à conséquence clinique perdu jusqu'à 18 × ; neuf faux appels à 11 ×, d'où le refus sous 18 × | 3.4 |
 | Changement de variant caller | 103 683 positions, 99,924 % ; aucun écart de phénotype ni de recommandation sur 29 génomes rejoués | 3.5 |
 | Répétabilité | trois exécutions d'un même génome, aucun écart | 3.2 |
-| Code | 482 cas de test ; 327 mutants, 327 tués | 3.6 |
+| Code | 482 cas de test ; 334 mutants, 334 tués | 3.6 |
 | Débit | 51 génomes par heure sur 24 cœurs | 3.10 |
 
 **Les trois limites qui engagent une plateforme** : un mélange d'échantillons de
@@ -380,7 +380,7 @@ Ces six écarts n'apparaissent pas sous 29 génomes : un échantillon de 9 en do
 | Mesure | Résultat |
 |---|---|
 | Cas de test | 482 |
-| Mutation testing, cumulé sur les versions | **327 mutants, 327 tués, 0 survivant** |
+| Mutation testing, cumulé sur les versions | **334 mutants, 334 tués, 0 survivant** |
 | Contrôles d'intégrité du dépôt | 4 mutants, 4 tués |
 | Reproductibilité du catalogue généré | 3 régénérations, **même hash**, égal à celui du fichier livré |
 

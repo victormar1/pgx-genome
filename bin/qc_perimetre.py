@@ -17,8 +17,9 @@ resultat normal :
   - la profondeur est celle de l alignement, jamais celle que declare le
     fichier de variants ;
   - l etage echoue si le fichier porte plus d un echantillon ;
-  - un site rejete par le filtrage de l appelant est ecarte, sauf demande
-    explicite par --ignorer-filtre ;
+  - un site rejete par le filtrage de l appelant est ecarte si l individu y
+    porte un allele alternatif, sauf demande explicite par --ignorer-filtre :
+    le filtre juge le variant du site, et ne dit rien de qui ne le porte pas ;
   - un genotype calcule sur moins de lectures que le seuil de profondeur est
     ecarte, meme si l alignement en porte davantage : c est l appel qu on juge ;
   - un heterozygote dont un allele porte moins du quart des lectures est ecarte,
@@ -261,6 +262,11 @@ def appele(gt):
     return "." not in gt.replace("|", "/").split("/")
 
 
+def porte_un_alternatif(gt):
+    """Vrai si un genotype appele porte un allele autre que la reference."""
+    return any(a != "0" for a in gt.replace("|", "/").split("/"))
+
+
 # Les statuts qui valent mesure : la position compte comme retenue.
 RETENUS = ("mesuree", "reference, lue", "couverture seule")
 
@@ -302,8 +308,13 @@ def classer(info, champs, lu, gq_min, prof_min, ignorer_filtre=False, equilibre=
         return "profondeur inconnue"
     if lu < prof_min:
         return "profondeur insuffisante"
+    # Le filtre de l appelant est ecrit une fois par site : il juge le variant,
+    # pas l individu. Il ne compte donc que pour qui porte un allele
+    # alternatif. Un fichier de cohorte donne une ligne a chacun la ou un seul
+    # varie, et le filtre du variant d un autre ecarterait une reference bien
+    # lue. La qualite et les lectures de l individu restent jugees.
     filtre = (champs[6] if len(champs) > 6 else "") or ""
-    if not ignorer_filtre and filtre not in (".", "PASS", ""):
+    if not ignorer_filtre and filtre not in (".", "PASS", "") and porte_un_alternatif(gt):
         return "site filtre"
     # la profondeur de l appel est celle sur laquelle le genotype a ete
     # calcule ; l alignement peut en porter davantage que l appelant n a lu

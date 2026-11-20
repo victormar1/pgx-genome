@@ -144,6 +144,12 @@ fois : `--echantillon` nomme sa colonne, et rien n'est lu des autres. Un fichier
 | allèle alternatif sans qualité | fusion mal formée | position écartée |
 | allèle d'un autre individu, sans lectures | fusion de fichiers individuels | allèle retiré de la ligne |
 
+Un appel conjoint donne à l'individu une ligne à chaque site où un autre
+varie. Le contrôle qualité y juge sa qualité et ses lectures, pas le filtre du
+site, qui porte sur le variant d'un autre (§ 6, étage 2b). Une référence que
+l'appelant note d'une qualité insuffisante écarte donc la position, ce que son
+propre fichier, sans ligne à cet endroit, ne ferait pas.
+
 Le module **refuse** à l'entrée, sans lancer aucun étage :
 
 - un fichier de variants à plusieurs échantillons dont aucun ne porte le nom
@@ -409,14 +415,17 @@ réécriture.
 
 Cinq motifs écartent une position, tous mesurés sur génomes réels avant d'être
 retenus : qualité de génotype sous le seuil, profondeur sous le seuil, **site
-rejeté par le filtrage de l'appelant**, **génotype calculé sur moins de lectures
+rejeté par le filtrage de l'appelant, quand l'individu y porte un allèle
+alternatif**, **génotype calculé sur moins de lectures
 que le seuil de profondeur** même si l'alignement en porte davantage, et
 **déséquilibre allélique**, quand un allèle d'un hétérozygote porte moins du quart
 des lectures. Ce dernier motif ne s'applique pas aux gènes dont le nombre de
 copies varie, où une duplication déplace légitimement l'équilibre : seul CYP2D6
-est dans ce cas, et son diplotype vient d'un outil dédié. Le filtrage de
-l'appelant peut être ignoré par `--ignorer-filtre`, à n'utiliser que si le fichier
-de variants a déjà été refiltré en amont.
+est dans ce cas, et son diplotype vient d'un outil dédié. Le filtre de
+l'appelant est écrit une fois par site et juge le variant : il ne dit rien de
+l'individu qui ne le porte pas, dont la ligne reste jugée sur sa qualité et ses
+lectures. Il peut être ignoré par `--ignorer-filtre`, à n'utiliser que si le
+fichier de variants a déjà été refiltré en amont.
 
 Quand une position porte plusieurs enregistrements, tous sont jugés et un seul
 écarté suffit à écarter la position : l'interpréteur les lit tous. La profondeur
